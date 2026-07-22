@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus } from "lucide-react";
-import Feedback from "@/components/Feedback";
 import { supabase } from "@/lib/supabaseClient";
 
 const SKY = "#0EA5E9";
@@ -201,8 +200,6 @@ export default function DayCards({ days, mode, regionId }) {
                     </button>
                   </div>
                 )}
-
-                <Feedback targetKey={`day:${regionId}:${di}`} />
               </div>
             </div>
 

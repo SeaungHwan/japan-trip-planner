@@ -30,21 +30,23 @@ export default function RegionChips({ regions, active, onSelect, showMore, onTog
           );
         })}
       </div>
-      <button
-        className="text-xs mb-5 flex items-center gap-1"
-        style={{ color: SKY, fontWeight: 700 }}
-        onClick={onToggleMore}
-      >
-        {showMore ? (
-          <>
-            <ChevronUp size={14} /> 접기
-          </>
-        ) : (
-          <>
-            <ChevronDown size={14} /> 여행지 더보기 (+{moreCount})
-          </>
-        )}
-      </button>
+      {moreCount > 0 && (
+        <button
+          className="text-xs mb-5 flex items-center gap-1"
+          style={{ color: SKY, fontWeight: 700 }}
+          onClick={onToggleMore}
+        >
+          {showMore ? (
+            <>
+              <ChevronUp size={14} /> 접기
+            </>
+          ) : (
+            <>
+              <ChevronDown size={14} /> 여행지 더보기 (+{moreCount})
+            </>
+          )}
+        </button>
+      )}
     </>
   );
 }

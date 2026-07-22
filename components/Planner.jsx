@@ -115,7 +115,7 @@ export default function Planner() {
 
         <RegionHeader region={region} />
         {!region.isCustom && <FlightCard flight={region.flight} />}
-        <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} regionId={region.id} />
+        <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} />
         {!region.isCustom && (
           <>
             <ModeToggle mode={mode} onChange={setMode} />
