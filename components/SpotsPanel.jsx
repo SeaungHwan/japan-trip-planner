@@ -2,7 +2,7 @@
 
 import { Star, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 
-export default function SpotsPanel({ spots, open, onToggle }) {
+export default function SpotsPanel({ spots, open, onToggle, onLocateSpot }) {
   return (
     <div className="rounded-xl mb-4 overflow-hidden" style={{ border: "1px solid #BAE6FD" }}>
       <button className="w-full flex items-center justify-between p-3" style={{ background: "#F0F9FF" }} onClick={onToggle}>
@@ -13,16 +13,28 @@ export default function SpotsPanel({ spots, open, onToggle }) {
       </button>
       <div className={open ? "spots-panel open" : "spots-panel"}>
         <div className="flex flex-wrap gap-2 p-3 pt-2">
-          {(spots || []).map((s, i) => (
-            <span
-              key={i}
-              className="text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1"
-              style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-            >
-              <MapPin size={11} color="#F59E0B" />
-              {s.name}
-            </span>
-          ))}
+          {(spots || []).map((s, i) =>
+            typeof s.lat === "number" && typeof s.lng === "number" ? (
+              <button
+                key={i}
+                onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng })}
+                className="text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1"
+                style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+              >
+                <MapPin size={11} color="#F59E0B" />
+                {s.name}
+              </button>
+            ) : (
+              <span
+                key={i}
+                className="text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1"
+                style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+              >
+                <MapPin size={11} color="#F59E0B" />
+                {s.name}
+              </span>
+            )
+          )}
         </div>
       </div>
     </div>

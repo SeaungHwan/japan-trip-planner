@@ -48,6 +48,11 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const [dragOverPos, setDragOverPos] = useState(null);
   const [locatingItem, setLocatingItem] = useState(null);
   const dragPosRef = useRef(null);
+  const cardRefs = useRef({});
+
+  useEffect(() => {
+    if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [editingDay]);
 
   useEffect(() => {
     let alive = true;
@@ -223,6 +228,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
         return (
           <div
             key={`${regionId}-${mode}-${di}`}
+            ref={(el) => (cardRefs.current[di] = el)}
             draggable={reorderMode}
             onDragStart={() => {
               dragPosRef.current = displayIdx;
@@ -263,6 +269,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
                     onChange={(e) => setDrafts((d) => ({ ...d, __title__: e.target.value }))}
                     onBlur={() => commitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
                     onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                    autoFocus
                     className="w-full text-[15px] rounded px-1.5 py-0.5"
                     style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", fontWeight: 700 }}
                   />
