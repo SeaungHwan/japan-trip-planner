@@ -17,7 +17,7 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot }) {
             typeof s.lat === "number" && typeof s.lng === "number" ? (
               <button
                 key={i}
-                onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng })}
+                onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng, name: s.name })}
                 className="text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1"
                 style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
               >

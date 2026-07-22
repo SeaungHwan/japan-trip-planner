@@ -325,7 +325,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
                     ) : it.lat != null ? (
                       <li key={it.key}>
                         <button
-                          onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng })}
+                          onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
                           className="text-[13px] flex items-center gap-1 text-left"
                           style={{ color: "#5B7A90" }}
                         >

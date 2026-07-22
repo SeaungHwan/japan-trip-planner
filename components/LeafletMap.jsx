@@ -1,7 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import { Minimize2 } from "lucide-react";
@@ -31,11 +31,6 @@ function FlyTo({ center, zoom }) {
 
 export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus }) {
   const activeRegion = regions[active] || null;
-  const [openSpot, setOpenSpot] = useState(null);
-
-  useEffect(() => {
-    setOpenSpot(null);
-  }, [active, zoomed]);
 
   const hasCoords = !!activeRegion && typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
   const hasFocus = zoomed && focus && typeof focus.lat === "number" && typeof focus.lng === "number";
@@ -76,7 +71,13 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           })}
 
         {hasFocus && (
-          <Marker position={[focus.lat, focus.lng]} icon={pinIcon(16, "#EF4444")} />
+          <Marker position={[focus.lat, focus.lng]} icon={pinIcon(16, "#EF4444")}>
+            {focus.name && (
+              <Tooltip permanent direction="top" offset={[0, -10]} className="spot-tooltip">
+                {focus.name}
+              </Tooltip>
+            )}
+          </Marker>
         )}
 
         {zoomed &&
@@ -84,17 +85,10 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           (activeRegion.moreSpots || [])
             .filter((s) => typeof s.lat === "number" && typeof s.lng === "number")
             .map((s, i) => (
-              <Marker
-                key={i}
-                position={[s.lat, s.lng]}
-                icon={pinIcon(9, "#F59E0B")}
-                eventHandlers={{ click: () => setOpenSpot((prev) => (prev === i ? null : i)) }}
-              >
-                {openSpot === i && (
-                  <Tooltip permanent direction="top" offset={[0, -6]} className="spot-tooltip">
-                    {s.name}
-                  </Tooltip>
-                )}
+              <Marker key={i} position={[s.lat, s.lng]} icon={pinIcon(9, "#F59E0B")}>
+                <Tooltip permanent direction="top" offset={[0, -6]} className="spot-tooltip">
+                  {s.name}
+                </Tooltip>
               </Marker>
             ))}
       </MapContainer>
