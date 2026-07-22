@@ -71,6 +71,12 @@ create table if not exists day_item_edits (
   unique (region_id, mode, day_index, item_key)
 );
 
+-- 일정 항목(또는 새로 추가한 "카드")에 위치를 지정해 지도와 연동할 수 있게 합니다.
+-- item_key="__custom_day__"는 기본 데이터에 없는 새 일정 카드가 존재함을 표시하는 마커이고,
+-- item_key="__order__"의 sort_order는 카드/항목의 표시 순서(드래그 재정렬)에 씁니다.
+alter table day_item_edits add column if not exists lat double precision;
+alter table day_item_edits add column if not exists lng double precision;
+
 create index if not exists comments_target_key_idx on comments (target_key);
 create index if not exists reactions_target_key_idx on reactions (target_key);
 create index if not exists day_item_edits_region_idx on day_item_edits (region_id);

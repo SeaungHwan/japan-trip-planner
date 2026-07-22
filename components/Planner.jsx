@@ -34,6 +34,7 @@ export default function Planner() {
   const [showMore, setShowMore] = useState(false);
   const [showSpots, setShowSpots] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [focus, setFocus] = useState(null);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -66,6 +67,12 @@ export default function Planner() {
     setActive(i);
     setShowSpots(false);
     setZoomed(true);
+    setFocus(null);
+  }
+
+  function locateItem(point) {
+    setFocus(point);
+    setZoomed(true);
   }
 
   function toggleMore() {
@@ -94,7 +101,11 @@ export default function Planner() {
           active={active}
           zoomed={zoomed}
           onSelect={selectRegion}
-          onZoomOut={() => setZoomed(false)}
+          onZoomOut={() => {
+            setZoomed(false);
+            setFocus(null);
+          }}
+          focus={focus}
         />
 
         <RegionChips
@@ -121,7 +132,7 @@ export default function Planner() {
         {region.days?.length > 0 && (
           <>
             <ModeToggle mode={mode} onChange={setMode} />
-            <DayCards days={region.days} mode={mode} regionId={region.id} />
+            <DayCards days={region.days} mode={mode} regionId={region.id} onLocateItem={locateItem} />
           </>
         )}
 

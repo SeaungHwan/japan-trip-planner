@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const SKY = "#0EA5E9";
+const CUSTOM_DAY_BASE = 100000;
+
+const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
+  ssr: false,
+  loading: () => <div className="rounded mb-2" style={{ height: 180, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+});
 
 function mergeItems(baseItems, edits) {
   const editMap = new Map(edits.map((e) => [e.item_key, e]));
@@ -14,12 +21,12 @@ function mergeItems(baseItems, edits) {
     const key = `base:${i}`;
     const e = editMap.get(key);
     if (e?.deleted) return;
-    merged.push({ key, text: e ? e.text : text, sortOrder: e ? e.sort_order : i });
+    merged.push({ key, text: e ? e.text : text, sortOrder: e ? e.sort_order : i, lat: e?.lat ?? null, lng: e?.lng ?? null });
   });
 
   edits
     .filter((e) => e.item_key.startsWith("custom:") && !e.deleted)
-    .forEach((e) => merged.push({ key: e.item_key, text: e.text, sortOrder: e.sort_order }));
+    .forEach((e) => merged.push({ key: e.item_key, text: e.text, sortOrder: e.sort_order, lat: e.lat ?? null, lng: e.lng ?? null }));
 
   merged.sort((a, b) => a.sortOrder - b.sortOrder);
   return merged;
@@ -32,13 +39,14 @@ function orderBetween(before, after) {
   return (before + after) / 2;
 }
 
-export default function DayCards({ days, mode, regionId }) {
+export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const [edits, setEdits] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
   const [dragOverPos, setDragOverPos] = useState(null);
+  const [locatingItem, setLocatingItem] = useState(null);
   const dragPosRef = useRef(null);
 
   useEffect(() => {
@@ -70,6 +78,7 @@ export default function DayCards({ days, mode, regionId }) {
     setDrafts({});
     setNewText("");
     setReorderMode(false);
+    setLocatingItem(null);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
@@ -92,6 +101,8 @@ export default function DayCards({ days, mode, regionId }) {
         text: existing?.text ?? null,
         deleted: existing?.deleted ?? false,
         sort_order: existing?.sort_order ?? 0,
+        lat: existing?.lat ?? null,
+        lng: existing?.lng ?? null,
         ...patch,
         updated_at: new Date().toISOString(),
       },
@@ -119,6 +130,16 @@ export default function DayCards({ days, mode, regionId }) {
     await upsert(dayIdx, key, { text, sort_order: maxOrder + 1 });
   }
 
+  async function setItemLocation(dayIdx, item, point) {
+    await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: point.lat, lng: point.lng });
+    setLocatingItem(null);
+  }
+
+  async function clearItemLocation(dayIdx, item) {
+    await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
+    setLocatingItem(null);
+  }
+
   function titleFor(dayIdx, baseTitle) {
     const e = edits.find((ed) => ed.mode === mode && ed.day_index === dayIdx && ed.item_key === "__title__");
     return e ? e.text : baseTitle;
@@ -144,6 +165,22 @@ export default function DayCards({ days, mode, regionId }) {
     setEditingDay(null);
   }
 
+  function planFor(di) {
+    if (di < days.length) {
+      const plan = days[di][mode];
+      return { title: titleFor(di, plan.title), items: mergeItems(plan.items, editsFor(di)) };
+    }
+    return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)) };
+  }
+
+  const customDayIndices = [...new Set(edits.filter((e) => e.item_key === "__custom_day__").map((e) => e.day_index))];
+  const allDayIndices = days.map((_, i) => i).concat(customDayIndices);
+
+  const visibleDays = allDayIndices
+    .map((di) => ({ di, order: orderFor(di) }))
+    .filter((v) => !isDayDeleted(v.di))
+    .sort((a, b) => a.order - b.order);
+
   function reorderDay(fromPos, toPos) {
     if (fromPos === toPos) return;
     const arr = [...visibleDays];
@@ -154,26 +191,33 @@ export default function DayCards({ days, mode, regionId }) {
     upsert(moved.di, "__order__", { sort_order: newOrder });
   }
 
-  const visibleDays = days
-    .map((day, di) => ({ day, di, order: orderFor(di) }))
-    .filter((v) => !isDayDeleted(v.di))
-    .sort((a, b) => a.order - b.order);
+  async function addDay() {
+    const nextIdx = customDayIndices.length ? Math.max(...customDayIndices) + 1 : CUSTOM_DAY_BASE;
+    const maxOrder = visibleDays.reduce((m, v) => Math.max(m, v.order), -1);
+    await upsert(nextIdx, "__custom_day__", {});
+    await upsert(nextIdx, "__title__", { text: "새 일정" });
+    await upsert(nextIdx, "__order__", { sort_order: maxOrder + 1 });
+    setEditingDay(nextIdx);
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      {visibleDays.length > 1 && (
-        <button
-          className="self-end text-[12px] flex items-center gap-1 -mb-1"
-          style={{ color: SKY, fontWeight: 700 }}
-          onClick={toggleReorderMode}
-        >
-          <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+      <div className="flex items-center justify-end gap-3 -mb-1">
+        {visibleDays.length > 1 && (
+          <button
+            className="text-[12px] flex items-center gap-1"
+            style={{ color: SKY, fontWeight: 700 }}
+            onClick={toggleReorderMode}
+          >
+            <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+          </button>
+        )}
+        <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
+          <Plus size={13} /> 카드 추가
         </button>
-      )}
-      {visibleDays.map(({ day, di }, displayIdx) => {
-        const plan = day[mode];
-        const title = titleFor(di, plan.title);
-        const items = mergeItems(plan.items, editsFor(di));
+      </div>
+      {visibleDays.map(({ di }, displayIdx) => {
+        const { title, items } = planFor(di);
         const isEditing = editingDay === di;
 
         return (
@@ -227,7 +271,10 @@ export default function DayCards({ days, mode, regionId }) {
                     {title}
                   </div>
                 )}
-                <ul className="mt-1.5 space-y-1">
+                <ul
+                  className="mt-1.5 space-y-1"
+                  style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}
+                >
                   {items.map((it) =>
                     isEditing ? (
                       <li key={it.key} className="flex items-center gap-1">
@@ -239,8 +286,25 @@ export default function DayCards({ days, mode, regionId }) {
                           className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
                           style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
                         />
+                        <button
+                          onClick={() => setLocatingItem((cur) => (cur?.item.key === it.key ? null : { dayIdx: di, item: it }))}
+                          aria-label="위치 설정"
+                          className="shrink-0"
+                        >
+                          <MapPin size={13} color={it.lat != null ? SKY : "#94A9B8"} />
+                        </button>
                         <button onClick={() => deleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
                           <Trash2 size={13} color="#94A9B8" />
+                        </button>
+                      </li>
+                    ) : it.lat != null ? (
+                      <li key={it.key}>
+                        <button
+                          onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng })}
+                          className="text-[13px] flex items-center gap-1 text-left"
+                          style={{ color: "#5B7A90" }}
+                        >
+                          <MapPin size={11} color={SKY} className="shrink-0" /> {it.text}
                         </button>
                       </li>
                     ) : (
@@ -250,6 +314,32 @@ export default function DayCards({ days, mode, regionId }) {
                     )
                   )}
                 </ul>
+
+                {isEditing && locatingItem?.dayIdx === di && (
+                  <div className="rounded-lg p-2 mt-1.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+                        &quot;{locatingItem.item.text}&quot; 위치 지정
+                      </span>
+                      <button onClick={() => setLocatingItem(null)} aria-label="닫기">
+                        <X size={14} color="#94A9B8" />
+                      </button>
+                    </div>
+                    <LocationPicker
+                      point={locatingItem.item.lat != null ? { lat: locatingItem.item.lat, lng: locatingItem.item.lng } : null}
+                      onPick={(p) => setItemLocation(di, locatingItem.item, p)}
+                    />
+                    {locatingItem.item.lat != null && (
+                      <button
+                        onClick={() => clearItemLocation(di, locatingItem.item)}
+                        className="text-[12px]"
+                        style={{ color: "#EF4444", fontWeight: 700 }}
+                      >
+                        위치 삭제
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {isEditing && (
                   <div className="flex items-center gap-1 mt-1.5">

@@ -10,6 +10,7 @@ const SKY = "#0EA5E9";
 const JAPAN_CENTER = [37.5, 137.5];
 const JAPAN_ZOOM = 5;
 const REGION_ZOOM = 12;
+const FOCUS_ZOOM = 15;
 
 function pinIcon(size, color) {
   return L.divIcon({
@@ -28,7 +29,7 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
-export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut }) {
+export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus }) {
   const activeRegion = regions[active];
   const [openSpot, setOpenSpot] = useState(null);
 
@@ -37,8 +38,9 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
   }, [active, zoomed]);
 
   const hasCoords = typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
-  const center = zoomed && hasCoords ? [activeRegion.lat, activeRegion.lng] : JAPAN_CENTER;
-  const zoom = zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
+  const hasFocus = zoomed && focus && typeof focus.lat === "number" && typeof focus.lng === "number";
+  const center = hasFocus ? [focus.lat, focus.lng] : zoomed && hasCoords ? [activeRegion.lat, activeRegion.lng] : JAPAN_CENTER;
+  const zoom = hasFocus ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
 
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
@@ -69,6 +71,10 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
               </Marker>
             );
           })}
+
+        {hasFocus && (
+          <Marker position={[focus.lat, focus.lng]} icon={pinIcon(16, "#EF4444")} />
+        )}
 
         {zoomed &&
           (activeRegion.moreSpots || [])
