@@ -90,7 +90,8 @@ export default function Planner() {
     };
   }, []);
 
-  const allTrips = [DEFAULT_TRIP, ...trips];
+  const defaultTripOverride = trips.find((t) => t.id === DEFAULT_TRIP.id);
+  const allTrips = [defaultTripOverride || DEFAULT_TRIP, ...trips.filter((t) => t.id !== DEFAULT_TRIP.id)];
   const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
   const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
   const tripUserRegions = userRegions.filter((r) => r.tripId === activeTripId);
