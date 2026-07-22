@@ -1,11 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/variable/pretendardvariable.css");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: "Noto Sans KR", sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   background: #ffffff;
 }
 
@@ -82,13 +83,6 @@ body {
   transform: scale(0.94);
 }
 
-.check-btn {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
-}
-.check-btn.done {
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 .toggle-indicator {
   transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
@@ -106,23 +100,29 @@ body {
   max-height: 300px;
 }
 
-#mapOuter {
-  position: relative;
-  overflow: hidden;
-  height: 340px;
-  background: #f0f9ff;
-}
-#mapInner {
-  position: absolute;
-  inset: 0;
-  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-#mapInner img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
 .zoom-btn {
   animation: popIn 0.25s ease both;
+}
+
+.region-tooltip,
+.spot-tooltip {
+  border: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.region-tooltip::before,
+.spot-tooltip::before {
+  display: none;
+}
+.region-tooltip {
+  background: #0ea5e9 !important;
+  color: #ffffff !important;
+}
+.spot-tooltip {
+  background: #ffffff !important;
+  color: #0f2a3d !important;
+  border: 1px solid #f59e0b !important;
 }

@@ -1,15 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { X } from "lucide-react";
-import { MAP_IMAGE_URL } from "@/data/regions";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import { X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { ensureNickname } from "@/lib/nickname";
+import { getIdentity } from "@/lib/auth";
 
 const SKY = "#0EA5E9";
 
+const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
+  ssr: false,
+  loading: () => <div className="rounded mb-2" style={{ height: 220, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+});
+
 export default function AddRegionForm({ onClose, onAdded }) {
-  const imgRef = useRef(null);
   const [kr, setKr] = useState("");
   const [jp, setJp] = useState("");
   const [spotsText, setSpotsText] = useState("");
@@ -17,13 +21,29 @@ export default function AddRegionForm({ onClose, onAdded }) {
   const [point, setPoint] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [generating, setGenerating] = useState(false);
 
-  function pickPoint(e) {
-    const rect = imgRef.current.getBoundingClientRect();
-    setPoint({
-      x: +(((e.clientX - rect.left) / rect.width) * 100).toFixed(2),
-      y: +(((e.clientY - rect.top) / rect.height) * 100).toFixed(2),
-    });
+  async function generateWithAI() {
+    if (!kr.trim()) {
+      setError("지역 이름을 먼저 입력해주세요");
+      return;
+    }
+    setGenerating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/generate-region", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: kr.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "생성 실패");
+      setSpotsText(data.spots.join(", "));
+      setNote(data.note);
+    } catch (e) {
+      setError(e.message);
+    }
+    setGenerating(false);
   }
 
   async function submit() {
@@ -31,8 +51,8 @@ export default function AddRegionForm({ onClose, onAdded }) {
       setError("지역 이름과 지도 위치는 필수예요");
       return;
     }
-    const nick = ensureNickname();
-    if (!nick) return;
+    const identity = await getIdentity();
+    if (!identity) return;
 
     setSaving(true);
     setError("");
@@ -43,7 +63,7 @@ export default function AddRegionForm({ onClose, onAdded }) {
 
     const { data, error: err } = await supabase
       .from("user_regions")
-      .insert({ kr: kr.trim(), jp: jp.trim() || null, x: point.x, y: point.y, note: note.trim() || null, spots, created_by: nick })
+      .insert({ kr: kr.trim(), jp: jp.trim() || null, lat: point.lat, lng: point.lng, note: note.trim() || null, spots, created_by: identity.nickname })
       .select()
       .single();
 
@@ -79,6 +99,15 @@ export default function AddRegionForm({ onClose, onAdded }) {
           style={{ border: "1px solid #BAE6FD" }}
         />
 
+        <button
+          onClick={generateWithAI}
+          disabled={generating}
+          className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
+          style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
+        >
+          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 가볼만한 곳 · 메모 자동 생성"}
+        </button>
+
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           일본어 이름 (선택)
         </label>
@@ -93,16 +122,7 @@ export default function AddRegionForm({ onClose, onAdded }) {
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           지도 위치 (필수) — 아래 지도를 클릭해서 위치를 찍어주세요
         </label>
-        <div className="relative select-none mb-2" style={{ cursor: "crosshair" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={imgRef} src={MAP_IMAGE_URL} alt="일본 지도" draggable="false" onClick={pickPoint} className="w-full block rounded" />
-          {point && (
-            <span
-              className="absolute rounded-full"
-              style={{ left: `${point.x}%`, top: `${point.y}%`, width: 10, height: 10, background: "#EF4444", border: "2px solid #fff", transform: "translate(-50%,-50%)" }}
-            />
-          )}
-        </div>
+        <LocationPicker point={point} onPick={setPoint} />
 
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           가볼만한 곳 (선택, 쉼표로 구분)

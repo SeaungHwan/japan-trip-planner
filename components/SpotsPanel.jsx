@@ -16,7 +16,7 @@ export default function SpotsPanel({ spots, open, onToggle, regionId }) {
         {open ? <ChevronUp size={16} color="#5B7A90" /> : <ChevronDown size={16} color="#5B7A90" />}
       </button>
       <div className={open ? "spots-panel open" : "spots-panel"}>
-        <div className="flex flex-wrap gap-2 p-3 pt-0">
+        <div className="flex flex-wrap gap-2 p-3 pt-2">
           {(spots || []).map((s, i) => (
             <button
               key={i}

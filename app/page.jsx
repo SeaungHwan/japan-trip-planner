@@ -1,5 +1,10 @@
 import Planner from "@/components/Planner";
+import AuthGate from "@/components/AuthGate";
 
 export default function Page() {
-  return <Planner />;
+  return (
+    <AuthGate>
+      <Planner />
+    </AuthGate>
+  );
 }

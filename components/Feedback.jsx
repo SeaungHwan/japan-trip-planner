@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { getNickname, ensureNickname } from "@/lib/nickname";
+import { getIdentity } from "@/lib/auth";
 
 const SKY = "#0EA5E9";
 
@@ -12,10 +12,10 @@ export default function Feedback({ targetKey }) {
   const [comments, setComments] = useState([]);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [identity, setIdentity] = useState(null);
 
   useEffect(() => {
-    setNickname(getNickname());
+    getIdentity().then(setIdentity);
   }, []);
 
   useEffect(() => {
@@ -46,24 +46,22 @@ export default function Feedback({ targetKey }) {
 
   const up = reactions.filter((r) => r.value === 1).length;
   const down = reactions.filter((r) => r.value === -1).length;
-  const myVote = reactions.find((r) => r.nickname === nickname)?.value;
+  const myVote = reactions.find((r) => r.user_id === identity?.id)?.value;
 
   async function vote(value) {
-    const nick = ensureNickname();
-    if (!nick) return;
-    setNickname(nick);
+    if (!identity) return;
     if (myVote === value) {
-      await supabase.from("reactions").delete().eq("target_key", targetKey).eq("nickname", nick);
+      await supabase.from("reactions").delete().eq("target_key", targetKey).eq("user_id", identity.id);
     } else {
-      await supabase.from("reactions").upsert({ target_key: targetKey, nickname: nick, value }, { onConflict: "target_key,nickname" });
+      await supabase
+        .from("reactions")
+        .upsert({ target_key: targetKey, user_id: identity.id, nickname: identity.nickname, value }, { onConflict: "target_key,user_id" });
     }
   }
 
   async function submitComment() {
-    const nick = ensureNickname();
-    if (!nick || !text.trim()) return;
-    setNickname(nick);
-    await supabase.from("comments").insert({ target_key: targetKey, nickname: nick, body: text.trim() });
+    if (!identity || !text.trim()) return;
+    await supabase.from("comments").insert({ target_key: targetKey, nickname: identity.nickname, body: text.trim() });
     setText("");
   }
 

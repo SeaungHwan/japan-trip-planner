@@ -8,7 +8,7 @@ const SKY = "#0EA5E9";
 export default function RegionChips({ regions, active, onSelect, showMore, onToggleMore, moreCount }) {
   return (
     <>
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 -mx-4 px-4 chip-row">
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
         {regions.map((r, i) => {
           const isActive = i === active;
           const Icon = getIcon(r.icon);

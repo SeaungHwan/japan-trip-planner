@@ -1,21 +1,11 @@
-// Converts real lat/lon to the Wikimedia "Japan location map with side map of
-// the Ryukyu Islands.svg" image's x/y % using NordNordWest's published
-// Japan location-map formula (Module:Location map/data/Japan, Wikipedia),
-// so pins line up with that exact image.
-export function geo(lat, lon) {
-  if (lat > 30.9) {
-    return { x: ((lon - 128.24) / 21.03) * 100, y: ((45.86 - lat) / 15.84) * 100 };
-  }
-  return { x: ((lon - 110.43) / 21.01) * 100, y: ((39.54 - lat) / 15.83) * 100 };
+// Real-world coordinates, used directly as Leaflet marker positions.
+export function geo(lat, lng) {
+  return { lat, lng };
 }
 
-export function spot(name, lat, lon) {
-  const p = geo(lat, lon);
-  return { name, x: p.x, y: p.y };
+export function spot(name, lat, lng) {
+  return { name, lat, lng };
 }
-
-export const MAP_IMAGE_URL =
-  "https://commons.wikimedia.org/wiki/Special:FilePath/Japan_location_map_with_side_map_of_the_Ryukyu_Islands.svg";
 
 export const REGIONS = [
   {

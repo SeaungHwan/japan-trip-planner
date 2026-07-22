@@ -1,60 +1,225 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import Feedback from "@/components/Feedback";
+import { supabase } from "@/lib/supabaseClient";
 
 const SKY = "#0EA5E9";
 
-export default function DayCards({ days, mode, regionId, checked, onToggleDay }) {
+function mergeItems(baseItems, edits) {
+  const editMap = new Map(edits.map((e) => [e.item_key, e]));
+  const merged = [];
+
+  baseItems.forEach((text, i) => {
+    const key = `base:${i}`;
+    const e = editMap.get(key);
+    if (e?.deleted) return;
+    merged.push({ key, text: e ? e.text : text, sortOrder: e ? e.sort_order : i });
+  });
+
+  edits
+    .filter((e) => e.item_key.startsWith("custom:") && !e.deleted)
+    .forEach((e) => merged.push({ key: e.item_key, text: e.text, sortOrder: e.sort_order }));
+
+  merged.sort((a, b) => a.sortOrder - b.sortOrder);
+  return merged;
+}
+
+export default function DayCards({ days, mode, regionId }) {
+  const [edits, setEdits] = useState([]);
+  const [editingDay, setEditingDay] = useState(null);
+  const [drafts, setDrafts] = useState({});
+  const [newText, setNewText] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      const { data } = await supabase.from("day_item_edits").select("*").eq("region_id", regionId);
+      if (alive) setEdits(data || []);
+    }
+    load();
+
+    const channel = supabase
+      .channel(`day_items:${regionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "day_item_edits", filter: `region_id=eq.${regionId}` },
+        load
+      )
+      .subscribe();
+
+    return () => {
+      alive = false;
+      supabase.removeChannel(channel);
+    };
+  }, [regionId]);
+
+  useEffect(() => {
+    setEditingDay(null);
+    setDrafts({});
+    setNewText("");
+  }, [regionId, mode]);
+
+  function editsFor(dayIdx) {
+    return edits.filter((e) => e.mode === mode && e.day_index === dayIdx);
+  }
+
+  async function upsert(dayIdx, itemKey, patch) {
+    const existing = edits.find((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === itemKey);
+    await supabase.from("day_item_edits").upsert(
+      {
+        region_id: regionId,
+        mode,
+        day_index: dayIdx,
+        item_key: itemKey,
+        text: existing?.text ?? null,
+        deleted: existing?.deleted ?? false,
+        sort_order: existing?.sort_order ?? 0,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "region_id,mode,day_index,item_key" }
+    );
+  }
+
+  async function commitDraft(dayIdx, item) {
+    const text = (drafts[item.key] ?? item.text).trim();
+    if (text && text !== item.text) {
+      await upsert(dayIdx, item.key, { text, sort_order: item.sortOrder });
+    }
+  }
+
+  async function deleteItem(dayIdx, item) {
+    await upsert(dayIdx, item.key, { deleted: true, sort_order: item.sortOrder, text: item.text });
+  }
+
+  async function addItem(dayIdx, currentItems) {
+    const text = newText.trim();
+    if (!text) return;
+    const maxOrder = currentItems.reduce((m, it) => Math.max(m, it.sortOrder), -1);
+    const key = `custom:${crypto.randomUUID()}`;
+    setNewText("");
+    await upsert(dayIdx, key, { text, sort_order: maxOrder + 1 });
+  }
+
+  function titleFor(dayIdx, baseTitle) {
+    const e = edits.find((ed) => ed.mode === mode && ed.day_index === dayIdx && ed.item_key === "__title__");
+    return e ? e.text : baseTitle;
+  }
+
+  function isDayDeleted(dayIdx) {
+    return edits.some((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === "__day__" && e.deleted);
+  }
+
+  async function deleteDay(dayIdx) {
+    if (!window.confirm("이 일정을 삭제할까요?")) return;
+    await upsert(dayIdx, "__day__", { deleted: true });
+  }
+
+  function toggleEditDay(dayIdx) {
+    setEditingDay((cur) => (cur === dayIdx ? null : dayIdx));
+    setDrafts({});
+    setNewText("");
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {days.map((day, di) => {
+        if (isDayDeleted(di)) return null;
+
         const plan = day[mode];
-        const key = `${regionId}-${mode}-${di}`;
-        const done = !!checked[key];
+        const title = titleFor(di, plan.title);
+        const items = mergeItems(plan.items, editsFor(di));
+        const isEditing = editingDay === di;
+
         return (
           <div
             key={di}
             className="day-card rounded-xl p-4"
-            style={{
-              animationDelay: `${di * 0.05}s`,
-              background: done ? "#F0F9FF" : "#FFFFFF",
-              border: `1px solid ${done ? SKY : "#BAE6FD"}`,
-              opacity: done ? 0.7 : 1,
-            }}
+            style={{ animationDelay: `${di * 0.05}s`, background: "#FFFFFF", border: "1px solid #BAE6FD" }}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <span
-                  className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
-                  style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-                >
-                  {di + 1}
-                </span>
-                <div>
-                  <div
-                    className="text-[15px]"
-                    style={{ color: "#0F2A3D", fontWeight: 700, textDecoration: done ? "line-through" : "none" }}
-                  >
-                    {plan.title}
-                  </div>
-                  <ul className="mt-1.5 space-y-1">
-                    {plan.items.map((it, ii) => (
-                      <li key={ii} className="text-[13px]" style={{ color: "#5B7A90" }}>
-                        &middot; {it}
-                      </li>
-                    ))}
-                  </ul>
-                  <Feedback targetKey={`day:${regionId}:${di}`} />
-                </div>
-              </div>
-              <button
-                className={done ? "check-btn done shrink-0 w-6 h-6 rounded-md flex items-center justify-center" : "check-btn shrink-0 w-6 h-6 rounded-md flex items-center justify-center"}
-                style={{ background: done ? SKY : "transparent", border: `1px solid ${done ? SKY : "#94A9B8"}` }}
-                onClick={() => onToggleDay(regionId, di)}
-                aria-label="완료 체크"
+            <div className="flex items-start gap-3">
+              <span
+                className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
+                style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
               >
-                {done && <Check size={14} color="#FFFFFF" />}
+                {di + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                {isEditing ? (
+                  <input
+                    value={drafts.__title__ ?? title}
+                    onChange={(e) => setDrafts((d) => ({ ...d, __title__: e.target.value }))}
+                    onBlur={() => commitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
+                    onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                    className="w-full text-[15px] rounded px-1.5 py-0.5"
+                    style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", fontWeight: 700 }}
+                  />
+                ) : (
+                  <div className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+                    {title}
+                  </div>
+                )}
+                <ul className="mt-1.5 space-y-1">
+                  {items.map((it) =>
+                    isEditing ? (
+                      <li key={it.key} className="flex items-center gap-1">
+                        <input
+                          value={drafts[it.key] ?? it.text}
+                          onChange={(e) => setDrafts((d) => ({ ...d, [it.key]: e.target.value }))}
+                          onBlur={() => commitDraft(di, it)}
+                          onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                          className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
+                          style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                        />
+                        <button onClick={() => deleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
+                          <Trash2 size={13} color="#94A9B8" />
+                        </button>
+                      </li>
+                    ) : (
+                      <li key={it.key} className="text-[13px]" style={{ color: "#5B7A90" }}>
+                        &middot; {it.text}
+                      </li>
+                    )
+                  )}
+                </ul>
+
+                {isEditing && (
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <input
+                      value={newText}
+                      onChange={(e) => setNewText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addItem(di, items)}
+                      placeholder="새 항목"
+                      className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
+                      style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                    />
+                    <button onClick={() => addItem(di, items)} aria-label="추가" className="shrink-0">
+                      <Plus size={13} color={SKY} />
+                    </button>
+                  </div>
+                )}
+
+                <Feedback targetKey={`day:${regionId}:${di}`} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-3">
+              <button
+                className="text-[12px] flex items-center gap-1"
+                style={{ color: SKY, fontWeight: 700 }}
+                onClick={() => toggleEditDay(di)}
+              >
+                <Pencil size={13} /> {isEditing ? "완료" : "편집"}
+              </button>
+              <button
+                className="text-[12px] flex items-center gap-1"
+                style={{ color: "#94A9B8", fontWeight: 700 }}
+                onClick={() => deleteDay(di)}
+              >
+                <Trash2 size={13} /> 삭제
               </button>
             </div>
           </div>

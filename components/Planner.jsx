@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { REGIONS, REGIONS_MORE } from "@/data/regions";
-import { loadChecked, saveChecked } from "@/lib/storage";
 import { supabase } from "@/lib/supabaseClient";
+import UserBadge from "@/components/UserBadge";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
@@ -19,8 +19,8 @@ function toRegion(row) {
     kr: row.kr,
     jp: row.jp || "",
     icon: "landmark",
-    x: row.x,
-    y: row.y,
+    lat: row.lat,
+    lng: row.lng,
     note: row.note,
     moreSpots: (row.spots || []).map((name) => ({ name })),
     isCustom: true,
@@ -30,16 +30,11 @@ function toRegion(row) {
 export default function Planner() {
   const [active, setActive] = useState(0);
   const [mode, setMode] = useState("transit");
-  const [checked, setChecked] = useState({});
   const [showMore, setShowMore] = useState(false);
   const [showSpots, setShowSpots] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
-
-  useEffect(() => {
-    setChecked(loadChecked());
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -80,28 +75,17 @@ export default function Planner() {
     });
   }
 
-  function toggleDay(regionId, dayIdx) {
-    setChecked((prev) => {
-      const key = `${regionId}-${mode}-${dayIdx}`;
-      const next = { ...prev, [key]: !prev[key] };
-      saveChecked(next);
-      return next;
-    });
-  }
-
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md mx-auto px-4 pt-8 pb-16">
+        <UserBadge />
         <div className="mb-4 anim-fadeup">
           <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
             9.18 &mdash; 9.22
           </p>
           <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-            일본 소도시 여행
+            일본 여행
           </h1>
-          <p className="text-sm mt-1" style={{ color: "#5B7A90" }}>
-            지도 위 핀을 탭하면 그 지역으로 확대돼요
-          </p>
         </div>
 
         <MapView
@@ -111,9 +95,6 @@ export default function Planner() {
           onSelect={selectRegion}
           onZoomOut={() => setZoomed(false)}
         />
-        <p className="text-[10px] mb-5 mt-1" style={{ color: "#94A9B8" }}>
-          지도: Wikimedia Commons (NordNordWest, CC BY-SA 3.0) · 명소 핀은 실제 위경도 기준 위치입니다
-        </p>
 
         <RegionChips
           regions={regions}
@@ -138,7 +119,7 @@ export default function Planner() {
         {!region.isCustom && (
           <>
             <ModeToggle mode={mode} onChange={setMode} />
-            <DayCards days={region.days} mode={mode} regionId={region.id} checked={checked} onToggleDay={toggleDay} />
+            <DayCards days={region.days} mode={mode} regionId={region.id} />
           </>
         )}
 
