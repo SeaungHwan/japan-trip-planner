@@ -232,12 +232,12 @@ export default function Planner() {
             }}
           />
         )}
-
+{/* 
         {isDefaultTrip && (
           <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
             항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
           </p>
-        )}
+        )} */}
       </div>
     </div>
   );
