@@ -18,7 +18,7 @@ export default function MapView({ regions, active, zoomed, onSelect, onZoomOut }
   return (
     <div
       id="mapOuter"
-      className="rounded-2xl mb-1 relative anim-fadeup -mx-4"
+      className="rounded-2xl mb-1 relative anim-fadeup"
       style={{ borderTop: "1px solid #BAE6FD", borderBottom: "1px solid #BAE6FD", animationDelay: ".05s" }}
     >
       <div id="mapInner" style={{ transform }}>
@@ -72,7 +72,9 @@ export default function MapView({ regions, active, zoomed, onSelect, onZoomOut }
         {/* Attraction pins for the active region, real coordinates */}
         <div className="absolute inset-0">
           {zoomed &&
-            (activeRegion.moreSpots || []).map((s, i) => (
+            (activeRegion.moreSpots || [])
+              .filter((s) => typeof s.x === "number" && typeof s.y === "number")
+              .map((s, i) => (
               <div
                 key={i}
                 className="absolute flex flex-col items-center"

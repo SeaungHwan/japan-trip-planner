@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Feedback from "@/components/Feedback";
 
 const SKY = "#0EA5E9";
 
@@ -44,6 +45,7 @@ export default function DayCards({ days, mode, regionId, checked, onToggleDay })
                       </li>
                     ))}
                   </ul>
+                  <Feedback targetKey={`day:${regionId}:${di}`} />
                 </div>
               </div>
               <button

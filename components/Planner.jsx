@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { REGIONS, REGIONS_MORE } from "@/data/regions";
 import { loadChecked, saveChecked } from "@/lib/storage";
+import { supabase } from "@/lib/supabaseClient";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
@@ -10,6 +11,21 @@ import FlightCard from "@/components/FlightCard";
 import SpotsPanel from "@/components/SpotsPanel";
 import ModeToggle from "@/components/ModeToggle";
 import DayCards from "@/components/DayCards";
+import AddRegionForm from "@/components/AddRegionForm";
+
+function toRegion(row) {
+  return {
+    id: `custom-${row.id}`,
+    kr: row.kr,
+    jp: row.jp || "",
+    icon: "landmark",
+    x: row.x,
+    y: row.y,
+    note: row.note,
+    moreSpots: (row.spots || []).map((name) => ({ name })),
+    isCustom: true,
+  };
+}
 
 export default function Planner() {
   const [active, setActive] = useState(0);
@@ -18,12 +34,36 @@ export default function Planner() {
   const [showMore, setShowMore] = useState(false);
   const [showSpots, setShowSpots] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [userRegions, setUserRegions] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     setChecked(loadChecked());
   }, []);
 
-  const regions = showMore ? REGIONS.concat(REGIONS_MORE) : REGIONS;
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data } = await supabase.from("user_regions").select("*").order("created_at", { ascending: true });
+      if (active) setUserRegions((data || []).map(toRegion));
+    }
+    load();
+
+    const channel = supabase
+      .channel("user_regions_feed")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_regions" }, (payload) => {
+        setUserRegions((prev) => (prev.some((r) => r.id === `custom-${payload.new.id}`) ? prev : [...prev, toRegion(payload.new)]));
+      })
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const regions = (showMore ? REGIONS.concat(REGIONS_MORE) : REGIONS).concat(userRegions);
   const region = regions[active];
 
   function selectRegion(i) {
@@ -84,11 +124,30 @@ export default function Planner() {
           moreCount={REGIONS_MORE.length}
         />
 
+        <button
+          className="text-xs mb-4 -mt-3 flex items-center gap-1"
+          style={{ color: "#5B7A90", fontWeight: 700 }}
+          onClick={() => setShowAddForm(true)}
+        >
+          + 새 지역 추가
+        </button>
+
         <RegionHeader region={region} />
-        <FlightCard flight={region.flight} />
-        <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} />
-        <ModeToggle mode={mode} onChange={setMode} />
-        <DayCards days={region.days} mode={mode} regionId={region.id} checked={checked} onToggleDay={toggleDay} />
+        {!region.isCustom && <FlightCard flight={region.flight} />}
+        <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} regionId={region.id} />
+        {!region.isCustom && (
+          <>
+            <ModeToggle mode={mode} onChange={setMode} />
+            <DayCards days={region.days} mode={mode} regionId={region.id} checked={checked} onToggleDay={toggleDay} />
+          </>
+        )}
+
+        {showAddForm && (
+          <AddRegionForm
+            onClose={() => setShowAddForm(false)}
+            onAdded={(row) => setUserRegions((prev) => (prev.some((r) => r.id === `custom-${row.id}`) ? prev : [...prev, toRegion(row)]))}
+          />
+        )}
 
         <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
           항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
