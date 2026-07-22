@@ -95,9 +95,26 @@ export default function LocationPicker({ point, onPick }) {
           />
           <ClickHandler onPick={onPick} />
           <FlyToPoint point={point} />
-          {point && <Marker position={[point.lat, point.lng]} icon={markerIcon} />}
+          {point && (
+            <Marker
+              position={[point.lat, point.lng]}
+              icon={markerIcon}
+              draggable
+              eventHandlers={{
+                dragend: (e) => {
+                  const { lat, lng } = e.target.getLatLng();
+                  onPick({ lat: +lat.toFixed(5), lng: +lng.toFixed(5) });
+                },
+              }}
+            />
+          )}
         </MapContainer>
       </div>
+      {point && (
+        <p className="text-[11px] mt-1" style={{ color: "#94A9B8" }}>
+          핀을 드래그하면 위치를 미세 조정할 수 있어요
+        </p>
+      )}
     </div>
   );
 }

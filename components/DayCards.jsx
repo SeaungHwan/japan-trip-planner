@@ -47,6 +47,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const [reorderMode, setReorderMode] = useState(false);
   const [dragOverPos, setDragOverPos] = useState(null);
   const [locatingItem, setLocatingItem] = useState(null);
+  const [pendingPoint, setPendingPoint] = useState(null);
   const dragPosRef = useRef(null);
   const cardRefs = useRef({});
 
@@ -84,6 +85,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     setNewText("");
     setReorderMode(false);
     setLocatingItem(null);
+    setPendingPoint(null);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
@@ -135,14 +137,30 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     await upsert(dayIdx, key, { text, sort_order: maxOrder + 1 });
   }
 
-  async function setItemLocation(dayIdx, item, point) {
-    await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: point.lat, lng: point.lng });
+  function openLocationPicker(dayIdx, item) {
+    setLocatingItem((cur) => {
+      if (cur?.item.key === item.key) return null;
+      return { dayIdx, item };
+    });
+    setPendingPoint(item.lat != null ? { lat: item.lat, lng: item.lng } : null);
+  }
+
+  async function confirmItemLocation() {
+    if (!locatingItem || !pendingPoint) return;
+    await upsert(locatingItem.dayIdx, locatingItem.item.key, {
+      text: locatingItem.item.text,
+      sort_order: locatingItem.item.sortOrder,
+      lat: pendingPoint.lat,
+      lng: pendingPoint.lng,
+    });
     setLocatingItem(null);
+    setPendingPoint(null);
   }
 
   async function clearItemLocation(dayIdx, item) {
     await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
     setLocatingItem(null);
+    setPendingPoint(null);
   }
 
   function titleFor(dayIdx, baseTitle) {
@@ -294,7 +312,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
                           style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
                         />
                         <button
-                          onClick={() => setLocatingItem((cur) => (cur?.item.key === it.key ? null : { dayIdx: di, item: it }))}
+                          onClick={() => openLocationPicker(di, it)}
                           aria-label="위치 설정"
                           className="shrink-0"
                         >
@@ -328,23 +346,36 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
                       <span className="text-[12px]" style={{ color: "#5B7A90" }}>
                         &quot;{locatingItem.item.text}&quot; 위치 지정
                       </span>
-                      <button onClick={() => setLocatingItem(null)} aria-label="닫기">
+                      <button
+                        onClick={() => {
+                          setLocatingItem(null);
+                          setPendingPoint(null);
+                        }}
+                        aria-label="닫기"
+                      >
                         <X size={14} color="#94A9B8" />
                       </button>
                     </div>
-                    <LocationPicker
-                      point={locatingItem.item.lat != null ? { lat: locatingItem.item.lat, lng: locatingItem.item.lng } : null}
-                      onPick={(p) => setItemLocation(di, locatingItem.item, p)}
-                    />
-                    {locatingItem.item.lat != null && (
+                    <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
+                    <div className="flex items-center gap-3 mt-1.5">
                       <button
-                        onClick={() => clearItemLocation(di, locatingItem.item)}
+                        onClick={confirmItemLocation}
+                        disabled={!pendingPoint}
                         className="text-[12px]"
-                        style={{ color: "#EF4444", fontWeight: 700 }}
+                        style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
                       >
-                        위치 삭제
+                        위치 저장
                       </button>
-                    )}
+                      {locatingItem.item.lat != null && (
+                        <button
+                          onClick={() => clearItemLocation(di, locatingItem.item)}
+                          className="text-[12px]"
+                          style={{ color: "#EF4444", fontWeight: 700 }}
+                        >
+                          위치 삭제
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 

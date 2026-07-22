@@ -63,11 +63,14 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
                 icon={pinIcon(isActive ? 14 : 8, isActive ? SKY : "#7C97AA")}
                 eventHandlers={{ click: () => onSelect(i) }}
               >
-                {isActive && (
-                  <Tooltip permanent direction="top" offset={[0, -8]} className="region-tooltip">
-                    {r.kr}
-                  </Tooltip>
-                )}
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, isActive ? -8 : -5]}
+                  className={isActive ? "region-tooltip" : "region-tooltip-inactive"}
+                >
+                  {r.kr}
+                </Tooltip>
               </Marker>
             );
           })}
