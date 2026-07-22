@@ -77,14 +77,25 @@ create table if not exists day_item_edits (
 alter table day_item_edits add column if not exists lat double precision;
 alter table day_item_edits add column if not exists lng double precision;
 
+-- 계정별 개인 메모장. 팀 전체가 공유하는 다른 테이블들과 달리 본인 것만 보이고 편집됩니다.
+create table if not exists personal_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists comments_target_key_idx on comments (target_key);
 create index if not exists reactions_target_key_idx on reactions (target_key);
 create index if not exists day_item_edits_region_idx on day_item_edits (region_id);
+create index if not exists personal_notes_user_idx on personal_notes (user_id);
 
 alter table comments enable row level security;
 alter table reactions enable row level security;
 alter table user_regions enable row level security;
 alter table day_item_edits enable row level security;
+alter table personal_notes enable row level security;
 
 -- 구글 로그인 + klic.co.kr 도메인 계정만 허용. 프론트(AuthGate)에서도 이메일 도메인을
 -- 확인해 튕겨내지만, API를 직접 두드리는 우회를 막으려면 DB 단에서도 같은 규칙이 필요합니다.
@@ -123,12 +134,22 @@ create policy "day_item_edits_insert" on day_item_edits for insert with check (i
 drop policy if exists "day_item_edits_update" on day_item_edits;
 create policy "day_item_edits_update" on day_item_edits for update using (is_allowed_user());
 
+-- personal_notes는 공유 테이블들과 달리 본인 소유(user_id = auth.uid()) 행만 select/insert/update/delete 가능합니다.
+drop policy if exists "personal_notes_select" on personal_notes;
+create policy "personal_notes_select" on personal_notes for select using (is_allowed_user() and user_id = auth.uid());
+drop policy if exists "personal_notes_insert" on personal_notes;
+create policy "personal_notes_insert" on personal_notes for insert with check (is_allowed_user() and user_id = auth.uid());
+drop policy if exists "personal_notes_update" on personal_notes;
+create policy "personal_notes_update" on personal_notes for update using (is_allowed_user() and user_id = auth.uid());
+drop policy if exists "personal_notes_delete" on personal_notes;
+create policy "personal_notes_delete" on personal_notes for delete using (is_allowed_user() and user_id = auth.uid());
+
 -- 실시간 구독 활성화 (이미 등록된 테이블이면 건너뜁니다)
 do $$
 declare
   t text;
 begin
-  foreach t in array array['comments', 'reactions', 'user_regions', 'day_item_edits']
+  foreach t in array array['comments', 'reactions', 'user_regions', 'day_item_edits', 'personal_notes']
   loop
     if not exists (
       select 1 from pg_publication_tables

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { REGIONS, REGIONS_MORE } from "@/data/regions";
 import { supabase } from "@/lib/supabaseClient";
 import UserBadge from "@/components/UserBadge";
+import PersonalNotes from "@/components/PersonalNotes";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
@@ -95,6 +96,8 @@ export default function Planner() {
             일본 여행
           </h1>
         </div>
+
+        <PersonalNotes />
 
         <MapView
           regions={regions}
