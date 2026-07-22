@@ -57,6 +57,19 @@ create table if not exists trips (
   created_at timestamptz not null default now()
 );
 
+-- 혹시 이 스키마의 이전 버전(id uuid)을 이미 실행했다면 text로 바꿔줍니다.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'trips' and column_name = 'id' and data_type = 'uuid'
+  ) then
+    alter table trips alter column id drop default;
+    alter table trips alter column id type text using id::text;
+    alter table trips alter column id set default gen_random_uuid()::text;
+  end if;
+end $$;
+
 -- 구글 로그인 도입: 닉네임은 더 이상 자유 입력이 아니라 구글 계정 이름을 그대로 씁니다.
 -- reactions는 "한 사람당 한 표"를 검증해야 하므로 nickname(중복 가능) 대신 실제 계정(user_id)으로 유일성을 잡습니다.
 alter table reactions add column if not exists user_id uuid references auth.users(id) on delete cascade;
