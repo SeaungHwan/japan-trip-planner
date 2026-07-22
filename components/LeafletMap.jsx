@@ -30,14 +30,14 @@ function FlyTo({ center, zoom }) {
 }
 
 export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus }) {
-  const activeRegion = regions[active];
+  const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
 
   useEffect(() => {
     setOpenSpot(null);
   }, [active, zoomed]);
 
-  const hasCoords = typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
+  const hasCoords = !!activeRegion && typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
   const hasFocus = zoomed && focus && typeof focus.lat === "number" && typeof focus.lng === "number";
   const center = hasFocus ? [focus.lat, focus.lng] : zoomed && hasCoords ? [activeRegion.lat, activeRegion.lng] : JAPAN_CENTER;
   const zoom = hasFocus ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
@@ -77,6 +77,7 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
         )}
 
         {zoomed &&
+          activeRegion &&
           (activeRegion.moreSpots || [])
             .filter((s) => typeof s.lat === "number" && typeof s.lng === "number")
             .map((s, i) => (

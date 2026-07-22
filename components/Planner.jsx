@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { REGIONS, REGIONS_MORE } from "@/data/regions";
 import { supabase } from "@/lib/supabaseClient";
+import { getIdentity } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
-import PersonalNotes from "@/components/PersonalNotes";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
@@ -13,10 +13,14 @@ import SpotsPanel from "@/components/SpotsPanel";
 import ModeToggle from "@/components/ModeToggle";
 import DayCards from "@/components/DayCards";
 import AddRegionForm from "@/components/AddRegionForm";
+import TripSwitcher from "@/components/TripSwitcher";
+
+const DEFAULT_TRIP = { id: "japan-trip", title: "일본 여행", subtitle: "9.18 — 9.22" };
 
 function toRegion(row) {
   return {
     id: `custom-${row.id}`,
+    tripId: row.trip_id || DEFAULT_TRIP.id,
     kr: row.kr,
     jp: row.jp || "",
     icon: "landmark",
@@ -38,6 +42,8 @@ export default function Planner() {
   const [focus, setFocus] = useState(null);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [trips, setTrips] = useState([]);
+  const [activeTripId, setActiveTripId] = useState(DEFAULT_TRIP.id);
 
   useEffect(() => {
     let active = true;
@@ -61,7 +67,38 @@ export default function Planner() {
     };
   }, []);
 
-  const regions = showMore ? REGIONS.concat(REGIONS_MORE).concat(userRegions) : REGIONS;
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data } = await supabase.from("trips").select("*").order("created_at", { ascending: true });
+      if (active) setTrips(data || []);
+    }
+    load();
+
+    const channel = supabase
+      .channel("trips_feed")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trips" }, (payload) => {
+        setTrips((prev) => (prev.some((t) => t.id === payload.new.id) ? prev : [...prev, payload.new]));
+      })
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const allTrips = [DEFAULT_TRIP, ...trips];
+  const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
+  const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
+  const tripUserRegions = userRegions.filter((r) => r.tripId === activeTripId);
+
+  const regions = isDefaultTrip
+    ? showMore
+      ? REGIONS.concat(REGIONS_MORE).concat(tripUserRegions)
+      : REGIONS
+    : tripUserRegions;
   const region = regions[active];
 
   function selectRegion(i) {
@@ -69,6 +106,29 @@ export default function Planner() {
     setShowSpots(false);
     setZoomed(true);
     setFocus(null);
+  }
+
+  function selectTrip(id) {
+    setActiveTripId(id);
+    setActive(0);
+    setShowMore(false);
+    setShowSpots(false);
+    setZoomed(false);
+    setFocus(null);
+  }
+
+  async function createTrip(title, subtitle) {
+    const identity = await getIdentity();
+    if (!identity) return;
+    const { data } = await supabase
+      .from("trips")
+      .insert({ title, subtitle: subtitle || null, created_by: identity.nickname })
+      .select()
+      .single();
+    if (data) {
+      setTrips((prev) => (prev.some((t) => t.id === data.id) ? prev : [...prev, data]));
+      selectTrip(data.id);
+    }
   }
 
   function locateItem(point) {
@@ -89,15 +149,16 @@ export default function Planner() {
       <div className="max-w-md mx-auto px-4 pt-8 pb-16">
         <UserBadge />
         <div className="mb-4 anim-fadeup">
-          <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
-            9.18 &mdash; 9.22
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
+              {activeTrip.subtitle || "TRIP"}
+            </p>
+            <TripSwitcher trips={allTrips} activeTripId={activeTripId} onSelect={selectTrip} onCreate={createTrip} />
+          </div>
           <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-            일본 여행
+            {activeTrip.title}
           </h1>
         </div>
-
-        <PersonalNotes />
 
         <MapView
           regions={regions}
@@ -117,8 +178,8 @@ export default function Planner() {
           onSelect={selectRegion}
           showMore={showMore}
           onToggleMore={toggleMore}
-          moreCount={REGIONS_MORE.length + userRegions.length}
-          baseCount={REGIONS.length}
+          moreCount={isDefaultTrip ? REGIONS_MORE.length + tripUserRegions.length : 0}
+          baseCount={isDefaultTrip ? REGIONS.length : tripUserRegions.length}
         />
 
         <button
@@ -129,29 +190,40 @@ export default function Planner() {
           + 새 지역 추가
         </button>
 
-        <RegionHeader region={region} />
-        {!region.isCustom && <FlightCard flight={region.flight} />}
-        <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} />
-        {region.days?.length > 0 && (
+        {regions.length === 0 ? (
+          <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
+            이 여행에는 아직 지역이 없어요. 위의 &quot;+ 새 지역 추가&quot;로 시작해보세요.
+          </p>
+        ) : (
           <>
-            <ModeToggle mode={mode} onChange={setMode} />
-            <DayCards days={region.days} mode={mode} regionId={region.id} onLocateItem={locateItem} />
+            <RegionHeader region={region} />
+            {!region.isCustom && <FlightCard flight={region.flight} />}
+            <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} />
+            {region.days?.length > 0 && (
+              <>
+                <ModeToggle mode={mode} onChange={setMode} />
+                <DayCards days={region.days} mode={mode} regionId={region.id} onLocateItem={locateItem} />
+              </>
+            )}
           </>
         )}
 
         {showAddForm && (
           <AddRegionForm
+            tripId={activeTripId}
             onClose={() => setShowAddForm(false)}
             onAdded={(row) => {
               setUserRegions((prev) => (prev.some((r) => r.id === `custom-${row.id}`) ? prev : [...prev, toRegion(row)]));
-              setShowMore(true);
+              if (isDefaultTrip) setShowMore(true);
             }}
           />
         )}
 
-        <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
-          항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
-        </p>
+        {isDefaultTrip && (
+          <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
+            항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
+          </p>
+        )}
       </div>
     </div>
   );

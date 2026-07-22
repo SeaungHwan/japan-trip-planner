@@ -13,7 +13,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   loading: () => <div className="rounded mb-2" style={{ height: 220, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
-export default function AddRegionForm({ onClose, onAdded }) {
+export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [kr, setKr] = useState("");
   const [jp, setJp] = useState("");
   const [spotsText, setSpotsText] = useState("");
@@ -74,6 +74,7 @@ export default function AddRegionForm({ onClose, onAdded }) {
         note: note.trim() || null,
         spots,
         days: days || [],
+        trip_id: tripId,
         created_by: identity.nickname,
       })
       .select()
