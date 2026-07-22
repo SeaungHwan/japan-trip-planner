@@ -68,10 +68,28 @@ export default function Feedback({ targetKey }) {
   return (
     <div className="flex flex-col gap-1.5 mt-1.5">
       <div className="flex items-center gap-3 text-[12px]">
-        <button onClick={() => vote(1)} className="flex items-center gap-1" style={{ color: myVote === 1 ? SKY : "#5B7A90" }}>
+        <button
+          onClick={() => vote(1)}
+          aria-pressed={myVote === 1}
+          className="flex items-center gap-1 rounded-full px-2 py-0.5"
+          style={{
+            color: myVote === 1 ? "#FFFFFF" : "#5B7A90",
+            background: myVote === 1 ? SKY : "transparent",
+            fontWeight: myVote === 1 ? 700 : 400,
+          }}
+        >
           <ThumbsUp size={13} /> {up}
         </button>
-        <button onClick={() => vote(-1)} className="flex items-center gap-1" style={{ color: myVote === -1 ? "#EF4444" : "#5B7A90" }}>
+        <button
+          onClick={() => vote(-1)}
+          aria-pressed={myVote === -1}
+          className="flex items-center gap-1 rounded-full px-2 py-0.5"
+          style={{
+            color: myVote === -1 ? "#FFFFFF" : "#5B7A90",
+            background: myVote === -1 ? "#EF4444" : "transparent",
+            fontWeight: myVote === -1 ? 700 : 400,
+          }}
+        >
           <ThumbsDown size={13} /> {down}
         </button>
         <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-1" style={{ color: "#5B7A90" }}>

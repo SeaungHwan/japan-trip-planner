@@ -1,11 +1,13 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { Search } from "lucide-react";
 
 const JAPAN_CENTER = [37.5, 137.5];
+const SKY = "#0EA5E9";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -32,21 +34,70 @@ function FlyToPoint({ point }) {
 }
 
 export default function LocationPicker({ point, onPick }) {
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState("");
+
+  async function search() {
+    if (!query.trim()) return;
+    setSearching(true);
+    setError("");
+    try {
+      const res = await fetch("/api/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: query.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "검색 실패");
+      onPick({ lat: +data.lat.toFixed(5), lng: +data.lng.toFixed(5) });
+    } catch (e) {
+      setError(e.message);
+    }
+    setSearching(false);
+  }
+
   return (
-    <div className="rounded overflow-hidden mb-2" style={{ height: 220, border: "1px solid #BAE6FD" }}>
-      <MapContainer
-        center={point ? [point.lat, point.lng] : JAPAN_CENTER}
-        zoom={point ? 10 : 5}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    <div className="mb-2">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && search()}
+          placeholder="장소 이름으로 검색 (예: 삿포로역)"
+          className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
+          style={{ border: "1px solid #BAE6FD" }}
         />
-        <ClickHandler onPick={onPick} />
-        <FlyToPoint point={point} />
-        {point && <Marker position={[point.lat, point.lng]} icon={markerIcon} />}
-      </MapContainer>
+        <button
+          onClick={search}
+          disabled={searching}
+          aria-label="검색"
+          className="shrink-0 rounded px-2.5 py-1.5"
+          style={{ background: SKY, opacity: searching ? 0.6 : 1 }}
+        >
+          <Search size={15} color="#FFFFFF" />
+        </button>
+      </div>
+      {error && (
+        <p className="text-[12px] mb-1.5" style={{ color: "#EF4444" }}>
+          {error}
+        </p>
+      )}
+      <div className="rounded overflow-hidden" style={{ height: 220, border: "1px solid #BAE6FD" }}>
+        <MapContainer
+          center={point ? [point.lat, point.lng] : JAPAN_CENTER}
+          zoom={point ? 10 : 5}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          />
+          <ClickHandler onPick={onPick} />
+          <FlyToPoint point={point} />
+          {point && <Marker position={[point.lat, point.lng]} icon={markerIcon} />}
+        </MapContainer>
+      </div>
     </div>
   );
 }
