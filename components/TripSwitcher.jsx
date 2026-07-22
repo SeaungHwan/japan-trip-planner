@@ -2,26 +2,51 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus, Pencil, X } from "lucide-react";
 
 const SKY = "#0EA5E9";
 
-export default function TripSwitcher({ trips, activeTripId, onSelect, onCreate }) {
+function formatDate(iso) {
+  if (!iso) return "";
+  const [, m, d] = iso.split("-");
+  return `${parseInt(m, 10)}.${parseInt(d, 10)}`;
+}
+
+function formatRange(startDate, endDate) {
+  if (startDate && endDate) return `${formatDate(startDate)} — ${formatDate(endDate)}`;
+  if (startDate) return formatDate(startDate);
+  return "";
+}
+
+export default function TripSwitcher({ trips, activeTripId, onSelect, onSave }) {
   const [open, setOpen] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState(undefined); // undefined = create-new mode is hidden, null = creating new, id = editing that trip
   const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   function close() {
     setOpen(false);
-    setShowCreate(false);
+    setEditingId(undefined);
   }
 
-  function submitCreate() {
-    if (!title.trim()) return;
-    onCreate(title.trim(), subtitle.trim());
+  function startCreate() {
+    setEditingId(null);
     setTitle("");
-    setSubtitle("");
+    setStartDate("");
+    setEndDate("");
+  }
+
+  function startEdit(trip) {
+    setEditingId(trip.id);
+    setTitle(trip.title);
+    setStartDate("");
+    setEndDate("");
+  }
+
+  function submit() {
+    if (!title.trim()) return;
+    onSave(editingId || null, title.trim(), formatRange(startDate, endDate));
     close();
   }
 
@@ -49,31 +74,35 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onCreate }
 
             <div className="flex flex-col gap-2 mb-3">
               {trips.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    onSelect(t.id);
-                    close();
-                  }}
-                  className="text-left rounded-lg px-3 py-2 text-sm"
-                  style={{
-                    background: t.id === activeTripId ? SKY : "#F0F9FF",
-                    color: t.id === activeTripId ? "#FFFFFF" : "#0F2A3D",
-                    fontWeight: t.id === activeTripId ? 700 : 500,
-                    border: "1px solid #BAE6FD",
-                  }}
-                >
-                  {t.title}
-                  {t.subtitle && (
-                    <span className="block text-[11px]" style={{ opacity: 0.8 }}>
-                      {t.subtitle}
-                    </span>
-                  )}
-                </button>
+                <div key={t.id} className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      onSelect(t.id);
+                      close();
+                    }}
+                    className="flex-1 min-w-0 text-left rounded-lg px-3 py-2 text-sm"
+                    style={{
+                      background: t.id === activeTripId ? SKY : "#F0F9FF",
+                      color: t.id === activeTripId ? "#FFFFFF" : "#0F2A3D",
+                      fontWeight: t.id === activeTripId ? 700 : 500,
+                      border: "1px solid #BAE6FD",
+                    }}
+                  >
+                    {t.title}
+                    {t.subtitle && (
+                      <span className="block text-[11px]" style={{ opacity: 0.8 }}>
+                        {t.subtitle}
+                      </span>
+                    )}
+                  </button>
+                  <button onClick={() => startEdit(t)} aria-label="여행 정보 수정" className="shrink-0">
+                    <Pencil size={14} color="#5B7A90" />
+                  </button>
+                </div>
               ))}
             </div>
 
-            {showCreate ? (
+            {editingId !== undefined ? (
               <div className="flex flex-col gap-2">
                 <input
                   value={title}
@@ -83,24 +112,36 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onCreate }
                   className="w-full text-sm rounded px-2 py-1.5"
                   style={{ border: "1px solid #BAE6FD" }}
                 />
-                <input
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                  placeholder="날짜/부제 (선택, 예: 10.1 — 10.5)"
-                  className="w-full text-sm rounded px-2 py-1.5"
-                  style={{ border: "1px solid #BAE6FD" }}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
+                    style={{ border: "1px solid #BAE6FD" }}
+                  />
+                  <span className="text-sm" style={{ color: "#94A9B8" }}>
+                    —
+                  </span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
+                    style={{ border: "1px solid #BAE6FD" }}
+                  />
+                </div>
                 <button
-                  onClick={submitCreate}
+                  onClick={submit}
                   className="w-full text-sm rounded-lg py-2"
                   style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
                 >
-                  만들기
+                  {editingId ? "저장" : "만들기"}
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={startCreate}
                 className="w-full text-xs flex items-center justify-center gap-1 py-2"
                 style={{ color: SKY, fontWeight: 700 }}
               >

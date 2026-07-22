@@ -47,8 +47,10 @@ alter table user_regions add column if not exists days jsonb not null default '[
 alter table user_regions add column if not exists trip_id text not null default 'japan-trip';
 create index if not exists user_regions_trip_idx on user_regions (trip_id);
 
+-- id는 uuid가 아니라 text입니다: 새로 만든 여행은 클라이언트가 생성한 uuid 문자열을 쓰고,
+-- 기본 제공 "일본 여행"의 제목/날짜를 수정하면 고정 id 'japan-trip'으로 이 테이블에 upsert됩니다.
 create table if not exists trips (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key default gen_random_uuid()::text,
   title text not null,
   subtitle text,
   created_by text not null,
@@ -141,6 +143,8 @@ drop policy if exists "trips_select" on trips;
 create policy "trips_select" on trips for select using (is_allowed_user());
 drop policy if exists "trips_insert" on trips;
 create policy "trips_insert" on trips for insert with check (is_allowed_user());
+drop policy if exists "trips_update" on trips;
+create policy "trips_update" on trips for update using (is_allowed_user());
 
 -- 실시간 구독 활성화 (이미 등록된 테이블이면 건너뜁니다)
 do $$

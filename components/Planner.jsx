@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { REGIONS, REGIONS_MORE } from "@/data/regions";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
@@ -44,6 +44,7 @@ export default function Planner() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
   const [activeTripId, setActiveTripId] = useState(DEFAULT_TRIP.id);
+  const mapSectionRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -117,16 +118,17 @@ export default function Planner() {
     setFocus(null);
   }
 
-  async function createTrip(title, subtitle) {
+  async function saveTrip(id, title, subtitle) {
     const identity = await getIdentity();
     if (!identity) return;
+    const tripId = id || crypto.randomUUID();
     const { data } = await supabase
       .from("trips")
-      .insert({ title, subtitle: subtitle || null, created_by: identity.nickname })
+      .upsert({ id: tripId, title, subtitle: subtitle || null, created_by: identity.nickname }, { onConflict: "id" })
       .select()
       .single();
     if (data) {
-      setTrips((prev) => (prev.some((t) => t.id === data.id) ? prev : [...prev, data]));
+      setTrips((prev) => (prev.some((t) => t.id === data.id) ? prev.map((t) => (t.id === data.id ? data : t)) : [...prev, data]));
       selectTrip(data.id);
     }
   }
@@ -134,6 +136,7 @@ export default function Planner() {
   function locateItem(point) {
     setFocus(point);
     setZoomed(true);
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function toggleMore() {
@@ -153,24 +156,26 @@ export default function Planner() {
             <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
               {activeTrip.subtitle || "TRIP"}
             </p>
-            <TripSwitcher trips={allTrips} activeTripId={activeTripId} onSelect={selectTrip} onCreate={createTrip} />
+            <TripSwitcher trips={allTrips} activeTripId={activeTripId} onSelect={selectTrip} onSave={saveTrip} />
           </div>
           <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             {activeTrip.title}
           </h1>
         </div>
 
-        <MapView
-          regions={regions}
-          active={active}
-          zoomed={zoomed}
-          onSelect={selectRegion}
-          onZoomOut={() => {
-            setZoomed(false);
-            setFocus(null);
-          }}
-          focus={focus}
-        />
+        <div ref={mapSectionRef}>
+          <MapView
+            regions={regions}
+            active={active}
+            zoomed={zoomed}
+            onSelect={selectRegion}
+            onZoomOut={() => {
+              setZoomed(false);
+              setFocus(null);
+            }}
+            focus={focus}
+          />
+        </div>
 
         <RegionChips
           regions={regions}

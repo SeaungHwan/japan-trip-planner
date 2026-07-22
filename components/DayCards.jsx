@@ -213,7 +213,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
           </button>
         )}
         <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
-          <Plus size={13} /> 카드 추가
+          <Plus size={13} /> 일정 추가
         </button>
       </div>
       {visibleDays.map(({ di }, displayIdx) => {

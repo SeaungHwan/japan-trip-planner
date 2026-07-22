@@ -122,7 +122,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         </button>
         {days?.length > 0 && (
           <p className="text-[12px] mb-2" style={{ color: SKY }}>
-            {days.length}일 일정이 자동 생성됐어요. 저장하면 일정 카드에 반영됩니다.
+            {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
           </p>
         )}
 
