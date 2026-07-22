@@ -57,8 +57,18 @@ alter table user_regions add column if not exists is_extra boolean not null defa
 -- 이미 x/y로 저장된 지역이 있다면 lat/lng를 다시 찍어 채워주세요.
 alter table user_regions add column if not exists lat double precision;
 alter table user_regions add column if not exists lng double precision;
-alter table user_regions alter column x drop not null;
-alter table user_regions alter column y drop not null;
+
+-- x/y 컬럼이 아예 없는 테이블에서 이 줄이 에러를 내면 스크립트 전체가 롤백되므로,
+-- 존재할 때만 not null을 해제하도록 방어적으로 처리합니다.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'user_regions' and column_name = 'x') then
+    alter table user_regions alter column x drop not null;
+  end if;
+  if exists (select 1 from information_schema.columns where table_name = 'user_regions' and column_name = 'y') then
+    alter table user_regions alter column y drop not null;
+  end if;
+end $$;
 
 -- AI로 지역을 추가할 때 최소 5일치 일정(대중교통/렌트카 코스)도 함께 생성해 저장합니다.
 -- 형식은 REGIONS/REGIONS_MORE(data/regions.js)의 days와 동일합니다.
