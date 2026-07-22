@@ -1,0 +1,14 @@
+[33mcommit 8eb58a5435798ec0f79cbeb3c4e268fba084c61b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author:     shin <hanan0912@klic.co.kr>
+AuthorDate: Wed Jul 22 11:50:56 2026 +0900
+Commit:     shin <hanan0912@klic.co.kr>
+CommitDate: Wed Jul 22 11:50:56 2026 +0900
+
+    Add Supabase collaboration features and fix map padding
+    
+    - Map now respects the same side padding as the rest of the layout
+    - Add a dev-only coordinate picker tool at /tools/coords
+    - Add comments + up/down reactions on days, spots, and regions (Supabase, realtime)
+    - Let team members add new regions via a form with click-to-place map pin
+    
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
