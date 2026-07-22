@@ -134,6 +134,14 @@ export default function Planner() {
     }
   }
 
+  async function deleteRegion(region) {
+    if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
+    const rawId = region.id.replace(/^custom-/, "");
+    await supabase.from("user_regions").delete().eq("id", rawId);
+    setUserRegions((prev) => prev.filter((r) => r.id !== region.id));
+    setActive(0);
+  }
+
   function locateItem(point) {
     setFocus(point);
     setZoomed(true);
@@ -202,7 +210,7 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <RegionHeader region={region} />
+            <RegionHeader region={region} onDelete={region.isCustom ? () => deleteRegion(region) : undefined} />
             {!region.isCustom && <FlightCard flight={region.flight} />}
             <SpotsPanel
               spots={region.moreSpots}
@@ -228,6 +236,12 @@ export default function Planner() {
               if (isDefaultTrip) setShowMore(true);
             }}
           />
+        )}
+
+        {isDefaultTrip && (
+          <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
+            항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
+          </p>
         )}
       </div>
     </div>

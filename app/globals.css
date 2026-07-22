@@ -105,7 +105,6 @@ body {
 }
 
 .region-tooltip,
-.region-tooltip-inactive,
 .spot-tooltip {
   border: none;
   border-radius: 6px;
@@ -115,21 +114,12 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 .region-tooltip::before,
-.region-tooltip-inactive::before,
 .spot-tooltip::before {
   display: none;
 }
 .region-tooltip {
   background: #0ea5e9 !important;
   color: #ffffff !important;
-}
-.region-tooltip-inactive {
-  background: #ffffff !important;
-  color: #5b7a90 !important;
-  font-weight: 500;
-  font-size: 10px;
-  padding: 1px 5px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 .spot-tooltip {
   background: #ffffff !important;

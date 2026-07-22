@@ -144,6 +144,8 @@ drop policy if exists "user_regions_select" on user_regions;
 create policy "user_regions_select" on user_regions for select using (is_allowed_user());
 drop policy if exists "user_regions_insert" on user_regions;
 create policy "user_regions_insert" on user_regions for insert with check (is_allowed_user());
+drop policy if exists "user_regions_delete" on user_regions;
+create policy "user_regions_delete" on user_regions for delete using (is_allowed_user());
 
 drop policy if exists "day_item_edits_select" on day_item_edits;
 create policy "day_item_edits_select" on day_item_edits for select using (is_allowed_user());
