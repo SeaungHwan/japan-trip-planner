@@ -58,7 +58,7 @@ export default function Planner() {
     };
   }, []);
 
-  const regions = (showMore ? REGIONS.concat(REGIONS_MORE) : REGIONS).concat(userRegions);
+  const regions = showMore ? REGIONS.concat(REGIONS_MORE).concat(userRegions) : REGIONS;
   const region = regions[active];
 
   function selectRegion(i) {
@@ -102,7 +102,7 @@ export default function Planner() {
           onSelect={selectRegion}
           showMore={showMore}
           onToggleMore={toggleMore}
-          moreCount={REGIONS_MORE.length}
+          moreCount={REGIONS_MORE.length + userRegions.length}
           baseCount={REGIONS.length}
         />
 
@@ -127,7 +127,10 @@ export default function Planner() {
         {showAddForm && (
           <AddRegionForm
             onClose={() => setShowAddForm(false)}
-            onAdded={(row) => setUserRegions((prev) => (prev.some((r) => r.id === `custom-${row.id}`) ? prev : [...prev, toRegion(row)]))}
+            onAdded={(row) => {
+              setUserRegions((prev) => (prev.some((r) => r.id === `custom-${row.id}`) ? prev : [...prev, toRegion(row)]));
+              setShowMore(true);
+            }}
           />
         )}
 

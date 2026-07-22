@@ -178,7 +178,7 @@ export default function DayCards({ days, mode, regionId }) {
 
         return (
           <div
-            key={di}
+            key={`${regionId}-${mode}-${di}`}
             draggable={reorderMode}
             onDragStart={() => {
               dragPosRef.current = displayIdx;
