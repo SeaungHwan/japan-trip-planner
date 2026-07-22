@@ -103,7 +103,7 @@ export default function Planner() {
           showMore={showMore}
           onToggleMore={toggleMore}
           moreCount={REGIONS_MORE.length}
-          moreStartIndex={REGIONS.length}
+          baseCount={REGIONS.length}
         />
 
         <button

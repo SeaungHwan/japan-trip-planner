@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const SKY = "#0EA5E9";
@@ -25,11 +25,21 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
+function orderBetween(before, after) {
+  if (before == null && after == null) return 0;
+  if (before == null) return after - 1;
+  if (after == null) return before + 1;
+  return (before + after) / 2;
+}
+
 export default function DayCards({ days, mode, regionId }) {
   const [edits, setEdits] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
+  const [reorderMode, setReorderMode] = useState(false);
+  const [dragOverPos, setDragOverPos] = useState(null);
+  const dragPosRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -59,10 +69,16 @@ export default function DayCards({ days, mode, regionId }) {
     setEditingDay(null);
     setDrafts({});
     setNewText("");
+    setReorderMode(false);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
     return edits.filter((e) => e.mode === mode && e.day_index === dayIdx);
+  }
+
+  function orderFor(dayIdx) {
+    const e = edits.find((ed) => ed.mode === mode && ed.day_index === dayIdx && ed.item_key === "__order__");
+    return e ? e.sort_order : dayIdx;
   }
 
   async function upsert(dayIdx, itemKey, patch) {
@@ -123,11 +139,38 @@ export default function DayCards({ days, mode, regionId }) {
     setNewText("");
   }
 
+  function toggleReorderMode() {
+    setReorderMode((v) => !v);
+    setEditingDay(null);
+  }
+
+  function reorderDay(fromPos, toPos) {
+    if (fromPos === toPos) return;
+    const arr = [...visibleDays];
+    const [moved] = arr.splice(fromPos, 1);
+    arr.splice(Math.max(0, Math.min(toPos, arr.length)), 0, moved);
+    const idx = arr.indexOf(moved);
+    const newOrder = orderBetween(arr[idx - 1]?.order, arr[idx + 1]?.order);
+    upsert(moved.di, "__order__", { sort_order: newOrder });
+  }
+
+  const visibleDays = days
+    .map((day, di) => ({ day, di, order: orderFor(di) }))
+    .filter((v) => !isDayDeleted(v.di))
+    .sort((a, b) => a.order - b.order);
+
   return (
     <div className="flex flex-col gap-3">
-      {days.map((day, di) => {
-        if (isDayDeleted(di)) return null;
-
+      {visibleDays.length > 1 && (
+        <button
+          className="self-end text-[12px] flex items-center gap-1 -mb-1"
+          style={{ color: SKY, fontWeight: 700 }}
+          onClick={toggleReorderMode}
+        >
+          <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+        </button>
+      )}
+      {visibleDays.map(({ day, di }, displayIdx) => {
         const plan = day[mode];
         const title = titleFor(di, plan.title);
         const items = mergeItems(plan.items, editsFor(di));
@@ -136,15 +179,38 @@ export default function DayCards({ days, mode, regionId }) {
         return (
           <div
             key={di}
+            draggable={reorderMode}
+            onDragStart={() => {
+              dragPosRef.current = displayIdx;
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverPos(displayIdx);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragPosRef.current !== null) reorderDay(dragPosRef.current, displayIdx);
+              dragPosRef.current = null;
+              setDragOverPos(null);
+            }}
+            onDragEnd={() => {
+              dragPosRef.current = null;
+              setDragOverPos(null);
+            }}
             className="day-card rounded-xl p-4"
-            style={{ animationDelay: `${di * 0.05}s`, background: "#FFFFFF", border: "1px solid #BAE6FD" }}
+            style={{
+              animationDelay: `${displayIdx * 0.05}s`,
+              background: "#FFFFFF",
+              border: dragOverPos === displayIdx ? `1px solid ${SKY}` : "1px solid #BAE6FD",
+            }}
           >
             <div className="flex items-start gap-3">
+              {reorderMode && <GripVertical size={16} color="#94A9B8" className="shrink-0 mt-1 cursor-grab" />}
               <span
                 className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
                 style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
               >
-                {di + 1}
+                {displayIdx + 1}
               </span>
               <div className="flex-1 min-w-0">
                 {isEditing ? (
@@ -203,22 +269,24 @@ export default function DayCards({ days, mode, regionId }) {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-3">
-              <button
-                className="text-[12px] flex items-center gap-1"
-                style={{ color: SKY, fontWeight: 700 }}
-                onClick={() => toggleEditDay(di)}
-              >
-                <Pencil size={13} /> {isEditing ? "완료" : "편집"}
-              </button>
-              <button
-                className="text-[12px] flex items-center gap-1"
-                style={{ color: "#94A9B8", fontWeight: 700 }}
-                onClick={() => deleteDay(di)}
-              >
-                <Trash2 size={13} /> 삭제
-              </button>
-            </div>
+            {!reorderMode && (
+              <div className="flex items-center justify-end gap-3 mt-3">
+                <button
+                  className="text-[12px] flex items-center gap-1"
+                  style={{ color: SKY, fontWeight: 700 }}
+                  onClick={() => toggleEditDay(di)}
+                >
+                  <Pencil size={13} /> {isEditing ? "완료" : "편집"}
+                </button>
+                <button
+                  className="text-[12px] flex items-center gap-1"
+                  style={{ color: "#94A9B8", fontWeight: 700 }}
+                  onClick={() => deleteDay(di)}
+                >
+                  <Trash2 size={13} /> 삭제
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
