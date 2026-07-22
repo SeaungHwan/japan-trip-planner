@@ -18,7 +18,7 @@ export default function RegionHeader({ region, onDelete }) {
         <span className="text-xs" style={{ color: "#94A9B8" }}>
           {region.jp}
         </span>
-        {region.isCustom && onDelete && (
+        {onDelete && (
           <button onClick={onDelete} aria-label="지역 삭제" className="ml-auto shrink-0">
             <Trash2 size={15} color="#94A9B8" />
           </button>

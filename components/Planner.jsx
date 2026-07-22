@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { REGIONS, REGIONS_MORE } from "@/data/regions";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
@@ -19,17 +18,18 @@ const DEFAULT_TRIP = { id: "japan-trip", title: "일본 여행", subtitle: "9.18
 
 function toRegion(row) {
   return {
-    id: `custom-${row.id}`,
+    id: row.id,
     tripId: row.trip_id || DEFAULT_TRIP.id,
     kr: row.kr,
     jp: row.jp || "",
-    icon: "landmark",
+    icon: row.icon || "landmark",
     lat: row.lat,
     lng: row.lng,
     note: row.note,
-    moreSpots: (row.spots || []).map((name) => ({ name })),
+    flight: row.flight || null,
+    moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
     days: row.days || [],
-    isCustom: true,
+    isExtra: !!row.is_extra,
   };
 }
 
@@ -57,9 +57,7 @@ export default function Planner() {
 
     const channel = supabase
       .channel("user_regions_feed")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_regions" }, (payload) => {
-        setUserRegions((prev) => (prev.some((r) => r.id === `custom-${payload.new.id}`) ? prev : [...prev, toRegion(payload.new)]));
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_regions" }, load)
       .subscribe();
 
     return () => {
@@ -94,13 +92,11 @@ export default function Planner() {
   const allTrips = [defaultTripOverride || DEFAULT_TRIP, ...trips.filter((t) => t.id !== DEFAULT_TRIP.id)];
   const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
   const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
-  const tripUserRegions = userRegions.filter((r) => r.tripId === activeTripId);
 
-  const regions = isDefaultTrip
-    ? showMore
-      ? REGIONS.concat(REGIONS_MORE).concat(tripUserRegions)
-      : REGIONS
-    : tripUserRegions;
+  const tripRegions = userRegions.filter((r) => r.tripId === activeTripId);
+  const baseRegions = tripRegions.filter((r) => !r.isExtra);
+  const extraRegions = tripRegions.filter((r) => r.isExtra);
+  const regions = showMore ? baseRegions.concat(extraRegions) : baseRegions;
   const region = regions[active];
 
   function selectRegion(i) {
@@ -136,8 +132,7 @@ export default function Planner() {
 
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
-    const rawId = region.id.replace(/^custom-/, "");
-    await supabase.from("user_regions").delete().eq("id", rawId);
+    await supabase.from("user_regions").delete().eq("id", region.id);
     setUserRegions((prev) => prev.filter((r) => r.id !== region.id));
     setActive(0);
   }
@@ -151,7 +146,7 @@ export default function Planner() {
   function toggleMore() {
     setShowMore((prev) => {
       const next = !prev;
-      if (!next && active >= REGIONS.length) setActive(0);
+      if (!next && active >= baseRegions.length) setActive(0);
       return next;
     });
   }
@@ -192,8 +187,8 @@ export default function Planner() {
           onSelect={selectRegion}
           showMore={showMore}
           onToggleMore={toggleMore}
-          moreCount={isDefaultTrip ? REGIONS_MORE.length + tripUserRegions.length : 0}
-          baseCount={isDefaultTrip ? REGIONS.length : tripUserRegions.length}
+          moreCount={extraRegions.length}
+          baseCount={baseRegions.length}
         />
 
         <button
@@ -210,8 +205,8 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <RegionHeader region={region} onDelete={region.isCustom ? () => deleteRegion(region) : undefined} />
-            {!region.isCustom && <FlightCard flight={region.flight} />}
+            <RegionHeader region={region} onDelete={() => deleteRegion(region)} />
+            {region.flight && <FlightCard flight={region.flight} />}
             <SpotsPanel
               spots={region.moreSpots}
               open={showSpots}
@@ -232,7 +227,7 @@ export default function Planner() {
             tripId={activeTripId}
             onClose={() => setShowAddForm(false)}
             onAdded={(row) => {
-              setUserRegions((prev) => (prev.some((r) => r.id === `custom-${row.id}`) ? prev : [...prev, toRegion(row)]));
+              setUserRegions((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, toRegion(row)]));
               if (isDefaultTrip) setShowMore(true);
             }}
           />
