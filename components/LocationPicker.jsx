@@ -1,8 +1,9 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
+import { useEffect } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 
 const JAPAN_CENTER = [37.5, 137.5];
 
@@ -22,6 +23,14 @@ function ClickHandler({ onPick }) {
   return null;
 }
 
+function FlyToPoint({ point }) {
+  const map = useMap();
+  useEffect(() => {
+    if (point) map.flyTo([point.lat, point.lng], 10, { duration: 0.6 });
+  }, [point?.lat, point?.lng]);
+  return null;
+}
+
 export default function LocationPicker({ point, onPick }) {
   return (
     <div className="rounded overflow-hidden mb-2" style={{ height: 220, border: "1px solid #BAE6FD" }}>
@@ -35,6 +44,7 @@ export default function LocationPicker({ point, onPick }) {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <ClickHandler onPick={onPick} />
+        <FlyToPoint point={point} />
         {point && <Marker position={[point.lat, point.lng]} icon={markerIcon} />}
       </MapContainer>
     </div>

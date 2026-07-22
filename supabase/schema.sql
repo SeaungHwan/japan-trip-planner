@@ -38,6 +38,10 @@ alter table user_regions add column if not exists lng double precision;
 alter table user_regions alter column x drop not null;
 alter table user_regions alter column y drop not null;
 
+-- AI로 지역을 추가할 때 최소 5일치 일정(대중교통/렌트카 코스)도 함께 생성해 저장합니다.
+-- 형식은 REGIONS/REGIONS_MORE(data/regions.js)의 days와 동일합니다.
+alter table user_regions add column if not exists days jsonb not null default '[]'::jsonb;
+
 -- 구글 로그인 도입: 닉네임은 더 이상 자유 입력이 아니라 구글 계정 이름을 그대로 씁니다.
 -- reactions는 "한 사람당 한 표"를 검증해야 하므로 nickname(중복 가능) 대신 실제 계정(user_id)으로 유일성을 잡습니다.
 alter table reactions add column if not exists user_id uuid references auth.users(id) on delete cascade;

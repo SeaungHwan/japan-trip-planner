@@ -23,6 +23,7 @@ function toRegion(row) {
     lng: row.lng,
     note: row.note,
     moreSpots: (row.spots || []).map((name) => ({ name })),
+    days: row.days || [],
     isCustom: true,
   };
 }
@@ -117,7 +118,7 @@ export default function Planner() {
         <RegionHeader region={region} />
         {!region.isCustom && <FlightCard flight={region.flight} />}
         <SpotsPanel spots={region.moreSpots} open={showSpots} onToggle={() => setShowSpots((v) => !v)} />
-        {!region.isCustom && (
+        {region.days?.length > 0 && (
           <>
             <ModeToggle mode={mode} onChange={setMode} />
             <DayCards days={region.days} mode={mode} regionId={region.id} />

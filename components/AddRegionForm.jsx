@@ -19,6 +19,7 @@ export default function AddRegionForm({ onClose, onAdded }) {
   const [spotsText, setSpotsText] = useState("");
   const [note, setNote] = useState("");
   const [point, setPoint] = useState(null);
+  const [days, setDays] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -40,6 +41,8 @@ export default function AddRegionForm({ onClose, onAdded }) {
       if (!res.ok) throw new Error(data.error || "생성 실패");
       setSpotsText(data.spots.join(", "));
       setNote(data.note);
+      setPoint({ lat: data.lat, lng: data.lng });
+      setDays(data.days);
     } catch (e) {
       setError(e.message);
     }
@@ -63,7 +66,16 @@ export default function AddRegionForm({ onClose, onAdded }) {
 
     const { data, error: err } = await supabase
       .from("user_regions")
-      .insert({ kr: kr.trim(), jp: jp.trim() || null, lat: point.lat, lng: point.lng, note: note.trim() || null, spots, created_by: identity.nickname })
+      .insert({
+        kr: kr.trim(),
+        jp: jp.trim() || null,
+        lat: point.lat,
+        lng: point.lng,
+        note: note.trim() || null,
+        spots,
+        days: days || [],
+        created_by: identity.nickname,
+      })
       .select()
       .single();
 
@@ -105,8 +117,13 @@ export default function AddRegionForm({ onClose, onAdded }) {
           className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
           style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
         >
-          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 가볼만한 곳 · 메모 자동 생성"}
+          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 메모 자동 생성"}
         </button>
+        {days?.length > 0 && (
+          <p className="text-[12px] mb-2" style={{ color: SKY }}>
+            {days.length}일 일정이 자동 생성됐어요. 저장하면 일정 카드에 반영됩니다.
+          </p>
+        )}
 
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           일본어 이름 (선택)
@@ -120,7 +137,7 @@ export default function AddRegionForm({ onClose, onAdded }) {
         />
 
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          지도 위치 (필수) — 아래 지도를 클릭해서 위치를 찍어주세요
+          지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
         </label>
         <LocationPicker point={point} onPick={setPoint} />
 
