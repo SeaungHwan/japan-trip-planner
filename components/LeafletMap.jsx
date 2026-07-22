@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2 } from "lucide-react";
 
 const SKY = "#0EA5E9";
@@ -29,6 +29,19 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
+function ZoomWatcher({ onZoom }) {
+  const map = useMap();
+  useMapEvents({ zoom: () => onZoom(map.getZoom()), zoomend: () => onZoom(map.getZoom()) });
+  return null;
+}
+
+function badgeScale(zoom) {
+  if (zoom <= 6) return "badge-xs";
+  if (zoom <= 9) return "badge-sm";
+  if (zoom <= 13) return "badge-md";
+  return "badge-lg";
+}
+
 export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus }) {
   const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
@@ -42,6 +55,9 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
   const center = hasFocus ? [focus.lat, focus.lng] : zoomed && hasCoords ? [activeRegion.lat, activeRegion.lng] : JAPAN_CENTER;
   const zoom = hasFocus ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
 
+  const [currentZoom, setCurrentZoom] = useState(zoom);
+  const scaleClass = badgeScale(currentZoom);
+
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
@@ -50,6 +66,7 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <FlyTo center={center} zoom={zoom} />
+        <ZoomWatcher onZoom={setCurrentZoom} />
 
         {regions
           .map((r, i) => ({ r, i }))
@@ -58,12 +75,12 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
             const isActive = i === active;
             return (
               <Marker
-                key={r.id}
+                key={`${r.id}-${scaleClass}`}
                 position={[r.lat, r.lng]}
                 icon={pinIcon(isActive ? 14 : 8, isActive ? SKY : "#7C97AA")}
                 eventHandlers={{ click: () => onSelect(i) }}
               >
-                <Tooltip permanent direction="top" offset={[0, -8]} className="region-tooltip">
+                <Tooltip permanent direction="top" offset={[0, -8]} className={`region-tooltip ${scaleClass}`}>
                   {r.kr}
                 </Tooltip>
               </Marker>
@@ -71,9 +88,9 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           })}
 
         {hasFocus && (
-          <Marker position={[focus.lat, focus.lng]} icon={pinIcon(16, "#EF4444")}>
+          <Marker key={`focus-${scaleClass}`} position={[focus.lat, focus.lng]} icon={pinIcon(16, "#EF4444")}>
             {focus.name && (
-              <Tooltip permanent direction="top" offset={[0, -10]} className="spot-tooltip">
+              <Tooltip permanent direction="top" offset={[0, -10]} className={`spot-tooltip ${scaleClass}`}>
                 {focus.name}
               </Tooltip>
             )}
@@ -86,13 +103,13 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
             .filter((s) => typeof s.lat === "number" && typeof s.lng === "number")
             .map((s, i) => (
               <Marker
-                key={i}
+                key={`${i}-${scaleClass}`}
                 position={[s.lat, s.lng]}
                 icon={pinIcon(9, "#F59E0B")}
                 eventHandlers={{ click: () => setOpenSpot((prev) => (prev === i ? null : i)) }}
               >
                 {openSpot === i && (
-                  <Tooltip permanent direction="top" offset={[0, -6]} className="spot-tooltip">
+                  <Tooltip permanent direction="top" offset={[0, -6]} className={`spot-tooltip ${scaleClass}`}>
                     {s.name}
                   </Tooltip>
                 )}

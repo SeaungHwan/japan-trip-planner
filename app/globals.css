@@ -126,3 +126,25 @@ body {
   color: #0f2a3d !important;
   border: 1px solid #f59e0b !important;
 }
+
+/* Badges shrink/grow with the map's zoom level instead of staying a fixed pixel size. */
+.region-tooltip.badge-xs,
+.spot-tooltip.badge-xs {
+  font-size: 8px;
+  padding: 1px 4px;
+}
+.region-tooltip.badge-sm,
+.spot-tooltip.badge-sm {
+  font-size: 9px;
+  padding: 1.5px 5px;
+}
+.region-tooltip.badge-md,
+.spot-tooltip.badge-md {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.region-tooltip.badge-lg,
+.spot-tooltip.badge-lg {
+  font-size: 13px;
+  padding: 2.5px 7px;
+}
