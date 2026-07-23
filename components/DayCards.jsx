@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { Reorder, useDragControls } from "framer-motion";
 import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { checkIsMaster } from "@/lib/auth";
@@ -34,11 +35,178 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
-function orderBetween(before, after) {
-  if (before == null && after == null) return 0;
-  if (before == null) return after - 1;
-  if (after == null) return before + 1;
-  return (before + after) / 2;
+// 손가락으로 잡아서 실시간으로 위젯이 따라오고, 카드 사이에 끼워 넣을 수 있는 드래그 재정렬.
+// framer-motion의 Reorder는 포인터/터치를 모두 지원하고, 드래그 중 다른 카드들이 자리를
+// 비켜주는 애니메이션까지 기본 제공합니다. 그립 아이콘에서만 드래그가 시작되도록
+// dragListener를 끄고 useDragControls로 직접 트리거합니다.
+function DayCardItem({
+  di,
+  displayIdx,
+  title,
+  items,
+  isEditing,
+  reorderMode,
+  canEdit,
+  drafts,
+  setDrafts,
+  newText,
+  setNewText,
+  locatingItem,
+  pendingPoint,
+  setPendingPoint,
+  setCardRef,
+  onCommitDraft,
+  onDeleteItem,
+  onAddItem,
+  onOpenLocationPicker,
+  onConfirmLocation,
+  onClearLocation,
+  onCloseLocationPicker,
+  onToggleEdit,
+  onDeleteDay,
+  onLocateItem,
+}) {
+  const dragControls = useDragControls();
+  const isLocatingHere = locatingItem?.dayIdx === di;
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={di}
+      ref={setCardRef}
+      dragListener={false}
+      dragControls={dragControls}
+      className="day-card rounded-xl p-4"
+      style={{ animationDelay: `${displayIdx * 0.05}s`, background: "#FFFFFF", border: "1px solid #BAE6FD" }}
+    >
+      <div className="flex items-start gap-3">
+        {reorderMode && (
+          <span
+            className="shrink-0 flex items-center justify-center -ml-2 -mt-1"
+            style={{ width: 32, height: 32, touchAction: "none", cursor: "grab" }}
+            onPointerDown={(e) => dragControls.start(e)}
+          >
+            <GripVertical size={16} color="#94A9B8" />
+          </span>
+        )}
+        <span
+          className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
+          style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+        >
+          {displayIdx + 1}
+        </span>
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <input
+              value={drafts.__title__ ?? title}
+              onChange={(e) => setDrafts((d) => ({ ...d, __title__: e.target.value }))}
+              onBlur={() => onCommitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
+              onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+              autoFocus
+              className="w-full text-[15px] rounded px-1.5 py-0.5"
+              style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", fontWeight: 700 }}
+            />
+          ) : (
+            <div className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              {title}
+            </div>
+          )}
+          <ul className="mt-1.5 space-y-1" style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}>
+            {items.map((it) =>
+              isEditing ? (
+                <li key={it.key} className="flex items-center gap-1">
+                  <input
+                    value={drafts[it.key] ?? it.text}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [it.key]: e.target.value }))}
+                    onBlur={() => onCommitDraft(di, it)}
+                    onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                    className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
+                    style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                  />
+                  <button onClick={() => onOpenLocationPicker(di, it)} aria-label="위치 설정" className="shrink-0">
+                    <MapPin size={13} color={it.lat != null ? SKY : "#94A9B8"} />
+                  </button>
+                  <button onClick={() => onDeleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
+                    <Trash2 size={13} color="#94A9B8" />
+                  </button>
+                </li>
+              ) : it.lat != null ? (
+                <li key={it.key}>
+                  <button
+                    onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
+                    className="text-[13px] flex items-center gap-1 text-left"
+                    style={{ color: "#5B7A90" }}
+                  >
+                    <MapPin size={11} color={SKY} className="shrink-0" /> {it.text}
+                  </button>
+                </li>
+              ) : (
+                <li key={it.key} className="text-[13px]" style={{ color: "#5B7A90" }}>
+                  &middot; {it.text}
+                </li>
+              )
+            )}
+          </ul>
+
+          {isEditing && isLocatingHere && (
+            <div className="rounded-lg p-2 mt-1.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+                  &quot;{locatingItem.item.text}&quot; 위치 지정
+                </span>
+                <button onClick={onCloseLocationPicker} aria-label="닫기">
+                  <X size={14} color="#94A9B8" />
+                </button>
+              </div>
+              <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={onConfirmLocation}
+                  disabled={!pendingPoint}
+                  className="text-[12px]"
+                  style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
+                >
+                  위치 저장
+                </button>
+                {locatingItem.item.lat != null && (
+                  <button onClick={() => onClearLocation(di, locatingItem.item)} className="text-[12px]" style={{ color: "#EF4444", fontWeight: 700 }}>
+                    위치 삭제
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isEditing && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <input
+                value={newText}
+                onChange={(e) => setNewText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && onAddItem(di, items)}
+                placeholder="새 항목"
+                className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
+                style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+              />
+              <button onClick={() => onAddItem(di, items)} aria-label="추가" className="shrink-0">
+                <Plus size={13} color={SKY} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {canEdit && !reorderMode && (
+        <div className="flex items-center justify-end gap-3 mt-3">
+          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={() => onToggleEdit(di)}>
+            <Pencil size={13} /> {isEditing ? "완료" : "편집"}
+          </button>
+          <button className="text-[12px] flex items-center gap-1" style={{ color: "#94A9B8", fontWeight: 700 }} onClick={() => onDeleteDay(di)}>
+            <Trash2 size={13} /> 삭제
+          </button>
+        </div>
+      )}
+    </Reorder.Item>
+  );
 }
 
 export default function DayCards({ days, mode, regionId, onLocateItem }) {
@@ -47,10 +215,8 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
-  const [dragOverPos, setDragOverPos] = useState(null);
   const [locatingItem, setLocatingItem] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
-  const dragPosRef = useRef(null);
   const cardRefs = useRef({});
   const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -157,6 +323,11 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     setPendingPoint(item.lat != null ? { lat: item.lat, lng: item.lng } : null);
   }
 
+  function closeLocationPicker() {
+    setLocatingItem(null);
+    setPendingPoint(null);
+  }
+
   async function confirmItemLocation() {
     if (!locatingItem || !pendingPoint) return;
     await upsert(locatingItem.dayIdx, locatingItem.item.key, {
@@ -165,14 +336,12 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
       lat: pendingPoint.lat,
       lng: pendingPoint.lng,
     });
-    setLocatingItem(null);
-    setPendingPoint(null);
+    closeLocationPicker();
   }
 
   async function clearItemLocation(dayIdx, item) {
     await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
-    setLocatingItem(null);
-    setPendingPoint(null);
+    closeLocationPicker();
   }
 
   function titleFor(dayIdx, baseTitle) {
@@ -228,14 +397,12 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edits, days, mode]);
 
-  function reorderDay(fromPos, toPos) {
-    if (fromPos === toPos) return;
-    const arr = [...visibleDays];
-    const [moved] = arr.splice(fromPos, 1);
-    arr.splice(Math.max(0, Math.min(toPos, arr.length)), 0, moved);
-    const idx = arr.indexOf(moved);
-    const newOrder = orderBetween(arr[idx - 1]?.order, arr[idx + 1]?.order);
-    upsert(moved.di, "__order__", { sort_order: newOrder });
+  const diOrder = visibleDays.map((v) => v.di);
+
+  // Reorder.Group이 드래그가 끝나면 새 순서(di 배열)를 통째로 줍니다.
+  // 각 날짜의 sort_order를 그 배열 인덱스로 다시 매겨서 저장합니다.
+  async function handleReorder(newOrder) {
+    await Promise.all(newOrder.map((di, idx) => upsert(di, "__order__", { sort_order: idx })));
   }
 
   async function addDay() {
@@ -259,200 +426,52 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   return (
     <div className="flex flex-col gap-3">
       {canEdit && (
-      <div className="flex items-center justify-end gap-3 -mb-1">
-        {visibleDays.length > 1 && (
-          <button
-            className="text-[12px] flex items-center gap-1"
-            style={{ color: SKY, fontWeight: 700 }}
-            onClick={toggleReorderMode}
-          >
-            <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+        <div className="flex items-center justify-end gap-3 -mb-1">
+          {visibleDays.length > 1 && (
+            <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleReorderMode}>
+              <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+            </button>
+          )}
+          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
+            <Plus size={13} /> 일정 추가
           </button>
-        )}
-        <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
-          <Plus size={13} /> 일정 추가
-        </button>
-      </div>
+        </div>
       )}
-      {visibleDays.map(({ di }, displayIdx) => {
-        const { title, items } = dayPlans.get(di);
-        const isEditing = editingDay === di;
-
-        return (
-          <div
-            key={`${regionId}-${mode}-${di}`}
-            ref={(el) => (cardRefs.current[di] = el)}
-            draggable={reorderMode}
-            onDragStart={() => {
-              dragPosRef.current = displayIdx;
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverPos(displayIdx);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (dragPosRef.current !== null) reorderDay(dragPosRef.current, displayIdx);
-              dragPosRef.current = null;
-              setDragOverPos(null);
-            }}
-            onDragEnd={() => {
-              dragPosRef.current = null;
-              setDragOverPos(null);
-            }}
-            className="day-card rounded-xl p-4"
-            style={{
-              animationDelay: `${displayIdx * 0.05}s`,
-              background: "#FFFFFF",
-              border: dragOverPos === displayIdx ? `1px solid ${SKY}` : "1px solid #BAE6FD",
-            }}
-          >
-            <div className="flex items-start gap-3">
-              {reorderMode && <GripVertical size={16} color="#94A9B8" className="shrink-0 mt-1 cursor-grab" />}
-              <span
-                className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
-                style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-              >
-                {displayIdx + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                {isEditing ? (
-                  <input
-                    value={drafts.__title__ ?? title}
-                    onChange={(e) => setDrafts((d) => ({ ...d, __title__: e.target.value }))}
-                    onBlur={() => commitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
-                    onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-                    autoFocus
-                    className="w-full text-[15px] rounded px-1.5 py-0.5"
-                    style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", fontWeight: 700 }}
-                  />
-                ) : (
-                  <div className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-                    {title}
-                  </div>
-                )}
-                <ul
-                  className="mt-1.5 space-y-1"
-                  style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}
-                >
-                  {items.map((it) =>
-                    isEditing ? (
-                      <li key={it.key} className="flex items-center gap-1">
-                        <input
-                          value={drafts[it.key] ?? it.text}
-                          onChange={(e) => setDrafts((d) => ({ ...d, [it.key]: e.target.value }))}
-                          onBlur={() => commitDraft(di, it)}
-                          onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-                          className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
-                          style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-                        />
-                        <button
-                          onClick={() => openLocationPicker(di, it)}
-                          aria-label="위치 설정"
-                          className="shrink-0"
-                        >
-                          <MapPin size={13} color={it.lat != null ? SKY : "#94A9B8"} />
-                        </button>
-                        <button onClick={() => deleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
-                          <Trash2 size={13} color="#94A9B8" />
-                        </button>
-                      </li>
-                    ) : it.lat != null ? (
-                      <li key={it.key}>
-                        <button
-                          onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
-                          className="text-[13px] flex items-center gap-1 text-left"
-                          style={{ color: "#5B7A90" }}
-                        >
-                          <MapPin size={11} color={SKY} className="shrink-0" /> {it.text}
-                        </button>
-                      </li>
-                    ) : (
-                      <li key={it.key} className="text-[13px]" style={{ color: "#5B7A90" }}>
-                        &middot; {it.text}
-                      </li>
-                    )
-                  )}
-                </ul>
-
-                {isEditing && locatingItem?.dayIdx === di && (
-                  <div className="rounded-lg p-2 mt-1.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[12px]" style={{ color: "#5B7A90" }}>
-                        &quot;{locatingItem.item.text}&quot; 위치 지정
-                      </span>
-                      <button
-                        onClick={() => {
-                          setLocatingItem(null);
-                          setPendingPoint(null);
-                        }}
-                        aria-label="닫기"
-                      >
-                        <X size={14} color="#94A9B8" />
-                      </button>
-                    </div>
-                    <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <button
-                        onClick={confirmItemLocation}
-                        disabled={!pendingPoint}
-                        className="text-[12px]"
-                        style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
-                      >
-                        위치 저장
-                      </button>
-                      {locatingItem.item.lat != null && (
-                        <button
-                          onClick={() => clearItemLocation(di, locatingItem.item)}
-                          className="text-[12px]"
-                          style={{ color: "#EF4444", fontWeight: 700 }}
-                        >
-                          위치 삭제
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {isEditing && (
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <input
-                      value={newText}
-                      onChange={(e) => setNewText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addItem(di, items)}
-                      placeholder="새 항목"
-                      className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
-                      style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-                    />
-                    <button onClick={() => addItem(di, items)} aria-label="추가" className="shrink-0">
-                      <Plus size={13} color={SKY} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {canEdit && !reorderMode && (
-              <div className="flex items-center justify-end gap-3 mt-3">
-                <button
-                  className="text-[12px] flex items-center gap-1"
-                  style={{ color: SKY, fontWeight: 700 }}
-                  onClick={() => toggleEditDay(di)}
-                >
-                  <Pencil size={13} /> {isEditing ? "완료" : "편집"}
-                </button>
-                <button
-                  className="text-[12px] flex items-center gap-1"
-                  style={{ color: "#94A9B8", fontWeight: 700 }}
-                  onClick={() => deleteDay(di)}
-                >
-                  <Trash2 size={13} /> 삭제
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      <Reorder.Group as="div" axis="y" values={diOrder} onReorder={handleReorder} className="flex flex-col gap-3">
+        {visibleDays.map(({ di }, displayIdx) => {
+          const { title, items } = dayPlans.get(di);
+          return (
+            <DayCardItem
+              key={`${regionId}-${mode}-${di}`}
+              di={di}
+              displayIdx={displayIdx}
+              title={title}
+              items={items}
+              isEditing={editingDay === di}
+              reorderMode={reorderMode}
+              canEdit={canEdit}
+              drafts={drafts}
+              setDrafts={setDrafts}
+              newText={newText}
+              setNewText={setNewText}
+              locatingItem={locatingItem}
+              pendingPoint={pendingPoint}
+              setPendingPoint={setPendingPoint}
+              setCardRef={(el) => (cardRefs.current[di] = el)}
+              onCommitDraft={commitDraft}
+              onDeleteItem={deleteItem}
+              onAddItem={addItem}
+              onOpenLocationPicker={openLocationPicker}
+              onConfirmLocation={confirmItemLocation}
+              onClearLocation={clearItemLocation}
+              onCloseLocationPicker={closeLocationPicker}
+              onToggleEdit={toggleEditDay}
+              onDeleteDay={deleteDay}
+              onLocateItem={onLocateItem}
+            />
+          );
+        })}
+      </Reorder.Group>
     </div>
   );
 }
