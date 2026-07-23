@@ -16,6 +16,7 @@ import AddRegionForm from "@/components/AddRegionForm";
 import TripSwitcher from "@/components/TripSwitcher";
 
 const DEFAULT_TRIP = { id: "japan-trip", title: "일본 여행", subtitle: "9.18 — 9.22" };
+const MAX_BASE_REGIONS = 6;
 
 function toRegion(row) {
   return {
@@ -30,7 +31,6 @@ function toRegion(row) {
     flight: row.flight || null,
     moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
     days: row.days || [],
-    isExtra: !!row.is_extra,
     userId: row.user_id || null,
   };
 }
@@ -106,11 +106,14 @@ export default function Planner() {
   const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
   const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
 
+  // 처음 만들어진 순서(created_at 오름차순)로 앞의 MAX_BASE_REGIONS개만 메인 스크롤에 두고
+  // 나머지는 전부 "더보기"로 넘깁니다. 그래서 새로 추가한 지역은 항상 더보기 쪽에 들어가고,
+  // 지역별로 is_extra를 일일이 설정/관리할 필요가 없습니다.
   const { baseRegions, extraRegions } = useMemo(() => {
     const tripRegions = userRegions.filter((r) => r.tripId === activeTripId);
     return {
-      baseRegions: tripRegions.filter((r) => !r.isExtra),
-      extraRegions: tripRegions.filter((r) => r.isExtra),
+      baseRegions: tripRegions.slice(0, MAX_BASE_REGIONS),
+      extraRegions: tripRegions.slice(MAX_BASE_REGIONS),
     };
   }, [userRegions, activeTripId]);
   const regions = showMore ? baseRegions.concat(extraRegions) : baseRegions;
@@ -149,7 +152,18 @@ export default function Planner() {
 
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
-    await supabase.from("user_regions").delete().eq("id", region.id);
+    // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
+    // 행을 돌려받아 확인합니다. 확인 없이 로컬 상태만 지우면 화면에서 잠깐 사라졌다가
+    // 실시간 구독이 다시 불러오면서 그대로 남아있는 것처럼 보이는 문제가 있었습니다.
+    const { data, error } = await supabase.from("user_regions").delete().eq("id", region.id).select();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("삭제 권한이 없어요. 마스터 계정이거나 본인이 만든 지역만 삭제할 수 있습니다.");
+      return;
+    }
     setUserRegions((prev) => prev.filter((r) => r.id !== region.id));
     setActive(0);
   }
