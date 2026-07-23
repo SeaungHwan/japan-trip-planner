@@ -216,6 +216,18 @@ export default function Planner() {
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
   }
 
+  async function setSpotLocation(region, index, point) {
+    const newSpots = (region.moreSpots || []).map((s, i) =>
+      i === index ? { name: s.name, lat: point?.lat ?? null, lng: point?.lng ?? null } : s
+    );
+    const { data, error } = await supabase.from("user_regions").update({ spots: newSpots }).eq("id", region.id).select().single();
+    if (error) {
+      alert("위치 저장에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
     // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
@@ -326,6 +338,7 @@ export default function Planner() {
               canEdit={canManageRegion(region)}
               onAddSpot={(name) => addSpot(region, name)}
               onDeleteSpot={(i) => deleteSpot(region, i)}
+              onSetLocation={(i, point) => setSpotLocation(region, i, point)}
             />
             {region.days?.length > 0 && (
               <>
