@@ -93,6 +93,9 @@ create table if not exists trips (
   created_at timestamptz not null default now()
 );
 
+-- 여행도 지역처럼 만든 사람 또는 마스터만 지울 수 있게 실제 계정을 기록합니다.
+alter table trips add column if not exists user_id uuid references auth.users(id) on delete set null;
+
 -- 혹시 이 스키마의 이전 버전(id uuid)을 이미 실행했다면 text로 바꿔줍니다.
 do $$
 begin
@@ -217,6 +220,8 @@ drop policy if exists "trips_insert" on trips;
 create policy "trips_insert" on trips for insert with check (is_allowed_user());
 drop policy if exists "trips_update" on trips;
 create policy "trips_update" on trips for update using (is_allowed_user());
+drop policy if exists "trips_delete" on trips;
+create policy "trips_delete" on trips for delete using (is_master_user() or auth.uid() = user_id);
 
 -- 실시간 구독 활성화 (이미 등록된 테이블이면 건너뜁니다)
 do $$

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Plus, Pencil, X } from "lucide-react";
+import { ChevronDown, Plus, Pencil, Trash2, X } from "lucide-react";
 
 const SKY = "#0EA5E9";
 
@@ -18,7 +18,7 @@ function formatRange(startDate, endDate) {
   return "";
 }
 
-export default function TripSwitcher({ trips, activeTripId, onSelect, onSave }) {
+export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, canDelete, onDelete }) {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(undefined); // undefined = create-new mode is hidden, null = creating new, id = editing that trip
   const [title, setTitle] = useState("");
@@ -98,6 +98,11 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave }) 
                   <button onClick={() => startEdit(t)} aria-label="여행 정보 수정" className="shrink-0">
                     <Pencil size={14} color="#5B7A90" />
                   </button>
+                  {canDelete?.(t) && (
+                    <button onClick={() => onDelete(t)} aria-label="여행 삭제" className="shrink-0">
+                      <Trash2 size={14} color="#94A9B8" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

@@ -136,18 +136,40 @@ export default function Planner() {
   }
 
   async function saveTrip(id, title, subtitle) {
-    const identity = await getIdentity();
-    if (!identity) return;
+    const tripIdentity = await getIdentity();
+    if (!tripIdentity) return;
     const tripId = id || crypto.randomUUID();
     const { data } = await supabase
       .from("trips")
-      .upsert({ id: tripId, title, subtitle: subtitle || null, created_by: identity.nickname }, { onConflict: "id" })
+      .upsert({ id: tripId, title, subtitle: subtitle || null, created_by: tripIdentity.nickname, user_id: tripIdentity.id }, { onConflict: "id" })
       .select()
       .single();
     if (data) {
       setTrips((prev) => (prev.some((t) => t.id === data.id) ? prev.map((t) => (t.id === data.id ? data : t)) : [...prev, data]));
       selectTrip(data.id);
     }
+  }
+
+  function canDeleteTrip(trip) {
+    if (trip.id === DEFAULT_TRIP.id) return false;
+    return isMaster || (identity && trip.user_id === identity.id);
+  }
+
+  async function deleteTrip(trip) {
+    if (!window.confirm(`"${trip.title}" 여행을 삭제할까요? 이 여행에 속한 지역도 함께 삭제됩니다.`)) return;
+    await supabase.from("user_regions").delete().eq("trip_id", trip.id);
+    const { data, error } = await supabase.from("trips").delete().eq("id", trip.id).select();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("삭제 권한이 없어요. 마스터 계정이거나 본인이 만든 여행만 삭제할 수 있습니다.");
+      return;
+    }
+    setTrips((prev) => prev.filter((t) => t.id !== trip.id));
+    setUserRegions((prev) => prev.filter((r) => r.tripId !== trip.id));
+    if (activeTripId === trip.id) selectTrip(DEFAULT_TRIP.id);
   }
 
   async function deleteRegion(region) {
@@ -191,7 +213,14 @@ export default function Planner() {
             <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
               {activeTrip.subtitle || "TRIP"}
             </p>
-            <TripSwitcher trips={allTrips} activeTripId={activeTripId} onSelect={selectTrip} onSave={saveTrip} />
+            <TripSwitcher
+              trips={allTrips}
+              activeTripId={activeTripId}
+              onSelect={selectTrip}
+              onSave={saveTrip}
+              canDelete={canDeleteTrip}
+              onDelete={deleteTrip}
+            />
           </div>
           <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             {activeTrip.title}

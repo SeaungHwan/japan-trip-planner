@@ -48,6 +48,15 @@ export default function AuthGate({ children }) {
     });
   }
 
+  // 자동 로그인 때문에 지금 브라우저에 남아있는 계정으로 바로 들어가지는 걸 원치 않을 때,
+  // 구글 계정 선택 화면(select_account)을 강제로 띄우는 버튼입니다.
+  function signInAsDifferentAccount() {
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin, queryParams: { prompt: "select_account", hd: ALLOWED_DOMAIN } },
+    });
+  }
+
   if (session === undefined) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center" style={{ background: "#FFFFFF" }}>
@@ -69,6 +78,13 @@ export default function AuthGate({ children }) {
             style={{ background: "#FFFFFF", color: "#3C4043", fontWeight: 600, border: "1px solid #DADCE0" }}
           >
             <GoogleIcon /> Google로 계속하기
+          </button>
+          <button
+            onClick={signInAsDifferentAccount}
+            className="w-full text-[12px] mt-2"
+            style={{ color: "#94A9B8", fontWeight: 700 }}
+          >
+            다른 계정으로 로그인
           </button>
           {error && (
             <p className="text-[12px] mt-3" style={{ color: "#EF4444" }}>
