@@ -20,6 +20,8 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [note, setNote] = useState("");
   const [point, setPoint] = useState(null);
   const [days, setDays] = useState(null);
+  const [flightIncheon, setFlightIncheon] = useState("");
+  const [flightCheongju, setFlightCheongju] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -43,6 +45,10 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       setNote(data.note);
       setPoint({ lat: data.lat, lng: data.lng });
       setDays(data.days);
+      if (data.flight) {
+        setFlightIncheon(data.flight.incheon);
+        setFlightCheongju(data.flight.cheongju);
+      }
     } catch (e) {
       setError(e.message);
     }
@@ -63,6 +69,10 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    const flight =
+      flightIncheon.trim() || flightCheongju.trim()
+        ? { incheon: flightIncheon.trim() || "확인 필요", cheongju: flightCheongju.trim() || "확인 필요" }
+        : null;
 
     const { data, error: err } = await supabase
       .from("user_regions")
@@ -74,6 +84,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         note: note.trim() || null,
         spots,
         days: days || [],
+        flight,
         trip_id: tripId,
         created_by: identity.nickname,
         user_id: identity.id,
@@ -119,7 +130,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
           style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
         >
-          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 메모 자동 생성"}
+          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성"}
         </button>
         {days?.length > 0 && (
           <p className="text-[12px] mb-2" style={{ color: SKY }}>
@@ -153,6 +164,29 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           className="w-full text-sm rounded px-2 py-1.5 mb-2"
           style={{ border: "1px solid #BAE6FD" }}
         />
+
+        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          항공편 정보 (선택)
+        </label>
+        <input
+          value={flightIncheon}
+          onChange={(e) => setFlightIncheon(e.target.value)}
+          placeholder="인천 출발 — 예: 대한항공 주3회 (약 2시간)"
+          className="w-full text-sm rounded px-2 py-1.5 mb-2"
+          style={{ border: "1px solid #BAE6FD" }}
+        />
+        <input
+          value={flightCheongju}
+          onChange={(e) => setFlightCheongju(e.target.value)}
+          placeholder="청주 출발 — 예: 정기 직항 없음"
+          className="w-full text-sm rounded px-2 py-1.5 mb-1"
+          style={{ border: "1px solid #BAE6FD" }}
+        />
+        {(flightIncheon || flightCheongju) && (
+          <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+            AI가 생성한 대략적인 정보예요. 예약 전 항공사 홈페이지에서 꼭 재확인해주세요.
+          </p>
+        )}
 
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           자유 메모 (선택)

@@ -9,6 +9,10 @@ const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스�
   "lng": 131.48,
   "spots": ["명소1", "명소2", "명소3", "명소4"],
   "note": "이 지역을 추천하는 이유나 참고할 점을 1~2문장으로",
+  "flight": {
+    "incheon": "인천국제공항에서 이 지역(또는 가장 가까운 공항)까지의 항공편 상황을 한 문장으로",
+    "cheongju": "청주국제공항 기준으로 동일하게 한 문장으로"
+  },
   "days": [
     {"transit": {"title": "1일차 제목", "items": ["대중교통 코스 항목1", "항목2", "항목3"]}, "car": {"title": "1일차 제목", "items": ["렌트카 코스 항목1", "항목2"]}}
   ]
@@ -16,6 +20,8 @@ const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스�
 lat/lng는 해당 지역 중심의 실제 위경도(십진수)입니다.
 spots는 실제로 존재하는 명소 이름 4개를 한국어로 작성하세요.
 note는 한국어로 간결하게 작성하세요.
+flight는 항공사명·운항 횟수·소요시간을 확실히 알 때만 구체적으로 쓰고, 조금이라도 불확실하면 반드시
+"정기 직항 없음" 또는 "확인 필요"라고 답하세요. 항공사명이나 편수를 지어내지 마세요.
 days는 정확히 5개를 채우고, 각 day는 "transit"(대중교통)과 "car"(렌트카) 두 코스를 모두 포함하며, title은 그날의 주제, items는 2~4개의 구체적인 실제 장소/활동명입니다. 5일 전체가 자연스러운 여행 동선이 되도록 구성하세요.`;
 
 async function generateWithGemini(name) {
@@ -71,6 +77,10 @@ function isValidDay(day) {
   return day && isValidCourse(day.transit) && isValidCourse(day.car);
 }
 
+function isValidFlight(flight) {
+  return flight && typeof flight.incheon === "string" && typeof flight.cheongju === "string";
+}
+
 export async function POST(req) {
   const { name } = await req.json();
   const trimmed = (name || "").trim();
@@ -95,6 +105,7 @@ export async function POST(req) {
           lat: result.lat,
           lng: result.lng,
           days,
+          flight: isValidFlight(result.flight) ? result.flight : null,
         });
       }
     } catch {
