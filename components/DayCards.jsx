@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { checkIsMaster } from "@/lib/auth";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -50,6 +51,11 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const [pendingPoint, setPendingPoint] = useState(null);
   const dragPosRef = useRef(null);
   const cardRefs = useRef({});
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    checkIsMaster().then(setCanEdit);
+  }, []);
 
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -173,17 +179,20 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   }
 
   async function deleteDay(dayIdx) {
+    if (!canEdit) return;
     if (!window.confirm("이 일정을 삭제할까요?")) return;
     await upsert(dayIdx, "__day__", { deleted: true });
   }
 
   function toggleEditDay(dayIdx) {
+    if (!canEdit) return;
     setEditingDay((cur) => (cur === dayIdx ? null : dayIdx));
     setDrafts({});
     setNewText("");
   }
 
   function toggleReorderMode() {
+    if (!canEdit) return;
     setReorderMode((v) => !v);
     setEditingDay(null);
   }
@@ -215,6 +224,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   }
 
   async function addDay() {
+    if (!canEdit) return;
     const nextIdx = customDayIndices.length ? Math.max(...customDayIndices) + 1 : CUSTOM_DAY_BASE;
     const maxOrder = visibleDays.reduce((m, v) => Math.max(m, v.order), -1);
     await upsert(nextIdx, "__custom_day__", {});
@@ -225,6 +235,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {canEdit && (
       <div className="flex items-center justify-end gap-3 -mb-1">
         {visibleDays.length > 1 && (
           <button
@@ -239,6 +250,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
           <Plus size={13} /> 일정 추가
         </button>
       </div>
+      )}
       {visibleDays.map(({ di }, displayIdx) => {
         const { title, items } = planFor(di);
         const isEditing = editingDay === di;
@@ -397,7 +409,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
               </div>
             </div>
 
-            {!reorderMode && (
+            {canEdit && !reorderMode && (
               <div className="flex items-center justify-end gap-3 mt-3">
                 <button
                   className="text-[12px] flex items-center gap-1"

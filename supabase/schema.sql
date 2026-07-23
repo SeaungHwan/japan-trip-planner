@@ -178,6 +178,27 @@ as $$
   select auth.role() = 'authenticated' and (auth.jwt() ->> 'email') like '%@klic.co.kr';
 $$;
 
+-- 일정 카드(day_item_edits)는 아무나 고치면 서로 지우고 덮어쓸 위험이 있어서
+-- 마스터 계정만 추가/수정할 수 있게 잠급니다. 누가 마스터인지는 코드(git)에 이메일을
+-- 박아두지 않고, 이 admins 테이블에만 저장합니다 — 값은 코드가 아니라 DB에만 존재합니다.
+create table if not exists admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+alter table admins enable row level security;
+-- 의도적으로 select/insert 정책을 하나도 만들지 않습니다: API로 이 목록을 직접 읽거나
+-- 고칠 수 있는 사람은 아무도 없고, 아래 is_master_user() 함수(security definer)만 들여다볼 수 있습니다.
+
+create or replace function is_master_user()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select is_allowed_user() and exists (select 1 from admins where user_id = auth.uid());
+$$;
+grant execute on function is_master_user() to authenticated, anon;
+
 -- drop 후 create라서 이미 존재하는 정책도 다시 실행 가능합니다.
 drop policy if exists "comments_select" on comments;
 create policy "comments_select" on comments for select using (is_allowed_user());
@@ -203,9 +224,9 @@ create policy "user_regions_delete" on user_regions for delete using (is_allowed
 drop policy if exists "day_item_edits_select" on day_item_edits;
 create policy "day_item_edits_select" on day_item_edits for select using (is_allowed_user());
 drop policy if exists "day_item_edits_insert" on day_item_edits;
-create policy "day_item_edits_insert" on day_item_edits for insert with check (is_allowed_user());
+create policy "day_item_edits_insert" on day_item_edits for insert with check (is_master_user());
 drop policy if exists "day_item_edits_update" on day_item_edits;
-create policy "day_item_edits_update" on day_item_edits for update using (is_allowed_user());
+create policy "day_item_edits_update" on day_item_edits for update using (is_master_user());
 
 drop policy if exists "trips_select" on trips;
 create policy "trips_select" on trips for select using (is_allowed_user());
