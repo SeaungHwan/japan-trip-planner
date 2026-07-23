@@ -73,51 +73,64 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
             </div>
 
             <div className="flex flex-col gap-2 mb-3">
-              {trips.map((t) => (
-                <div key={t.id} className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => {
-                      onSelect(t.id);
-                      close();
-                    }}
-                    className="flex-1 min-w-0 text-left rounded-lg px-3 py-2 text-sm"
+              {trips.map((t) => {
+                const isActive = t.id === activeTripId;
+                const iconColor = isActive ? "#FFFFFF" : "#5B7A90";
+                return (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-1 rounded-lg pl-3 pr-1.5 py-1.5 text-sm"
                     style={{
-                      background: t.id === activeTripId ? SKY : "#F0F9FF",
-                      color: t.id === activeTripId ? "#FFFFFF" : "#0F2A3D",
-                      fontWeight: t.id === activeTripId ? 700 : 500,
+                      background: isActive ? SKY : "#F0F9FF",
                       border: "1px solid #BAE6FD",
                     }}
                   >
-                    {t.title}
-                    {t.subtitle && (
-                      <span className="block text-[11px]" style={{ opacity: 0.8 }}>
-                        {t.subtitle}
-                      </span>
-                    )}
-                  </button>
-                  <button onClick={() => startEdit(t)} aria-label="여행 정보 수정" className="shrink-0">
-                    <Pencil size={14} color="#5B7A90" />
-                  </button>
-                  {canDelete?.(t) && (
-                    <button onClick={() => onDelete(t)} aria-label="여행 삭제" className="shrink-0">
-                      <Trash2 size={14} color="#94A9B8" />
+                    <button
+                      onClick={() => {
+                        onSelect(t.id);
+                        close();
+                      }}
+                      className="flex-1 min-w-0 text-left py-0.5"
+                      style={{ color: isActive ? "#FFFFFF" : "#0F2A3D", fontWeight: isActive ? 700 : 500 }}
+                    >
+                      {t.title}
+                      {t.subtitle && (
+                        <span className="block text-[11px]" style={{ opacity: 0.8 }}>
+                          {t.subtitle}
+                        </span>
+                      )}
                     </button>
-                  )}
-                </div>
-              ))}
+                    <button onClick={() => startEdit(t)} aria-label="여행 정보 수정" className="shrink-0 p-1.5">
+                      <Pencil size={14} color={iconColor} />
+                    </button>
+                    {canDelete?.(t) && (
+                      <button onClick={() => onDelete(t)} aria-label="여행 삭제" className="shrink-0 p-1.5">
+                        <Trash2 size={14} color={iconColor} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {editingId !== undefined ? (
-              <div className="flex flex-col gap-2">
+              <div className="rounded-lg p-3" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+                  여행 이름 (필수)
+                </label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="여행 이름 (필수, 예: 제주도 여행)"
+                  placeholder="예: 제주도 여행"
                   autoFocus
-                  className="w-full text-sm rounded px-2 py-1.5"
+                  className="w-full text-sm rounded px-2 py-1.5 mb-2"
                   style={{ border: "1px solid #BAE6FD" }}
                 />
-                <div className="flex items-center gap-2">
+
+                <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+                  여행 기간 (선택)
+                </label>
+                <div className="flex items-center gap-2 mb-3">
                   <input
                     type="date"
                     value={startDate}
@@ -136,13 +149,23 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                     style={{ border: "1px solid #BAE6FD" }}
                   />
                 </div>
-                <button
-                  onClick={submit}
-                  className="w-full text-sm rounded-lg py-2"
-                  style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-                >
-                  {editingId ? "저장" : "만들기"}
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingId(undefined)}
+                    className="flex-1 text-sm rounded-lg py-2"
+                    style={{ border: "1px solid #BAE6FD", color: "#5B7A90", fontWeight: 700 }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={submit}
+                    className="flex-1 text-sm rounded-lg py-2"
+                    style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                  >
+                    {editingId ? "저장" : "만들기"}
+                  </button>
+                </div>
               </div>
             ) : (
               <button
