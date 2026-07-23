@@ -125,7 +125,21 @@ values
   ('takamatsu', '다카마츠', '高松', 'palmtree', 34.34, 134.05, '{"incheon":"정기 직항 없음","cheongju":"정기 직항 없음","note":"오카야마 또는 마츠야마 공항 경유 후 열차·버스 이용 권장"}'::jsonb, '[{"name":"야시마 전망대","lat":34.3611,"lng":134.0983},{"name":"메기지마(도깨비섬)","lat":34.3742,"lng":134.0489},{"name":"쇼도시마 올리브공원","lat":34.4844,"lng":134.2394},{"name":"나카노우동학교","lat":34.3167,"lng":134.0333}]'::jsonb, '[{"transit":{"title":"다카마츠 시내 (도보)","items":["다카마츠역 주변","우동 투어"]},"car":{"title":"다카마츠 시내 & 픽업","items":["경유 공항 렌터카 픽업","다카마츠 이동"]}},{"transit":{"title":"리츠린공원 (버스)","items":["리츠린공원"]},"car":{"title":"리츠린공원 드라이브","items":["리츠린공원 주차 관람"]}},{"transit":{"title":"나오시마 (페리)","items":["나오시마행 페리","베네세하우스 예술섬"]},"car":{"title":"나오시마 (페리+도보)","items":["선착장까지 드라이브","페리 도항 후 도보"]}},{"transit":{"title":"고토히라구 (JR)","items":["JR고토히라역","고토히라궁 계단"]},"car":{"title":"시코쿠무라 드라이브","items":["시코쿠무라 민가마을"]}},{"transit":{"title":"자유일정 & 귀국","items":["경유편으로 귀국"]},"car":{"title":"자유일정 & 귀국","items":["렌터카 반납","경유 공항 이동"]}}]'::jsonb, true, 'japan-trip', 'seed'),
   ('nagasaki', '나가사키', '長崎', 'church', 32.75, 129.88, '{"incheon":"대한항공 (약 1시간30분)","cheongju":"정기 직항 없음"}'::jsonb, '[{"name":"군칸지마(하시마)","lat":32.6272,"lng":129.7386},{"name":"메가네바시","lat":32.7444,"lng":129.8747},{"name":"시마바라성","lat":32.7856,"lng":130.3739},{"name":"소토메 오소노숲","lat":32.8333,"lng":129.75}]'::jsonb, '[{"transit":{"title":"데지마 (노면전차)","items":["나가사키역 노면전차","데지마","오란다자카"]},"car":{"title":"나가사키 시내 & 픽업","items":["공항 렌터카 픽업","시내 드라이브"]}},{"transit":{"title":"글로버엔 (노면전차)","items":["글로버엔","오우라성당"]},"car":{"title":"이나사야마 전망대 드라이브","items":["이나사야마 야경 전망대"]}},{"transit":{"title":"하우스텐보스 (JR특급)","items":["JR특급 하우스텐보스","테마파크"]},"car":{"title":"하우스텐보스 드라이브","items":["하우스텐보스 주차 관람"]}},{"transit":{"title":"평화공원 (노면전차)","items":["평화공원","원폭자료관"]},"car":{"title":"운젠온천 드라이브","items":["운젠 지옥온천","화산 전망"]}},{"transit":{"title":"자유일정 & 귀국","items":["노면전차로 공항 이동"]},"car":{"title":"자유일정 & 귀국","items":["렌터카 반납","공항 이동"]}}]'::jsonb, true, 'japan-trip', 'seed'),
   ('kumamoto', '구마모토', '熊本', 'mountain-snow', 32.79, 130.71, '{"incheon":"대한항공·티웨이항공 (약 1시간40분)","cheongju":"정기 직항 없음"}'::jsonb, '[{"name":"야마가온천 토우로마츠리","lat":33.0128,"lng":130.6883},{"name":"아소 화산박물관","lat":32.8842,"lng":131.1042},{"name":"우토시 미카사 벚꽃길","lat":32.6858,"lng":130.6547},{"name":"미스미시 렌카쿠지","lat":32.6167,"lng":130.4333}]'::jsonb, '[{"transit":{"title":"구마모토성 (노면전차)","items":["구마모토성","조사이엔"]},"car":{"title":"구마모토성 & 픽업","items":["공항 렌터카 픽업","구마모토성 주차 관람"]}},{"transit":{"title":"스이젠지조주엔 (노면전차)","items":["스이젠지조주엔"]},"car":{"title":"아소산 드라이브","items":["아소산 분화구","쿠사센리 초원"]}},{"transit":{"title":"아소산 (버스, 편수 제한)","items":["아소역+버스"]},"car":{"title":"구사센리 초원 드라이브","items":["초원 드라이브","목장 카페"]}},{"transit":{"title":"구로카와온천 (버스)","items":["구로카와온천 마을"]},"car":{"title":"구로카와온천 드라이브","items":["온천마을 드라이브","족욕"]}},{"transit":{"title":"자유일정 & 귀국","items":["노면전차로 공항 이동"]},"car":{"title":"자유일정 & 귀국","items":["렌터카 반납","공항 이동"]}}]'::jsonb, true, 'japan-trip', 'seed')
-on conflict (id) do nothing;
+on conflict (id) do update set
+  kr = excluded.kr,
+  jp = excluded.jp,
+  icon = excluded.icon,
+  lat = excluded.lat,
+  lng = excluded.lng,
+  flight = excluded.flight,
+  spots = excluded.spots,
+  days = excluded.days,
+  is_extra = excluded.is_extra,
+  trip_id = excluded.trip_id;
+-- do nothing이었을 때는 이 15개 행이 예전에(예: days 컬럼이 생기기 전) 먼저 만들어졌으면
+-- 그 뒤로 schema.sql을 몇 번을 다시 실행해도 "이미 있는 행"이라 절대 갱신되지 않았습니다.
+-- do update로 바꿔서, 다시 실행할 때마다 항상 이 시드 값으로 최신 상태를 맞춥니다.
+-- day_item_edits(실제 사용자 편집)는 별도 테이블이라 여기서 덮어써도 안전합니다.
 
 -- 구글 로그인 도입: 닉네임은 더 이상 자유 입력이 아니라 구글 계정 이름을 그대로 씁니다.
 -- reactions는 "한 사람당 한 표"를 검증해야 하므로 nickname(중복 가능) 대신 실제 계정(user_id)으로 유일성을 잡습니다.
