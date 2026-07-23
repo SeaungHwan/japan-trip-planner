@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
-
-const ALLOWED_DOMAIN = "klic.co.kr";
+import { ALLOWED_DOMAIN } from "@/lib/auth";
 
 function GoogleIcon() {
   return (
