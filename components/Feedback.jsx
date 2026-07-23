@@ -13,6 +13,7 @@ export default function Feedback({ targetKey }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [identity, setIdentity] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getIdentity().then(setIdentity);
@@ -29,6 +30,7 @@ export default function Feedback({ targetKey }) {
       if (!active) return;
       setReactions(r || []);
       setComments(c || []);
+      setLoading(false);
     }
     load();
 
@@ -78,7 +80,7 @@ export default function Feedback({ targetKey }) {
             fontWeight: myVote === 1 ? 700 : 400,
           }}
         >
-          <ThumbsUp size={13} /> {up}
+          <ThumbsUp size={13} /> {loading ? "-" : up}
         </button>
         <button
           onClick={() => vote(-1)}
@@ -90,10 +92,10 @@ export default function Feedback({ targetKey }) {
             fontWeight: myVote === -1 ? 700 : 400,
           }}
         >
-          <ThumbsDown size={13} /> {down}
+          <ThumbsDown size={13} /> {loading ? "-" : down}
         </button>
         <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-1" style={{ color: "#5B7A90" }}>
-          <MessageCircle size={13} /> 댓글 {comments.length}
+          <MessageCircle size={13} /> 댓글 {loading ? "-" : comments.length}
         </button>
       </div>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { checkIsMaster } from "@/lib/auth";
+import Spinner from "@/components/Spinner";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -52,6 +53,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   const dragPosRef = useRef(null);
   const cardRefs = useRef({});
   const [canEdit, setCanEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkIsMaster().then(setCanEdit);
@@ -63,10 +65,14 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
 
     async function load() {
       const { data } = await supabase.from("day_item_edits").select("*").eq("region_id", regionId);
-      if (alive) setEdits(data || []);
+      if (alive) {
+        setEdits(data || []);
+        setLoading(false);
+      }
     }
     load();
 
@@ -205,13 +211,22 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)) };
   }
 
-  const customDayIndices = [...new Set(edits.filter((e) => e.item_key === "__custom_day__").map((e) => e.day_index))];
-  const allDayIndices = days.map((_, i) => i).concat(customDayIndices);
+  // edits는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
+  // drafts/newText 같은 타이핑용 로컬 상태가 바뀌어도(즉 편집 중 매 입력마다) 다시 계산하지 않습니다.
+  const { customDayIndices, visibleDays, dayPlans } = useMemo(() => {
+    const customDayIndices = [...new Set(edits.filter((e) => e.item_key === "__custom_day__").map((e) => e.day_index))];
+    const allDayIndices = days.map((_, i) => i).concat(customDayIndices);
 
-  const visibleDays = allDayIndices
-    .map((di) => ({ di, order: orderFor(di) }))
-    .filter((v) => !isDayDeleted(v.di))
-    .sort((a, b) => a.order - b.order);
+    const visibleDays = allDayIndices
+      .map((di) => ({ di, order: orderFor(di) }))
+      .filter((v) => !isDayDeleted(v.di))
+      .sort((a, b) => a.order - b.order);
+
+    const dayPlans = new Map(visibleDays.map(({ di }) => [di, planFor(di)]));
+
+    return { customDayIndices, visibleDays, dayPlans };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edits, days, mode]);
 
   function reorderDay(fromPos, toPos) {
     if (fromPos === toPos) return;
@@ -233,6 +248,14 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
     setEditingDay(nextIdx);
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-6">
+        <Spinner size={20} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {canEdit && (
@@ -252,7 +275,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
       </div>
       )}
       {visibleDays.map(({ di }, displayIdx) => {
-        const { title, items } = planFor(di);
+        const { title, items } = dayPlans.get(di);
         const isEditing = editingDay === di;
 
         return (

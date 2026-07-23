@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import Spinner from "@/components/Spinner";
 
 const ALLOWED_DOMAIN = "klic.co.kr";
 
@@ -48,7 +49,13 @@ export default function AuthGate({ children }) {
     });
   }
 
-  if (session === undefined) return null;
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ background: "#FFFFFF" }}>
+        <Spinner size={28} />
+      </div>
+    );
+  }
 
   if (!session) {
     return (

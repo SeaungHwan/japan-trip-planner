@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
+import Spinner from "@/components/Spinner";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
@@ -47,6 +48,7 @@ export default function Planner() {
   const [activeTripId, setActiveTripId] = useState(DEFAULT_TRIP.id);
   const [identity, setIdentity] = useState(null);
   const [isMaster, setIsMaster] = useState(false);
+  const [loadingRegions, setLoadingRegions] = useState(true);
   const mapSectionRef = useRef(null);
 
   useEffect(() => {
@@ -59,7 +61,10 @@ export default function Planner() {
 
     async function load() {
       const { data } = await supabase.from("user_regions").select("*").order("created_at", { ascending: true });
-      if (active) setUserRegions((data || []).map(toRegion));
+      if (active) {
+        setUserRegions((data || []).map(toRegion));
+        setLoadingRegions(false);
+      }
     }
     load();
 
@@ -101,18 +106,22 @@ export default function Planner() {
   const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
   const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
 
-  const tripRegions = userRegions.filter((r) => r.tripId === activeTripId);
-  const baseRegions = tripRegions.filter((r) => !r.isExtra);
-  const extraRegions = tripRegions.filter((r) => r.isExtra);
+  const { baseRegions, extraRegions } = useMemo(() => {
+    const tripRegions = userRegions.filter((r) => r.tripId === activeTripId);
+    return {
+      baseRegions: tripRegions.filter((r) => !r.isExtra),
+      extraRegions: tripRegions.filter((r) => r.isExtra),
+    };
+  }, [userRegions, activeTripId]);
   const regions = showMore ? baseRegions.concat(extraRegions) : baseRegions;
   const region = regions[active];
 
-  function selectRegion(i) {
+  const selectRegion = useCallback((i) => {
     setActive(i);
     setShowSpots(false);
     setZoomed(true);
     setFocus(null);
-  }
+  }, []);
 
   function selectTrip(id) {
     setActiveTripId(id);
@@ -207,7 +216,11 @@ export default function Planner() {
           + 새 지역 추가
         </button>
 
-        {regions.length === 0 ? (
+        {loadingRegions ? (
+          <div className="flex justify-center mt-8">
+            <Spinner size={22} />
+          </div>
+        ) : regions.length === 0 ? (
           <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
             이 여행에는 아직 지역이 없어요. 위의 &quot;+ 새 지역 추가&quot;로 시작해보세요.
           </p>
