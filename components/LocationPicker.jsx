@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Search } from "lucide-react";
 
 const JAPAN_CENTER = [37.5, 137.5];
@@ -88,11 +88,13 @@ export default function LocationPicker({ point, onPick }) {
           center={point ? [point.lat, point.lng] : JAPAN_CENTER}
           zoom={point ? 10 : 5}
           style={{ height: "100%", width: "100%" }}
+          attributionControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
+          <AttributionControl position="bottomright" prefix={false} />
           <ClickHandler onPick={onPick} />
           <FlyToPoint point={point} />
           {point && (

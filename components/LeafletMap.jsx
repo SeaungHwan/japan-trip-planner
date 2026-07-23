@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2 } from "lucide-react";
 
 const SKY = "#0EA5E9";
@@ -60,11 +60,12 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
-      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }} attributionControl={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
+        <AttributionControl position="bottomright" prefix={false} />
         <FlyTo center={center} zoom={zoom} />
         <ZoomWatcher onZoom={setCurrentZoom} />
 

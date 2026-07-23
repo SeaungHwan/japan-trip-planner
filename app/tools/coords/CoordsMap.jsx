@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, AttributionControl, useMapEvents } from "react-leaflet";
 
 const JAPAN_CENTER = [37.5, 137.5];
 
@@ -25,11 +25,12 @@ function ClickHandler({ onPick }) {
 export default function CoordsMap({ points, onPick }) {
   return (
     <div className="mb-4" style={{ height: 480 }}>
-      <MapContainer center={JAPAN_CENTER} zoom={5} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={JAPAN_CENTER} zoom={5} style={{ height: "100%", width: "100%" }} attributionControl={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
+        <AttributionControl position="bottomright" prefix={false} />
         <ClickHandler onPick={onPick} />
         {points.map((p, i) => (
           <Marker key={i} position={[p.lat, p.lng]} icon={markerIcon} />
