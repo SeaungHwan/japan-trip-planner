@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { getIdentity } from "@/lib/auth";
+import { getIdentity, checkIsMaster } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
@@ -30,6 +30,7 @@ function toRegion(row) {
     moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
     days: row.days || [],
     isExtra: !!row.is_extra,
+    userId: row.user_id || null,
   };
 }
 
@@ -44,7 +45,14 @@ export default function Planner() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
   const [activeTripId, setActiveTripId] = useState(DEFAULT_TRIP.id);
+  const [identity, setIdentity] = useState(null);
+  const [isMaster, setIsMaster] = useState(false);
   const mapSectionRef = useRef(null);
+
+  useEffect(() => {
+    getIdentity().then(setIdentity);
+    checkIsMaster().then(setIsMaster);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -205,7 +213,10 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <RegionHeader region={region} onDelete={() => deleteRegion(region)} />
+            <RegionHeader
+              region={region}
+              onDelete={isMaster || (identity && region.userId === identity.id) ? () => deleteRegion(region) : undefined}
+            />
             {region.flight && <FlightCard flight={region.flight} />}
             <SpotsPanel
               spots={region.moreSpots}

@@ -53,6 +53,10 @@ alter table user_regions add column if not exists icon text;
 alter table user_regions add column if not exists flight jsonb;
 alter table user_regions add column if not exists is_extra boolean not null default false;
 
+-- 개인이 만든 지역은 그 사람 또는 마스터만 지울 수 있게 실제 계정을 기록합니다.
+-- 기본 제공 15개 지역(seed)은 user_id가 없어서 마스터만 관리할 수 있습니다.
+alter table user_regions add column if not exists user_id uuid references auth.users(id) on delete set null;
+
 -- 지도가 실사 지도(Leaflet)로 바뀌면서 x/y(이미지 % 좌표) 대신 실제 위경도(lat/lng)를 씁니다.
 -- 이미 x/y로 저장된 지역이 있다면 lat/lng를 다시 찍어 채워주세요.
 alter table user_regions add column if not exists lat double precision;
@@ -219,7 +223,7 @@ create policy "user_regions_select" on user_regions for select using (is_allowed
 drop policy if exists "user_regions_insert" on user_regions;
 create policy "user_regions_insert" on user_regions for insert with check (is_allowed_user());
 drop policy if exists "user_regions_delete" on user_regions;
-create policy "user_regions_delete" on user_regions for delete using (is_allowed_user());
+create policy "user_regions_delete" on user_regions for delete using (is_master_user() or auth.uid() = user_id);
 
 drop policy if exists "day_item_edits_select" on day_item_edits;
 create policy "day_item_edits_select" on day_item_edits for select using (is_allowed_user());

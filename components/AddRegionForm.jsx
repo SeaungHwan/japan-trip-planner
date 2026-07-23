@@ -76,6 +76,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         days: days || [],
         trip_id: tripId,
         created_by: identity.nickname,
+        user_id: identity.id,
       })
       .select()
       .single();
