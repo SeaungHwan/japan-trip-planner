@@ -190,6 +190,32 @@ export default function Planner() {
     if (activeTripId === trip.id) selectTrip(DEFAULT_TRIP.id);
   }
 
+  function canManageRegion(region) {
+    return isMaster || (!!identity && region.userId === identity.id);
+  }
+
+  async function addSpot(region, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const newSpots = [...(region.moreSpots || []), { name: trimmed }];
+    const { data, error } = await supabase.from("user_regions").update({ spots: newSpots }).eq("id", region.id).select().single();
+    if (error) {
+      alert("추가에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  async function deleteSpot(region, index) {
+    const newSpots = (region.moreSpots || []).filter((_, i) => i !== index);
+    const { data, error } = await supabase.from("user_regions").update({ spots: newSpots }).eq("id", region.id).select().single();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
     // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
@@ -289,7 +315,7 @@ export default function Planner() {
           <>
             <RegionHeader
               region={region}
-              onDelete={isMaster || (identity && region.userId === identity.id) ? () => deleteRegion(region) : undefined}
+              onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
             />
             {region.flight && <FlightCard flight={region.flight} />}
             <SpotsPanel
@@ -297,6 +323,9 @@ export default function Planner() {
               open={showSpots}
               onToggle={() => setShowSpots((v) => !v)}
               onLocateSpot={locateItem}
+              canEdit={canManageRegion(region)}
+              onAddSpot={(name) => addSpot(region, name)}
+              onDeleteSpot={(i) => deleteSpot(region, i)}
             />
             {region.days?.length > 0 && (
               <>

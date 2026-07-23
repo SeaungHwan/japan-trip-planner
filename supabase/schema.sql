@@ -224,6 +224,9 @@ drop policy if exists "user_regions_insert" on user_regions;
 create policy "user_regions_insert" on user_regions for insert with check (is_allowed_user());
 drop policy if exists "user_regions_delete" on user_regions;
 create policy "user_regions_delete" on user_regions for delete using (is_master_user() or auth.uid() = user_id);
+-- "가볼만한 곳" 추가/삭제처럼 지역 자체를 고치는 것도 삭제와 같은 규칙(만든 사람 또는 마스터)을 씁니다.
+drop policy if exists "user_regions_update" on user_regions;
+create policy "user_regions_update" on user_regions for update using (is_master_user() or auth.uid() = user_id);
 
 drop policy if exists "day_item_edits_select" on day_item_edits;
 create policy "day_item_edits_select" on day_item_edits for select using (is_allowed_user());
@@ -265,3 +268,8 @@ begin
     end if;
   end loop;
 end $$;
+
+
+insert into admins (user_id)
+select id from auth.users where email = 'hanan0912@klic.co.kr'
+on conflict do nothing;
