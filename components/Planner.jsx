@@ -155,6 +155,24 @@ export default function Planner() {
     return isMaster || (identity && trip.user_id === identity.id);
   }
 
+  // 여행 공유 여부는 만든 사람만 바꿀 수 있습니다 — 마스터도 예외 없습니다.
+  // 기본 여행(일본 여행)은 이미 항상 전원에게 공개된 상태라 공유 버튼 자체가 필요 없습니다.
+  const canShareActiveTrip = activeTrip.id !== DEFAULT_TRIP.id && !!identity && activeTrip.user_id === identity.id;
+
+  async function toggleShareTrip() {
+    const { data, error } = await supabase
+      .from("trips")
+      .update({ is_shared: !activeTrip.is_shared })
+      .eq("id", activeTrip.id)
+      .select()
+      .single();
+    if (error) {
+      alert("공유 설정을 바꾸지 못했어요: " + error.message);
+      return;
+    }
+    setTrips((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+  }
+
   async function deleteTrip(trip) {
     if (!window.confirm(`"${trip.title}" 여행을 삭제할까요? 이 여행에 속한 지역도 함께 삭제됩니다.`)) return;
     await supabase.from("user_regions").delete().eq("trip_id", trip.id);
@@ -207,7 +225,7 @@ export default function Planner() {
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md mx-auto px-4 pt-8 pb-16">
-        <UserBadge />
+        <UserBadge canShare={canShareActiveTrip} isShared={!!activeTrip.is_shared} onToggleShare={toggleShareTrip} />
         <div className="mb-4 anim-fadeup">
           <div className="flex items-center justify-between">
             <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>

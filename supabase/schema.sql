@@ -96,6 +96,11 @@ create table if not exists trips (
 -- 여행도 지역처럼 만든 사람 또는 마스터만 지울 수 있게 실제 계정을 기록합니다.
 alter table trips add column if not exists user_id uuid references auth.users(id) on delete set null;
 
+-- 여행은 기본적으로 "개인 전용"입니다. 공유하기를 눌러 is_shared를 true로 바꿔야만
+-- 다른 사람(마스터 포함)에게 보입니다. 기본 제공 "일본 여행"(id='japan-trip')은
+-- is_shared 값과 무관하게 항상 전원에게 공개된 것으로 취급합니다(아래 정책 참고).
+alter table trips add column if not exists is_shared boolean not null default false;
+
 -- 혹시 이 스키마의 이전 버전(id uuid)을 이미 실행했다면 text로 바꿔줍니다.
 do $$
 begin
@@ -185,6 +190,12 @@ as $$
 $$;
 grant execute on function is_master_user() to authenticated, anon;
 
+-- 여행 공유 기능이 생기기 전에 만들어진 여행은 user_id가 비어있을 수 있는데, 그러면 본인조차
+-- 그 여행을 수정/공유 전환할 방법이 없어집니다. 관리자(admins) 계정으로 소유권을 넘겨
+-- 최소한 마스터는 계속 관리할 수 있게 안전망을 둡니다.
+update trips set user_id = (select user_id from admins limit 1)
+where user_id is null and id <> 'japan-trip' and exists (select 1 from admins);
+
 -- drop 후 create라서 이미 존재하는 정책도 다시 실행 가능합니다.
 drop policy if exists "comments_select" on comments;
 create policy "comments_select" on comments for select using (is_allowed_user());
@@ -200,8 +211,15 @@ create policy "reactions_update" on reactions for update using (is_allowed_user(
 drop policy if exists "reactions_delete" on reactions;
 create policy "reactions_delete" on reactions for delete using (is_allowed_user());
 
+-- 지역은 자기가 속한 여행이 공개(is_shared)이거나 내가 만든 여행일 때만 보입니다.
+-- 기본 여행(japan-trip)에 속한 지역은 trips에 그 여행 행이 없어도 항상 보이게 예외 처리합니다.
 drop policy if exists "user_regions_select" on user_regions;
-create policy "user_regions_select" on user_regions for select using (is_allowed_user());
+create policy "user_regions_select" on user_regions for select using (
+  is_allowed_user() and (
+    trip_id = 'japan-trip'
+    or exists (select 1 from trips t where t.id = user_regions.trip_id and (t.is_shared or t.user_id = auth.uid()))
+  )
+);
 drop policy if exists "user_regions_insert" on user_regions;
 create policy "user_regions_insert" on user_regions for insert with check (is_allowed_user());
 drop policy if exists "user_regions_delete" on user_regions;
@@ -214,12 +232,21 @@ create policy "day_item_edits_insert" on day_item_edits for insert with check (i
 drop policy if exists "day_item_edits_update" on day_item_edits;
 create policy "day_item_edits_update" on day_item_edits for update using (is_master_user());
 
+-- 여행은 기본적으로 개인 전용입니다. 공유(is_shared)한 여행이거나 내가 만든 여행만 보이고,
+-- 마스터라고 해서 다른 사람의 비공개 여행을 볼 수 있는 예외는 없습니다. 기본 여행(japan-trip)은
+-- 팀 전체가 함께 쓰는 고정 여행이라 항상 보이게 예외 처리합니다.
 drop policy if exists "trips_select" on trips;
-create policy "trips_select" on trips for select using (is_allowed_user());
+create policy "trips_select" on trips for select using (
+  is_allowed_user() and (id = 'japan-trip' or is_shared or auth.uid() = user_id)
+);
 drop policy if exists "trips_insert" on trips;
 create policy "trips_insert" on trips for insert with check (is_allowed_user());
+-- 여행 정보/공유 여부를 바꾸는 건 만든 사람만 할 수 있습니다(마스터도 예외 없음).
+-- 기본 여행(japan-trip)은 팀 전체가 같이 쓰는 거라 예외적으로 누구나 수정할 수 있습니다.
 drop policy if exists "trips_update" on trips;
-create policy "trips_update" on trips for update using (is_allowed_user());
+create policy "trips_update" on trips for update using (
+  is_allowed_user() and (id = 'japan-trip' or auth.uid() = user_id)
+);
 drop policy if exists "trips_delete" on trips;
 create policy "trips_delete" on trips for delete using (is_master_user() or auth.uid() = user_id);
 
