@@ -85,6 +85,7 @@ function DayCardItem({
   onDeleteDay,
   onLocateItem,
   onOpenNotes,
+  onShowRoute,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: di,
@@ -101,13 +102,21 @@ function DayCardItem({
         setNodeRef(el);
         setCardRef(el);
       }}
-      onClick={() => dayEditMode && !isEditing && onToggleEdit(di)}
+      onClick={() => {
+        if (dayEditMode) {
+          if (!isEditing) onToggleEdit(di);
+          return;
+        }
+        onShowRoute(
+          items.filter((it) => it.lat != null).map((it) => ({ lat: it.lat, lng: it.lng, name: it.text }))
+        );
+      }}
       className="day-card rounded-xl p-4"
       style={{
         animationDelay: `${displayIdx * 0.05}s`,
         background: "#FFFFFF",
         border: isDragging ? "1px solid #0EA5E9" : "1px solid #BAE6FD",
-        cursor: dayEditMode && !isEditing ? "pointer" : undefined,
+        cursor: !isEditing ? "pointer" : undefined,
         position: "relative",
         transform: isDragging ? `${transformStyle || ""} scale(1.03)`.trim() : transformStyle,
         transition,
@@ -127,10 +136,10 @@ function DayCardItem({
           </span>
         )}
         <span
-          className="text-xs shrink-0 mt-0.5 rounded-full w-6 h-6 flex items-center justify-center"
+          className="text-xs shrink-0 mt-0.5 rounded-full h-6 px-2 flex items-center justify-center"
           style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
         >
-          {displayIdx + 1}
+          {displayIdx + 1}Day
         </span>
         <div className="flex-1 min-w-0">
           {isEditing ? (
@@ -270,7 +279,7 @@ function DayCardItem({
   );
 }
 
-export default function DayCards({ days, mode, regionId, onLocateItem, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -634,6 +643,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
                   onToggleEdit={toggleEditDay}
                   onDeleteDay={deleteDay}
                   onLocateItem={onLocateItem}
+                  onShowRoute={onShowRoute}
                   onOpenNotes={openNotes}
                 />
               );

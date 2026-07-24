@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Search } from "lucide-react";
+import MapZoomControl from "@/components/MapZoomControl";
 
 const JAPAN_CENTER = [37.5, 137.5];
 const SKY = "#0EA5E9";
@@ -89,12 +90,14 @@ export default function LocationPicker({ point, onPick }) {
           zoom={point ? 10 : 5}
           style={{ height: "100%", width: "100%" }}
           attributionControl={false}
+          zoomControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
           <AttributionControl position="bottomright" prefix={false} />
+          <MapZoomControl />
           <ClickHandler onPick={onPick} />
           <FlyToPoint point={point} />
           {point && (

@@ -20,7 +20,16 @@ const LAST_TRIP_KEY = "japan-trip-planner:lastTripId";
 // 트립이 하나도 없거나 아직 안 골랐을 때 쓰는 빈 자리표시자입니다. "기본 여행" 같은
 // 실제 트립 취급을 받지 않고(id가 없어서 DB에 아무것도 매치되지 않음), 렌더링이
 // undefined 접근으로 깨지지 않게만 해줍니다.
-const EMPTY_TRIP = { id: null, title: "", subtitle: "", is_shared: false, shared_editable: false, user_id: null };
+const EMPTY_TRIP = {
+  id: null,
+  title: "",
+  subtitle: "",
+  is_shared: false,
+  shared_editable: false,
+  user_id: null,
+  start_date: null,
+  end_date: null,
+};
 
 function readLastTripId() {
   if (typeof window === "undefined") return null;
@@ -51,6 +60,7 @@ export default function Planner() {
   const [showSpots, setShowSpots] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [focus, setFocus] = useState(null);
+  const [routePoints, setRoutePoints] = useState(null);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
@@ -148,6 +158,7 @@ export default function Planner() {
     setShowSpots(false);
     setZoomed(true);
     setFocus(null);
+    setRoutePoints(null);
   }, []);
 
   function selectTrip(id) {
@@ -157,15 +168,27 @@ export default function Planner() {
     setShowSpots(false);
     setZoomed(false);
     setFocus(null);
+    setRoutePoints(null);
   }
 
-  async function saveTrip(id, title, subtitle) {
+  async function saveTrip(id, title, subtitle, startDate, endDate) {
     const tripIdentity = await getIdentity();
     if (!tripIdentity) return;
     const tripId = id || crypto.randomUUID();
     const { data } = await supabase
       .from("trips")
-      .upsert({ id: tripId, title, subtitle: subtitle || null, created_by: tripIdentity.nickname, user_id: tripIdentity.id }, { onConflict: "id" })
+      .upsert(
+        {
+          id: tripId,
+          title,
+          subtitle: subtitle || null,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          created_by: tripIdentity.nickname,
+          user_id: tripIdentity.id,
+        },
+        { onConflict: "id" }
+      )
       .select()
       .single();
     if (data) {
@@ -282,7 +305,18 @@ export default function Planner() {
   }
 
   function locateItem(point) {
+    setRoutePoints(null);
     setFocus(point);
+    setZoomed(true);
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // 일정 카드를 누르면(편집 모드가 아닐 때) 그날 위치가 찍힌 항목들을 순서대로
+  // 지도에 선으로 이어서 보여줍니다.
+  function showDayRoute(points) {
+    if (!points || points.length === 0) return;
+    setFocus(null);
+    setRoutePoints(points);
     setZoomed(true);
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -298,7 +332,15 @@ export default function Planner() {
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md mx-auto px-4 pt-8 pb-16">
-        <UserBadge canShare={canShareActiveTrip} shareLevel={activeTripShareLevel} onSetShareLevel={setTripShareLevel} />
+        <UserBadge
+          canShare={canShareActiveTrip}
+          shareLevel={activeTripShareLevel}
+          onSetShareLevel={setTripShareLevel}
+          weatherLat={baseRegions[0]?.lat}
+          weatherLng={baseRegions[0]?.lng}
+          startDate={activeTrip.start_date}
+          endDate={activeTrip.end_date}
+        />
         <div className="mb-4 anim-fadeup">
           <div className="flex items-center justify-between">
             <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
@@ -337,8 +379,10 @@ export default function Planner() {
                 onZoomOut={() => {
                   setZoomed(false);
                   setFocus(null);
+                  setRoutePoints(null);
                 }}
                 focus={focus}
+                route={routePoints}
               />
             </div>
 
@@ -396,6 +440,7 @@ export default function Planner() {
                       mode={mode}
                       regionId={region.id}
                       onLocateItem={locateItem}
+                      onShowRoute={showDayRoute}
                       canEdit={canManageRegion(region)}
                     />
                   </>

@@ -3,8 +3,9 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2 } from "lucide-react";
+import MapZoomControl from "@/components/MapZoomControl";
 
 const SKY = "#0EA5E9";
 const JAPAN_CENTER = [37.5, 137.5];
@@ -29,6 +30,22 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
+// 일정 하루치 위치가 여러 개라 하나의 center/zoom으로는 다 안 보일 수 있어서,
+// 그 지점들이 전부 화면에 들어오게 지도를 맞춥니다.
+function FitRoute({ points }) {
+  const map = useMap();
+  const key = points.map((p) => `${p.lat},${p.lng}`).join("|");
+  useEffect(() => {
+    if (points.length < 2) return;
+    map.flyToBounds(
+      points.map((p) => [p.lat, p.lng]),
+      { padding: [48, 48], duration: 0.6 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return null;
+}
+
 function ZoomWatcher({ onZoom }) {
   const map = useMap();
   useMapEvents({ zoom: () => onZoom(map.getZoom()), zoomend: () => onZoom(map.getZoom()) });
@@ -42,7 +59,7 @@ function badgeScale(zoom) {
   return "badge-lg";
 }
 
-export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus }) {
+export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, route }) {
   const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
 
@@ -52,22 +69,37 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
   const hasCoords = !!activeRegion && typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
   const hasFocus = zoomed && focus && typeof focus.lat === "number" && typeof focus.lng === "number";
-  const center = hasFocus ? [focus.lat, focus.lng] : zoomed && hasCoords ? [activeRegion.lat, activeRegion.lng] : JAPAN_CENTER;
-  const zoom = hasFocus ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
+  const hasRoute = zoomed && Array.isArray(route) && route.length > 0;
+  const center = hasFocus
+    ? [focus.lat, focus.lng]
+    : hasRoute
+    ? [route[0].lat, route[0].lng]
+    : zoomed && hasCoords
+    ? [activeRegion.lat, activeRegion.lng]
+    : JAPAN_CENTER;
+  const zoom = hasFocus || hasRoute ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
 
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const scaleClass = badgeScale(currentZoom);
 
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
-      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }} attributionControl={false}>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ height: "100%", width: "100%" }}
+        attributionControl={false}
+        zoomControl={false}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <AttributionControl position="bottomright" prefix={false} />
+        <MapZoomControl />
         <FlyTo center={center} zoom={zoom} />
         <ZoomWatcher onZoom={setCurrentZoom} />
+        {hasRoute && <FitRoute points={route} />}
 
         {regions
           .map((r, i) => ({ r, i }))
@@ -96,6 +128,23 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
               </Tooltip>
             )}
           </Marker>
+        )}
+
+        {hasRoute && (
+          <>
+            <Polyline
+              key={`route-${route.length}`}
+              positions={route.map((p) => [p.lat, p.lng])}
+              pathOptions={{ color: "#EF4444", weight: 3, opacity: 0.8, dashArray: "6 6" }}
+            />
+            {route.map((p, i) => (
+              <Marker key={`route-${i}-${scaleClass}`} position={[p.lat, p.lng]} icon={pinIcon(13, "#EF4444")}>
+                <Tooltip permanent direction="top" offset={[0, -8]} className={`spot-tooltip ${scaleClass}`}>
+                  {i + 1}. {p.name}
+                </Tooltip>
+              </Marker>
+            ))}
+          </>
         )}
 
         {zoomed &&

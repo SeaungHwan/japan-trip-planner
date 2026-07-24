@@ -51,7 +51,7 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
     <div className="rounded-xl mb-4 overflow-hidden" style={{ border: "1px solid #BAE6FD" }}>
       <button className="w-full flex items-center justify-between p-3" style={{ background: "#F0F9FF" }} onClick={onToggle}>
         <span className="flex items-center gap-1.5 text-[13px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-          <Star size={14} color="#0EA5E9" /> 이 지역 더 가볼만한 곳
+          <Star size={14} color="#0EA5E9" /> 주변 명소
         </span>
         {open ? <ChevronUp size={16} color="#5B7A90" /> : <ChevronDown size={16} color="#5B7A90" />}
       </button>
@@ -66,21 +66,18 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
                 className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
                 style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
               >
-                {canEdit ? (
-                  <button onClick={() => openLocationPicker(i)} className="flex items-center gap-1" aria-label="위치 설정">
+                {canEdit && (
+                  <button onClick={() => openLocationPicker(i)} aria-label="위치 설정" className="shrink-0">
                     <MapPin size={11} color={pinColor} />
-                    {s.name}
                   </button>
-                ) : hasLocation ? (
-                  <button onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng, name: s.name })} className="flex items-center gap-1">
-                    <MapPin size={11} color={pinColor} />
-                    {s.name}
-                  </button>
+                )}
+                {!canEdit && <MapPin size={11} color={pinColor} className="shrink-0" />}
+                {hasLocation ? (
+                  <button onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng, name: s.name })}>{s.name}</button>
+                ) : canEdit ? (
+                  <button onClick={() => openLocationPicker(i)}>{s.name}</button>
                 ) : (
-                  <span className="flex items-center gap-1">
-                    <MapPin size={11} color={pinColor} />
-                    {s.name}
-                  </span>
+                  <span>{s.name}</span>
                 )}
                 {canEdit && (
                   <button onClick={() => onDeleteSpot?.(i)} aria-label="명소 삭제" className="shrink-0">

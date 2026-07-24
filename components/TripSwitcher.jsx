@@ -40,13 +40,13 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
   function startEdit(trip) {
     setEditingId(trip.id);
     setTitle(trip.title);
-    setStartDate("");
-    setEndDate("");
+    setStartDate(trip.start_date || "");
+    setEndDate(trip.end_date || "");
   }
 
   function submit() {
     if (!title.trim()) return;
-    onSave(editingId || null, title.trim(), formatRange(startDate, endDate));
+    onSave(editingId || null, title.trim(), formatRange(startDate, endDate), startDate || null, endDate || null);
     close();
   }
 

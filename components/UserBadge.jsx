@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Share2, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
+import WeatherBadge from "@/components/WeatherBadge";
 
 const SKY = "#0EA5E9";
 
@@ -13,7 +14,7 @@ const LEVELS = [
   { value: "edit", label: "편집 공유" },
 ];
 
-export default function UserBadge({ canShare, shareLevel, onSetShareLevel }) {
+export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weatherLat, weatherLng, startDate, endDate }) {
   const [identity, setIdentity] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -29,6 +30,7 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel }) {
     <div className="flex items-center justify-between mb-2 text-xs">
       <span style={{ color: "#5B7A90" }}>{identity.nickname}님</span>
       <div className="flex items-center gap-3">
+        <WeatherBadge lat={weatherLat} lng={weatherLng} startDate={startDate} endDate={endDate} />
         {canShare && (
           <div className="relative">
             <button

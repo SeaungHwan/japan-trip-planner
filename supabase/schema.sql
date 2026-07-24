@@ -101,6 +101,11 @@ alter table trips add column if not exists is_shared boolean not null default fa
 -- is_shared가 켜져 있을 때만 shared_editable로 편집 허용 여부를 추가로 판단합니다.
 alter table trips add column if not exists shared_editable boolean not null default false;
 
+-- 여행 기간의 실제 날짜(연도 포함). 예전에는 "9.18 — 9.22" 같은 표시용 문자열(subtitle)만
+-- 있고 연도가 없어서 날씨 조회 등 실제 날짜 계산에는 쓸 수 없었습니다.
+alter table trips add column if not exists start_date date;
+alter table trips add column if not exists end_date date;
+
 -- 혹시 이 스키마의 이전 버전(id uuid)을 이미 실행했다면 text로 바꿔줍니다.
 do $$
 begin
