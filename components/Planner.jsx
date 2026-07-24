@@ -15,19 +15,22 @@ import DayCards from "@/components/DayCards";
 import AddRegionForm from "@/components/AddRegionForm";
 import TripSwitcher from "@/components/TripSwitcher";
 
-const DEFAULT_TRIP = { id: "japan-trip", title: "일본 여행", subtitle: "9.18 — 9.22" };
 const MAX_BASE_REGIONS = 6;
 const LAST_TRIP_KEY = "japan-trip-planner:lastTripId";
+// 트립이 하나도 없거나 아직 안 골랐을 때 쓰는 빈 자리표시자입니다. "기본 여행" 같은
+// 실제 트립 취급을 받지 않고(id가 없어서 DB에 아무것도 매치되지 않음), 렌더링이
+// undefined 접근으로 깨지지 않게만 해줍니다.
+const EMPTY_TRIP = { id: null, title: "", subtitle: "", is_shared: false, shared_editable: false, user_id: null };
 
 function readLastTripId() {
-  if (typeof window === "undefined") return DEFAULT_TRIP.id;
-  return localStorage.getItem(LAST_TRIP_KEY) || DEFAULT_TRIP.id;
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(LAST_TRIP_KEY) || null;
 }
 
 function toRegion(row) {
   return {
     id: row.id,
-    tripId: row.trip_id || DEFAULT_TRIP.id,
+    tripId: row.trip_id,
     kr: row.kr,
     jp: row.jp || "",
     icon: row.icon || "landmark",
@@ -111,20 +114,20 @@ export default function Planner() {
     };
   }, []);
 
-  const defaultTripOverride = trips.find((t) => t.id === DEFAULT_TRIP.id);
-  const allTrips = [defaultTripOverride || DEFAULT_TRIP, ...trips.filter((t) => t.id !== DEFAULT_TRIP.id)];
-  const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
-  const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
+  const activeTrip = trips.find((t) => t.id === activeTripId) || EMPTY_TRIP;
 
   // 마지막으로 보던 여행이 삭제됐거나 더 이상 접근 권한이 없으면(비공개로 바뀜 등)
-  // 기본 여행으로 되돌립니다. trips가 다 로드되기 전(빈 배열)에는 판단하지 않습니다.
+  // 남은 여행 중 첫 번째로 되돌립니다(없으면 빈 상태). trips가 다 로드되기 전(빈 배열)에는
+  // 판단하지 않습니다.
   useEffect(() => {
-    if (!tripsLoaded || activeTripId === DEFAULT_TRIP.id) return;
-    if (!trips.some((t) => t.id === activeTripId)) setActiveTripId(DEFAULT_TRIP.id);
+    if (!tripsLoaded) return;
+    if (activeTripId && trips.some((t) => t.id === activeTripId)) return;
+    setActiveTripId(trips[0]?.id ?? null);
   }, [tripsLoaded, trips, activeTripId]);
 
   useEffect(() => {
-    localStorage.setItem(LAST_TRIP_KEY, activeTripId);
+    if (activeTripId) localStorage.setItem(LAST_TRIP_KEY, activeTripId);
+    else localStorage.removeItem(LAST_TRIP_KEY);
   }, [activeTripId]);
 
   // 처음 만들어진 순서(created_at 오름차순)로 앞의 MAX_BASE_REGIONS개만 메인 스크롤에 두고
@@ -172,13 +175,11 @@ export default function Planner() {
   }
 
   function canDeleteTrip(trip) {
-    if (trip.id === DEFAULT_TRIP.id) return false;
     return isMaster || (identity && trip.user_id === identity.id);
   }
 
   // 여행 공유 여부는 만든 사람만 바꿀 수 있습니다 — 마스터도 예외 없습니다.
-  // 기본 여행(일본 여행)은 이미 항상 전원에게 공개된 상태라 공유 버튼 자체가 필요 없습니다.
-  const canShareActiveTrip = activeTrip.id !== DEFAULT_TRIP.id && !!identity && activeTrip.user_id === identity.id;
+  const canShareActiveTrip = !!identity && activeTrip.user_id === identity.id;
 
   const activeTripShareLevel = !activeTrip.is_shared ? "private" : activeTrip.shared_editable ? "edit" : "view";
 
@@ -211,12 +212,16 @@ export default function Planner() {
     }
     setTrips((prev) => prev.filter((t) => t.id !== trip.id));
     setUserRegions((prev) => prev.filter((r) => r.tripId !== trip.id));
-    if (activeTripId === trip.id) selectTrip(DEFAULT_TRIP.id);
+    if (activeTripId === trip.id) {
+      const remaining = trips.filter((t) => t.id !== trip.id);
+      selectTrip(remaining[0]?.id ?? null);
+    }
   }
 
   // 트립 소유자가 "편집까지 공유"를 켰다면, 그 트립에 속한 지역은 소유자 본인이 아니어도
   // (마스터가 아니어도) 관리할 수 있습니다. DB의 trip_shared_editable() 정책과 동일한 규칙입니다.
   function canEditTrip(trip) {
+    if (!trip.id) return false;
     return isMaster || (!!identity && trip.user_id === identity.id) || (!!trip.is_shared && !!trip.shared_editable);
   }
 
@@ -300,7 +305,7 @@ export default function Planner() {
               {activeTrip.subtitle || "TRIP"}
             </p>
             <TripSwitcher
-              trips={allTrips}
+              trips={trips}
               activeTripId={activeTripId}
               onSelect={selectTrip}
               onSave={saveTrip}
@@ -313,97 +318,103 @@ export default function Planner() {
           </h1>
         </div>
 
-        <div ref={mapSectionRef}>
-          <MapView
-            regions={regions}
-            active={active}
-            zoomed={zoomed}
-            onSelect={selectRegion}
-            onZoomOut={() => {
-              setZoomed(false);
-              setFocus(null);
-            }}
-            focus={focus}
-          />
-        </div>
-
-        <RegionChips
-          regions={regions}
-          active={active}
-          onSelect={selectRegion}
-          showMore={showMore}
-          onToggleMore={toggleMore}
-          moreCount={extraRegions.length}
-          baseCount={baseRegions.length}
-        />
-
-        {canEditTrip(activeTrip) && (
-          <button
-            className="text-xs mb-4 -mt-3 flex items-center gap-1"
-            style={{ color: "#5B7A90", fontWeight: 700 }}
-            onClick={() => setShowAddForm(true)}
-          >
-            + 새 지역 추가
-          </button>
-        )}
-
-        {loadingRegions ? (
+        {!tripsLoaded ? (
           <div className="flex justify-center mt-8">
             <Spinner size={22} />
           </div>
-        ) : regions.length === 0 ? (
+        ) : !activeTrip.id ? (
           <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
-            이 여행에는 아직 지역이 없어요.
-            {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
+            아직 여행이 없어요. 오른쪽 위 &quot;다른 여행&quot;에서 새 여행을 만들어보세요.
           </p>
         ) : (
           <>
-            <RegionHeader
-              region={region}
-              onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
+            <div ref={mapSectionRef}>
+              <MapView
+                regions={regions}
+                active={active}
+                zoomed={zoomed}
+                onSelect={selectRegion}
+                onZoomOut={() => {
+                  setZoomed(false);
+                  setFocus(null);
+                }}
+                focus={focus}
+              />
+            </div>
+
+            <RegionChips
+              regions={regions}
+              active={active}
+              onSelect={selectRegion}
+              showMore={showMore}
+              onToggleMore={toggleMore}
+              moreCount={extraRegions.length}
+              baseCount={baseRegions.length}
             />
-            {region.flight && <FlightCard flight={region.flight} />}
-            <SpotsPanel
-              spots={region.moreSpots}
-              open={showSpots}
-              onToggle={() => setShowSpots((v) => !v)}
-              onLocateSpot={locateItem}
-              canEdit={canManageRegion(region)}
-              onAddSpot={(name) => addSpot(region, name)}
-              onDeleteSpot={(i) => deleteSpot(region, i)}
-              onSetLocation={(i, point) => setSpotLocation(region, i, point)}
-            />
-            {region.days?.length > 0 && (
+
+            {canEditTrip(activeTrip) && (
+              <button
+                className="text-xs mb-4 -mt-3 flex items-center gap-1"
+                style={{ color: "#5B7A90", fontWeight: 700 }}
+                onClick={() => setShowAddForm(true)}
+              >
+                + 새 지역 추가
+              </button>
+            )}
+
+            {loadingRegions ? (
+              <div className="flex justify-center mt-8">
+                <Spinner size={22} />
+              </div>
+            ) : regions.length === 0 ? (
+              <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
+                이 여행에는 아직 지역이 없어요.
+                {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
+              </p>
+            ) : (
               <>
-                <ModeToggle mode={mode} onChange={setMode} />
-                <DayCards
-                  days={region.days}
-                  mode={mode}
-                  regionId={region.id}
-                  onLocateItem={locateItem}
-                  canEdit={canManageRegion(region)}
+                <RegionHeader
+                  region={region}
+                  onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
                 />
+                {region.flight && <FlightCard flight={region.flight} />}
+                <SpotsPanel
+                  spots={region.moreSpots}
+                  open={showSpots}
+                  onToggle={() => setShowSpots((v) => !v)}
+                  onLocateSpot={locateItem}
+                  canEdit={canManageRegion(region)}
+                  onAddSpot={(name) => addSpot(region, name)}
+                  onDeleteSpot={(i) => deleteSpot(region, i)}
+                  onSetLocation={(i, point) => setSpotLocation(region, i, point)}
+                />
+                {region.days?.length > 0 && (
+                  <>
+                    <ModeToggle mode={mode} onChange={setMode} />
+                    <DayCards
+                      days={region.days}
+                      mode={mode}
+                      regionId={region.id}
+                      onLocateItem={locateItem}
+                      canEdit={canManageRegion(region)}
+                    />
+                  </>
+                )}
               </>
+            )}
+
+            {showAddForm && (
+              <AddRegionForm
+                tripId={activeTripId}
+                onClose={() => setShowAddForm(false)}
+                onAdded={(row) => {
+                  setUserRegions((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, toRegion(row)]));
+                  setShowMore(true);
+                }}
+              />
             )}
           </>
         )}
-
-        {showAddForm && (
-          <AddRegionForm
-            tripId={activeTripId}
-            onClose={() => setShowAddForm(false)}
-            onAdded={(row) => {
-              setUserRegions((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, toRegion(row)]));
-              if (isDefaultTrip) setShowMore(true);
-            }}
-          />
-        )}
-{/* 
-        {isDefaultTrip && (
-          <p className="text-[11px] mt-6 text-center" style={{ color: "#94A9B8" }}>
-            항공 노선·운항 스케줄은 예약 전 항공사 홈페이지에서 재확인해주세요
-          </p>
-        )} */}
       </div>
     </div>
   );

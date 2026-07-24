@@ -19,8 +19,7 @@ create table if not exists reactions (
   unique (target_key, nickname)
 );
 
--- id는 uuid가 아니라 text입니다: 새로 추가하는 지역은 클라이언트가 생성한 uuid 문자열을 쓰고,
--- 원래 하드코딩돼 있던 15개 기본 지역(data/regions.js)을 이전할 때는 slug(sapporo 등)를 그대로 씁니다.
+-- id는 uuid가 아니라 text입니다: 클라이언트가 생성한 uuid 문자열을 그대로 씁니다.
 create table if not exists user_regions (
   id text primary key default gen_random_uuid()::text,
   kr text not null,
@@ -54,7 +53,6 @@ alter table user_regions add column if not exists flight jsonb;
 alter table user_regions add column if not exists is_extra boolean not null default false;
 
 -- 개인이 만든 지역은 그 사람 또는 마스터만 지울 수 있게 실제 계정을 기록합니다.
--- 기본 제공 15개 지역(seed)은 user_id가 없어서 마스터만 관리할 수 있습니다.
 alter table user_regions add column if not exists user_id uuid references auth.users(id) on delete set null;
 
 -- 지도가 실사 지도(Leaflet)로 바뀌면서 x/y(이미지 % 좌표) 대신 실제 위경도(lat/lng)를 씁니다.
@@ -75,16 +73,15 @@ begin
 end $$;
 
 -- AI로 지역을 추가할 때 최소 5일치 일정(대중교통/렌트카 코스)도 함께 생성해 저장합니다.
--- 형식은 REGIONS/REGIONS_MORE(data/regions.js)의 days와 동일합니다.
 alter table user_regions add column if not exists days jsonb not null default '[]'::jsonb;
 
--- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 기본 제공되는
--- "일본 여행"(data/regions.js)은 DB에 없는 고정 트립이라 id로 문자열 'japan-trip'을 씁니다.
+-- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 모든 지역은 반드시
+-- 특정 트립(trips.id)에 속해야 하므로 기본값 없이 앱이 항상 명시적으로 넣습니다.
 alter table user_regions add column if not exists trip_id text not null default 'japan-trip';
+alter table user_regions alter column trip_id drop default;
 create index if not exists user_regions_trip_idx on user_regions (trip_id);
 
--- id는 uuid가 아니라 text입니다: 새로 만든 여행은 클라이언트가 생성한 uuid 문자열을 쓰고,
--- 기본 제공 "일본 여행"의 제목/날짜를 수정하면 고정 id 'japan-trip'으로 이 테이블에 upsert됩니다.
+-- id는 uuid가 아니라 text입니다: 클라이언트가 생성한 uuid 문자열을 그대로 씁니다.
 create table if not exists trips (
   id text primary key default gen_random_uuid()::text,
   title text not null,
@@ -97,8 +94,7 @@ create table if not exists trips (
 alter table trips add column if not exists user_id uuid references auth.users(id) on delete set null;
 
 -- 여행은 기본적으로 "개인 전용"입니다. 공유하기를 눌러 is_shared를 true로 바꿔야만
--- 다른 사람(마스터 포함)에게 보입니다. 기본 제공 "일본 여행"(id='japan-trip')은
--- is_shared 값과 무관하게 항상 전원에게 공개된 것으로 취급합니다(아래 정책 참고).
+-- 다른 사람(마스터 포함)에게 보입니다.
 alter table trips add column if not exists is_shared boolean not null default false;
 
 -- 공유를 "보기만" / "편집까지" 두 단계로 나눕니다. is_shared가 꺼져 있으면 이 값은 의미가 없고,
@@ -133,7 +129,7 @@ end $$;
 
 -- 일정(DayCards) 항목을 트리플처럼 자유롭게 추가/수정/삭제하기 위한 테이블.
 -- 원본 항목은 base:{index} 키로, 새로 추가한 항목은 custom:{uuid} 키로 구분해
--- 원본 데이터(data/regions.js)는 건드리지 않고 위에 덧씌웁니다(add/edit/delete 모두 upsert 한 건).
+-- 원본 데이터(user_regions.days)는 건드리지 않고 위에 덧씌웁니다(add/edit/delete 모두 upsert 한 건).
 create table if not exists day_item_edits (
   id uuid primary key default gen_random_uuid(),
   region_id text not null,
@@ -228,7 +224,18 @@ grant execute on function trip_shared_editable(text) to authenticated, anon;
 -- 그 여행을 수정/공유 전환할 방법이 없어집니다. 관리자(admins) 계정으로 소유권을 넘겨
 -- 최소한 마스터는 계속 관리할 수 있게 안전망을 둡니다.
 update trips set user_id = (select user_id from admins limit 1)
-where user_id is null and id <> 'japan-trip' and exists (select 1 from admins);
+where user_id is null and exists (select 1 from admins);
+
+-- "일본 여행"(id='japan-trip') 기본 트립은 더 이상 특별 취급하지 않기로 해서, 코드/정책뿐
+-- 아니라 실제 데이터도 지웁니다. day_item_edits/day_item_notes는 region_id만으로 연결돼
+-- 있어(FK 없음) region_id가 남기 전에 먼저 지워야 고아 행이 안 남습니다. 이미 지워졌으면
+-- 조건에 걸리는 게 없어 그냥 0건 삭제라, 몇 번을 다시 실행해도 안전합니다.
+delete from day_item_notes where region_id in (select id from user_regions where trip_id = 'japan-trip');
+delete from day_item_edits where region_id in (select id from user_regions where trip_id = 'japan-trip');
+delete from comments where target_key in (select 'region:' || id from user_regions where trip_id = 'japan-trip');
+delete from reactions where target_key in (select 'region:' || id from user_regions where trip_id = 'japan-trip');
+delete from user_regions where trip_id = 'japan-trip';
+delete from trips where id = 'japan-trip';
 
 -- drop 후 create라서 이미 존재하는 정책도 다시 실행 가능합니다.
 drop policy if exists "comments_select" on comments;
@@ -246,23 +253,19 @@ drop policy if exists "reactions_delete" on reactions;
 create policy "reactions_delete" on reactions for delete using (is_allowed_user());
 
 -- 지역은 자기가 속한 여행이 공개(is_shared)이거나 내가 만든 여행일 때만 보입니다.
--- 기본 여행(japan-trip)에 속한 지역은 trips에 그 여행 행이 없어도 항상 보이게 예외 처리합니다.
 drop policy if exists "user_regions_select" on user_regions;
 create policy "user_regions_select" on user_regions for select using (
-  is_allowed_user() and (
-    trip_id = 'japan-trip'
-    or exists (select 1 from trips t where t.id = user_regions.trip_id and (t.is_shared or t.user_id = auth.uid()))
-  )
+  is_allowed_user()
+  and exists (select 1 from trips t where t.id = user_regions.trip_id and (t.is_shared or t.user_id = auth.uid()))
 );
--- 지역을 새로 넣으려면 그 트립의 주인이거나(japan-trip은 예외), 트립이 "편집까지 공유"
--- 상태여야 합니다. 예전에는 is_allowed_user()만 확인해서 트립 소유권과 무관하게 아무나
--- 아무 trip_id에나 지역을 꽂을 수 있었는데(UI에선 막혀 있었지만 API 직접 호출은 가능했음),
--- 이번에 편집 권한을 명시적으로 나누면서 이 구멍도 같이 막습니다.
+-- 지역을 새로 넣으려면 그 트립의 주인이거나, 트립이 "편집까지 공유" 상태여야 합니다.
+-- 예전에는 is_allowed_user()만 확인해서 트립 소유권과 무관하게 아무나 아무 trip_id에나
+-- 지역을 꽂을 수 있었는데(UI에선 막혀 있었지만 API 직접 호출은 가능했음), 편집 권한을
+-- 명시적으로 나누면서 이 구멍도 같이 막았습니다.
 drop policy if exists "user_regions_insert" on user_regions;
 create policy "user_regions_insert" on user_regions for insert with check (
   is_allowed_user() and (
-    trip_id = 'japan-trip'
-    or exists (select 1 from trips t where t.id = user_regions.trip_id and t.user_id = auth.uid())
+    exists (select 1 from trips t where t.id = user_regions.trip_id and t.user_id = auth.uid())
     or trip_shared_editable(trip_id)
   )
 );
@@ -322,19 +325,17 @@ create policy "day_item_photos_delete" on storage.objects for delete
   using (bucket_id = 'day-item-photos' and is_allowed_user());
 
 -- 여행은 기본적으로 개인 전용입니다. 공유(is_shared)한 여행이거나 내가 만든 여행만 보이고,
--- 마스터라고 해서 다른 사람의 비공개 여행을 볼 수 있는 예외는 없습니다. 기본 여행(japan-trip)은
--- 팀 전체가 함께 쓰는 고정 여행이라 항상 보이게 예외 처리합니다.
+-- 마스터라고 해서 다른 사람의 비공개 여행을 볼 수 있는 예외는 없습니다.
 drop policy if exists "trips_select" on trips;
 create policy "trips_select" on trips for select using (
-  is_allowed_user() and (id = 'japan-trip' or is_shared or auth.uid() = user_id)
+  is_allowed_user() and (is_shared or auth.uid() = user_id)
 );
 drop policy if exists "trips_insert" on trips;
 create policy "trips_insert" on trips for insert with check (is_allowed_user());
 -- 여행 정보/공유 여부를 바꾸는 건 만든 사람만 할 수 있습니다(마스터도 예외 없음).
--- 기본 여행(japan-trip)은 팀 전체가 같이 쓰는 거라 예외적으로 누구나 수정할 수 있습니다.
 drop policy if exists "trips_update" on trips;
 create policy "trips_update" on trips for update using (
-  is_allowed_user() and (id = 'japan-trip' or auth.uid() = user_id)
+  is_allowed_user() and auth.uid() = user_id
 );
 drop policy if exists "trips_delete" on trips;
 create policy "trips_delete" on trips for delete using (is_master_user() or auth.uid() = user_id);
@@ -358,4 +359,4 @@ end $$;
 
 insert into admins (user_id)
 select id from auth.users where email = 'hanan0912@klic.co.kr'
-on conflict do nothing;
+on conflict do nothing;  

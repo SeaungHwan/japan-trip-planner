@@ -5,26 +5,42 @@ import { NextResponse } from "next/server";
 const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스턴트입니다.
 사용자가 준 일본 지역 이름을 보고 아래 JSON 형식으로만 답하세요. 설명, 코드블록 등 다른 텍스트는 절대 넣지 마세요.
 {
+  "jp": "지역의 일본어 이름(한자/가나)",
   "lat": 33.28,
   "lng": 131.48,
-  "spots": ["명소1", "명소2", "명소3", "명소4"],
+  "spots": [
+    {"name": "명소1", "lat": 33.29, "lng": 131.50},
+    {"name": "명소2", "lat": 33.27, "lng": 131.47}
+  ],
   "note": "이 지역을 추천하는 이유나 참고할 점을 1~2문장으로",
   "flight": {
     "incheon": "인천국제공항에서 이 지역(또는 가장 가까운 공항)까지의 항공편 상황을 한 문장으로",
     "cheongju": "청주국제공항 기준으로 동일하게 한 문장으로"
   },
   "days": [
-    {"transit": {"title": "1일차 제목", "items": ["대중교통 코스 항목1", "항목2", "항목3"]}, "car": {"title": "1일차 제목", "items": ["렌트카 코스 항목1", "항목2"]}}
+    {
+      "transit": {"title": "1일차 제목", "items": [{"text": "대중교통 코스 항목1", "lat": 33.28, "lng": 131.48}, {"text": "항목2", "lat": 33.29, "lng": 131.49}]},
+      "car": {"title": "1일차 제목", "items": [{"text": "렌트카 코스 항목1", "lat": 33.30, "lng": 131.46}, {"text": "항목2", "lat": 33.31, "lng": 131.45}]}
+    }
   ]
 }
+jp는 실제 지역명의 일본어 표기입니다(한자 표기가 있으면 한자로, 없으면 가나로).
 lat/lng는 해당 지역 중심의 실제 위경도(십진수)입니다.
-spots는 실제로 존재하는 명소 이름 4개를 한국어로 작성하세요.
+spots는 실제로 존재하는 명소 4개를 한국어 이름과 그 명소의 실제 위경도(십진수)로 작성하세요.
 note는 한국어로 간결하게 작성하세요.
 flight는 항공사명·운항 횟수·소요시간을 확실히 알 때만 구체적으로 쓰고, 조금이라도 불확실하면 반드시
 "정기 직항 없음" 또는 "확인 필요"라고 답하세요. 항공사명이나 편수를 지어내지 마세요.
-days는 정확히 5개를 채우고, 각 day는 "transit"(대중교통)과 "car"(렌트카) 두 코스를 모두 포함하며, title은 그날의 주제, items는 2~4개의 구체적인 실제 장소/활동명입니다. 5일 전체가 자연스러운 여행 동선이 되도록 구성하세요.`;
+days는 정확히 5개를 채우고, 각 day는 "transit"(대중교통)과 "car"(렌트카) 두 코스를 모두 포함하며, title은 그날의 주제,
+items는 2~4개의 구체적인 실제 장소/활동명과 그 위치의 실제 위경도(십진수)입니다. 5일 전체가 자연스러운 여행 동선이 되도록 구성하세요.
+모든 lat/lng는 실제로 알고 있는 좌표를 최대한 정확히 쓰고, 확실하지 않으면 해당 장소가 속한 동네/구역의 대략적인 중심 좌표라도 반드시 채우세요(비워두지 마세요).
+사용자가 "추가 요청사항"을 주면 spots/note/days 구성 전체에 최대한 반영하세요(예: "아이랑 가기 좋은 곳 위주로"라면
+놀이시설·체험형 명소·아이가 걷기 힘들지 않은 코스를 우선하세요). 다만 위 JSON 형식과 필드 구성은 항상 그대로 유지하세요.`;
 
-async function generateWithGemini(name) {
+function buildUserMessage(name, extra) {
+  return extra ? `지역: ${name}\n추가 요청사항: ${extra}` : `지역: ${name}`;
+}
+
+async function generateWithGemini(name, extra) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY missing");
 
@@ -34,7 +50,7 @@ async function generateWithGemini(name) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n지역: ${name}` }] }],
+        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n${buildUserMessage(name, extra)}` }] }],
         generationConfig: { responseMimeType: "application/json" },
       }),
     }
@@ -46,7 +62,7 @@ async function generateWithGemini(name) {
   return JSON.parse(text);
 }
 
-async function generateWithGroq(name) {
+async function generateWithGroq(name, extra) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY missing");
 
@@ -57,7 +73,7 @@ async function generateWithGroq(name) {
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `지역: ${name}` },
+        { role: "user", content: buildUserMessage(name, extra) },
       ],
       response_format: { type: "json_object" },
     }),
@@ -69,8 +85,16 @@ async function generateWithGroq(name) {
   return JSON.parse(text);
 }
 
+function isValidSpot(spot) {
+  return spot && typeof spot.name === "string" && typeof spot.lat === "number" && typeof spot.lng === "number";
+}
+
+function isValidItem(item) {
+  return item && typeof item.text === "string" && typeof item.lat === "number" && typeof item.lng === "number";
+}
+
 function isValidCourse(course) {
-  return course && typeof course.title === "string" && Array.isArray(course.items) && course.items.every((i) => typeof i === "string");
+  return course && typeof course.title === "string" && Array.isArray(course.items) && course.items.every(isValidItem);
 }
 
 function isValidDay(day) {
@@ -82,25 +106,29 @@ function isValidFlight(flight) {
 }
 
 export async function POST(req) {
-  const { name } = await req.json();
+  const { name, extra } = await req.json();
   const trimmed = (name || "").trim();
+  const extraTrimmed = (extra || "").trim();
   if (!trimmed) {
     return NextResponse.json({ error: "지역 이름을 입력해주세요" }, { status: 400 });
   }
 
   for (const generate of [generateWithGemini, generateWithGroq]) {
     try {
-      const result = await generate(trimmed);
+      const result = await generate(trimmed, extraTrimmed);
       const days = Array.isArray(result.days) ? result.days.filter(isValidDay) : [];
+      const spots = Array.isArray(result.spots) ? result.spots.filter(isValidSpot) : [];
       if (
-        Array.isArray(result.spots) &&
+        spots.length > 0 &&
+        typeof result.jp === "string" &&
         typeof result.note === "string" &&
         typeof result.lat === "number" &&
         typeof result.lng === "number" &&
         days.length >= 5
       ) {
         return NextResponse.json({
-          spots: result.spots.filter((s) => typeof s === "string"),
+          jp: result.jp,
+          spots,
           note: result.note,
           lat: result.lat,
           lng: result.lng,

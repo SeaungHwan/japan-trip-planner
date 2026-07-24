@@ -22,11 +22,25 @@ function mergeItems(baseItems, edits) {
   const editMap = new Map(edits.map((e) => [e.item_key, e]));
   const merged = [];
 
-  baseItems.forEach((text, i) => {
+  // 기존 데이터(data/regions.js, 예전에 생성한 지역)는 항목이 그냥 문자열이고,
+  // AI가 새로 생성한 지역은 항목이 {text, lat, lng} 객체라 위치가 같이 붙어 있습니다.
+  baseItems.forEach((raw, i) => {
     const key = `base:${i}`;
+    const isObj = raw && typeof raw === "object";
+    const baseText = isObj ? raw.text : raw;
+    const baseLat = isObj ? raw.lat ?? null : null;
+    const baseLng = isObj ? raw.lng ?? null : null;
     const e = editMap.get(key);
     if (e?.deleted) return;
-    merged.push({ key, text: e ? e.text : text, sortOrder: e ? e.sort_order : i, lat: e?.lat ?? null, lng: e?.lng ?? null });
+    merged.push({
+      key,
+      text: e ? e.text : baseText,
+      sortOrder: e ? e.sort_order : i,
+      // e.lat가 null이어도(예: 위치 삭제) "수정 기록이 있다"는 뜻이라 그 값을 그대로 씁니다.
+      // 수정 기록 자체가 없을 때만 AI가 심어둔 기본 위치로 대체합니다.
+      lat: e ? e.lat : baseLat,
+      lng: e ? e.lng : baseLng,
+    });
   });
 
   edits
@@ -370,7 +384,9 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
   async function commitDraft(dayIdx, item) {
     const text = (drafts[item.key] ?? item.text).trim();
     if (text && text !== item.text) {
-      await upsert(dayIdx, item.key, { text, sort_order: item.sortOrder });
+      // item.lat/lng(현재 화면에 보이는 위치, AI 기본값일 수도 있음)를 같이 넘겨야
+      // 이 항목의 첫 수정 기록이 생기면서 위치가 null로 초기화되는 걸 막을 수 있습니다.
+      await upsert(dayIdx, item.key, { text, sort_order: item.sortOrder, lat: item.lat, lng: item.lng });
     }
   }
 

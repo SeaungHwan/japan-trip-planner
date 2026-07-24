@@ -15,8 +15,10 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 
 export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [kr, setKr] = useState("");
+  const [extraPrompt, setExtraPrompt] = useState("");
   const [jp, setJp] = useState("");
   const [spotsText, setSpotsText] = useState("");
+  const [aiSpots, setAiSpots] = useState(null);
   const [note, setNote] = useState("");
   const [point, setPoint] = useState(null);
   const [days, setDays] = useState(null);
@@ -37,11 +39,13 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       const res = await fetch("/api/generate-region", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: kr.trim() }),
+        body: JSON.stringify({ name: kr.trim(), extra: extraPrompt.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "생성 실패");
-      setSpotsText(data.spots.join(", "));
+      setJp(data.jp || "");
+      setSpotsText(data.spots.map((s) => s.name).join(", "));
+      setAiSpots(data.spots);
       setNote(data.note);
       setPoint({ lat: data.lat, lng: data.lng });
       setDays(data.days);
@@ -65,10 +69,16 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
 
     setSaving(true);
     setError("");
+    // AI가 준 이름을 그대로 뒀으면 그 좌표까지 같이 저장하고, 직접 새로 적거나 고친
+    // 이름은 좌표 없이 저장합니다(기존처럼 나중에 지도에서 위치를 찍을 수 있음).
     const spots = spotsText
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((name) => {
+        const match = aiSpots?.find((s) => s.name === name);
+        return match ? { name, lat: match.lat, lng: match.lng } : { name };
+      });
     const flight =
       flightIncheon.trim() || flightCheongju.trim()
         ? { incheon: flightIncheon.trim() || "확인 필요", cheongju: flightCheongju.trim() || "확인 필요" }
@@ -124,6 +134,18 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           style={{ border: "1px solid #BAE6FD" }}
         />
 
+        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          AI에게 추가 요청사항 (선택)
+        </label>
+        <textarea
+          value={extraPrompt}
+          onChange={(e) => setExtraPrompt(e.target.value)}
+          placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
+          rows={2}
+          className="w-full text-sm rounded px-2 py-1.5 mb-2"
+          style={{ border: "1px solid #BAE6FD" }}
+        />
+
         <button
           onClick={generateWithAI}
           disabled={generating}
@@ -164,6 +186,11 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           className="w-full text-sm rounded px-2 py-1.5 mb-2"
           style={{ border: "1px solid #BAE6FD" }}
         />
+        {aiSpots?.length > 0 && (
+          <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+            이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
+          </p>
+        )}
 
         <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
           항공편 정보 (선택)
