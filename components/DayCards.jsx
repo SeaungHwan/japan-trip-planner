@@ -111,6 +111,15 @@ function DayCardItem({
           items.filter((it) => it.lat != null).map((it) => ({ lat: it.lat, lng: it.lng, name: it.text }))
         );
       }}
+      // day-card의 등장 애니메이션(fadeUp)은 fill-mode: both라 끝난 뒤에도 transform:
+      // translateY(0)을 계속 붙들고 있습니다. CSS 애니메이션은 같은 인라인 style보다
+      // 우선하므로, 애니메이션이 끝난 뒤에도 이 값이 드래그용 transform을 계속 덮어써서
+      // 카드가 손가락을 따라 움직이지 않고 놓는 순간에만 훅 튀는 것처럼 보였습니다.
+      // 애니메이션이 자연스럽게 끝나는 시점에 꺼서(직접 DOM에만, React style에는 없는
+      // 속성이라 리렌더링과 충돌하지 않음) 그 뒤로는 인라인 transform이 정상 적용되게 합니다.
+      onAnimationEnd={(e) => {
+        if (e.animationName === "fadeUp") e.currentTarget.style.animation = "none";
+      }}
       className="day-card rounded-xl p-4"
       style={{
         animationDelay: `${displayIdx * 0.05}s`,
@@ -119,7 +128,11 @@ function DayCardItem({
         cursor: !isEditing ? "pointer" : undefined,
         position: "relative",
         transform: isDragging ? `${transformStyle || ""} scale(1.03)`.trim() : transformStyle,
-        transition,
+        // 드래그 중인 카드 자신은 트랜지션을 꺼야 손가락 움직임을 프레임마다 그대로 따라옵니다.
+        // transition을 계속 걸어두면 매 포인터 이동마다 새 transform이 트랜지션과 경합해
+        // 오히려 뚝뚝 끊기며 한 박자 늦게 쫓아오는 것처럼 보입니다. 다른 카드들이 자리를
+        // 비켜줄 때 부드럽게 미끄러지는 효과는 그대로 유지됩니다.
+        transition: isDragging ? undefined : transition,
         boxShadow: isDragging ? "0px 12px 28px rgba(15,42,61,0.22)" : undefined,
         zIndex: isDragging ? 10 : undefined,
       }}
