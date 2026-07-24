@@ -3,7 +3,7 @@ import {
   Snowflake, Wine, BookOpen, Plane, Ghost, Trees, Church, Palmtree,
 } from "lucide-react";
 
-export const ICONS = {
+const ICONS = {
   waves: Waves,
   droplets: Droplets,
   landmark: Landmark,

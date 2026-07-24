@@ -1,17 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&display=swap");
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/variable/pretendardvariable.css");
+@import url("/font/Pretendard/fonts.css");
+@import url("/font/Sora/fonts.css");
+@import url("/font/RimixIcon/remixicon.css");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   background: #ffffff;
 }
 
 .serif {
-  font-family: "Shippori Mincho", serif;
+  font-family: "Sora", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .chip-row::-webkit-scrollbar {
@@ -97,7 +98,8 @@ body {
   transition: max-height 0.3s ease;
 }
 .spots-panel.open {
-  max-height: 300px;
+  max-height: 1000px;
+  overflow-y: auto;
 }
 
 .zoom-btn {

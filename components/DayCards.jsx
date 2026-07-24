@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Reorder, useDragControls } from "framer-motion";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
@@ -36,9 +38,11 @@ function mergeItems(baseItems, edits) {
 }
 
 // 손가락으로 잡아서 실시간으로 위젯이 따라오고, 카드 사이에 끼워 넣을 수 있는 드래그 재정렬.
-// framer-motion의 Reorder는 포인터/터치를 모두 지원하고, 드래그 중 다른 카드들이 자리를
-// 비켜주는 애니메이션까지 기본 제공합니다. 그립 아이콘에서만 드래그가 시작되도록
-// dragListener를 끄고 useDragControls로 직접 트리거합니다.
+// framer-motion의 Reorder는 인접 카드와 하나씩만 순차 스왑하는 방식이라 카드 높이가
+// 제각각일 때(항목 개수가 다 다름) 놓은 지점보다 한 칸 더 밀리는 오버슈트가 있었습니다.
+// @dnd-kit/sortable은 매 프레임 포인터와 가장 가까운 카드를 다시 계산해서 놓은 지점에
+// 정확히 삽입되므로 이걸로 교체했습니다. 그립 아이콘에서만 드래그가 시작되도록
+// attributes/listeners를 그립 엘리먼트에만 붙입니다.
 function DayCardItem({
   di,
   displayIdx,
@@ -46,7 +50,7 @@ function DayCardItem({
   items,
   isEditing,
   reorderMode,
-  canEdit,
+  dayEditMode,
   dayNotes,
   drafts,
   setDrafts,
@@ -68,28 +72,44 @@ function DayCardItem({
   onLocateItem,
   onOpenNotes,
 }) {
-  const dragControls = useDragControls();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: di,
+    disabled: !reorderMode,
+  });
   const isLocatingHere = locatingItem?.dayIdx === di;
   const noteCountFor = (key) => dayNotes.filter((n) => n.item_key === key).length;
 
+  const transformStyle = transform ? CSS.Transform.toString(transform) : undefined;
+
   return (
-    <Reorder.Item
-      as="div"
-      value={di}
-      ref={setCardRef}
-      dragListener={false}
-      dragControls={dragControls}
+    <div
+      ref={(el) => {
+        setNodeRef(el);
+        setCardRef(el);
+      }}
+      onClick={() => dayEditMode && !isEditing && onToggleEdit(di)}
       className="day-card rounded-xl p-4"
-      style={{ animationDelay: `${displayIdx * 0.05}s`, background: "#FFFFFF", border: "1px solid #BAE6FD" }}
+      style={{
+        animationDelay: `${displayIdx * 0.05}s`,
+        background: "#FFFFFF",
+        border: isDragging ? "1px solid #0EA5E9" : "1px solid #BAE6FD",
+        cursor: dayEditMode && !isEditing ? "pointer" : undefined,
+        position: "relative",
+        transform: isDragging ? `${transformStyle || ""} scale(1.03)`.trim() : transformStyle,
+        transition,
+        boxShadow: isDragging ? "0px 12px 28px rgba(15,42,61,0.22)" : undefined,
+        zIndex: isDragging ? 10 : undefined,
+      }}
     >
       <div className="flex items-start gap-3">
         {reorderMode && (
           <span
+            {...attributes}
+            {...listeners}
             className="shrink-0 flex items-center justify-center -ml-2 -mt-1"
-            style={{ width: 32, height: 32, touchAction: "none", cursor: "grab" }}
-            onPointerDown={(e) => dragControls.start(e)}
+            style={{ width: 32, height: 32, touchAction: "none", cursor: isDragging ? "grabbing" : "grab" }}
           >
-            <GripVertical size={16} color="#94A9B8" />
+            <GripVertical size={16} color={isDragging ? SKY : "#94A9B8"} />
           </span>
         )}
         <span
@@ -140,7 +160,10 @@ function DayCardItem({
                 <li key={it.key} className="flex items-center justify-between gap-1">
                   {it.lat != null ? (
                     <button
-                      onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text });
+                      }}
                       className="text-[13px] flex items-center gap-1 text-left min-w-0"
                       style={{ color: "#5B7A90" }}
                     >
@@ -151,9 +174,18 @@ function DayCardItem({
                       &middot; {it.text}
                     </span>
                   )}
-                  <button onClick={() => onOpenNotes(di, it)} aria-label="메모/사진" className="shrink-0">
-                    <StickyNote size={12} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
-                  </button>
+                  {dayEditMode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenNotes(di, it);
+                      }}
+                      aria-label="메모/사진"
+                      className="shrink-0"
+                    >
+                      <StickyNote size={12} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
+                    </button>
+                  )}
                 </li>
               )
             )}
@@ -206,17 +238,21 @@ function DayCardItem({
         </div>
       </div>
 
-      {canEdit && !reorderMode && (
-        <div className="flex items-center justify-end gap-3 mt-3">
-          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={() => onToggleEdit(di)}>
-            <Pencil size={13} /> {isEditing ? "완료" : "편집"}
-          </button>
-          <button className="text-[12px] flex items-center gap-1" style={{ color: "#94A9B8", fontWeight: 700 }} onClick={() => onDeleteDay(di)}>
+      {dayEditMode && (
+        <div className="flex items-center justify-end mt-3">
+          <button
+            className="text-[12px] flex items-center gap-1"
+            style={{ color: "#94A9B8", fontWeight: 700 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteDay(di);
+            }}
+          >
             <Trash2 size={13} /> 삭제
           </button>
         </div>
       )}
-    </Reorder.Item>
+    </div>
   );
 }
 
@@ -227,11 +263,13 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
+  const [dayEditMode, setDayEditMode] = useState(false);
   const [locatingItem, setLocatingItem] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
   const [notingItem, setNotingItem] = useState(null);
   const cardRefs = useRef({});
   const [loading, setLoading] = useState(true);
+  const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -294,6 +332,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
     setDrafts({});
     setNewText("");
     setReorderMode(false);
+    setDayEditMode(false);
     setLocatingItem(null);
     setPendingPoint(null);
     setNotingItem(null);
@@ -452,6 +491,18 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
     if (!canEdit) return;
     setReorderMode((v) => !v);
     setEditingDay(null);
+    setDayEditMode(false);
+  }
+
+  // 카드마다 따로 있던 "편집" 버튼을 여기 하나로 모읍니다. 켜져 있는 동안은 카드를
+  // 클릭하면 그 카드가 바로 편집 모드로 열립니다(삭제는 카드 안의 삭제 버튼으로).
+  function toggleDayEditMode() {
+    if (!canEdit) return;
+    setDayEditMode((v) => !v);
+    setEditingDay(null);
+    setDrafts({});
+    setNewText("");
+    setReorderMode(false);
   }
 
   function planFor(di) {
@@ -481,7 +532,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
 
   const diOrder = visibleDays.map((v) => v.di);
 
-  // Reorder.Group이 드래그가 끝나면 새 순서(di 배열)를 통째로 줍니다.
+  // DndContext의 onDragEnd에서 arrayMove로 계산한 새 순서(di 배열)를 받아
   // 각 날짜의 sort_order를 그 배열 인덱스로 다시 매겨서 저장합니다.
   async function handleReorder(newOrder) {
     await Promise.all(newOrder.map((di, idx) => upsert(di, "__order__", { sort_order: idx })));
@@ -494,6 +545,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
     await upsert(nextIdx, "__custom_day__", {});
     await upsert(nextIdx, "__title__", { text: "새 일정" });
     await upsert(nextIdx, "__order__", { sort_order: maxOrder + 1 });
+    setDayEditMode(true);
     setEditingDay(nextIdx);
   }
 
@@ -509,53 +561,70 @@ export default function DayCards({ days, mode, regionId, onLocateItem, canEdit =
     <div className="flex flex-col gap-3">
       {canEdit && (
         <div className="flex items-center justify-end gap-3 -mb-1">
+          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
+            <Plus size={13} /> 일정
+          </button>
           {visibleDays.length > 1 && (
             <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleReorderMode}>
-              <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서 수정"}
+              <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서"}
             </button>
           )}
-          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
-            <Plus size={13} /> 일정 추가
+          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleDayEditMode}>
+            <Pencil size={13} /> {dayEditMode ? "완료" : "편집"}
           </button>
         </div>
       )}
-      <Reorder.Group as="div" axis="y" values={diOrder} onReorder={handleReorder} className="flex flex-col gap-3">
-        {visibleDays.map(({ di }, displayIdx) => {
-          const { title, items } = dayPlans.get(di);
-          return (
-            <DayCardItem
-              key={`${regionId}-${mode}-${di}`}
-              di={di}
-              displayIdx={displayIdx}
-              title={title}
-              items={items}
-              isEditing={editingDay === di}
-              reorderMode={reorderMode}
-              canEdit={canEdit}
-              dayNotes={notesForDay(di)}
-              drafts={drafts}
-              setDrafts={setDrafts}
-              newText={newText}
-              setNewText={setNewText}
-              locatingItem={locatingItem}
-              pendingPoint={pendingPoint}
-              setPendingPoint={setPendingPoint}
-              setCardRef={(el) => (cardRefs.current[di] = el)}
-              onCommitDraft={commitDraft}
-              onDeleteItem={deleteItem}
-              onAddItem={addItem}
-              onOpenLocationPicker={openLocationPicker}
-              onConfirmLocation={confirmItemLocation}
-              onClearLocation={clearItemLocation}
-              onCloseLocationPicker={closeLocationPicker}
-              onToggleEdit={toggleEditDay}
-              onDeleteDay={deleteDay}
-              onLocateItem={onLocateItem}
-              onOpenNotes={openNotes}
-            />
-          );
-        })}
-      </Reorder.Group>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={({ active, over }) => {
+          if (!over || active.id === over.id) return;
+          const oldIndex = diOrder.indexOf(active.id);
+          const newIndex = diOrder.indexOf(over.id);
+          if (oldIndex === -1 || newIndex === -1) return;
+          handleReorder(arrayMove(diOrder, oldIndex, newIndex));
+        }}
+      >
+        <SortableContext items={diOrder} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-3">
+            {visibleDays.map(({ di }, displayIdx) => {
+              const { title, items } = dayPlans.get(di);
+              return (
+                <DayCardItem
+                  key={`${regionId}-${mode}-${di}`}
+                  di={di}
+                  displayIdx={displayIdx}
+                  title={title}
+                  items={items}
+                  isEditing={editingDay === di}
+                  reorderMode={reorderMode}
+                  dayEditMode={dayEditMode}
+                  dayNotes={notesForDay(di)}
+                  drafts={drafts}
+                  setDrafts={setDrafts}
+                  newText={newText}
+                  setNewText={setNewText}
+                  locatingItem={locatingItem}
+                  pendingPoint={pendingPoint}
+                  setPendingPoint={setPendingPoint}
+                  setCardRef={(el) => (cardRefs.current[di] = el)}
+                  onCommitDraft={commitDraft}
+                  onDeleteItem={deleteItem}
+                  onAddItem={addItem}
+                  onOpenLocationPicker={openLocationPicker}
+                  onConfirmLocation={confirmItemLocation}
+                  onClearLocation={clearItemLocation}
+                  onCloseLocationPicker={closeLocationPicker}
+                  onToggleEdit={toggleEditDay}
+                  onDeleteDay={deleteDay}
+                  onLocateItem={onLocateItem}
+                  onOpenNotes={openNotes}
+                />
+              );
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {notingItem && (
         <DayItemNotesModal

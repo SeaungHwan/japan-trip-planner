@@ -9,8 +9,8 @@ const SKY = "#0EA5E9";
 
 const LEVELS = [
   { value: "private", label: "비공개" },
-  { value: "view", label: "보기만 공유" },
-  { value: "edit", label: "편집까지 공유" },
+  { value: "view", label: "공유" },
+  { value: "edit", label: "편집 공유" },
 ];
 
 export default function UserBadge({ canShare, shareLevel, onSetShareLevel }) {
