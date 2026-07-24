@@ -573,6 +573,23 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
   // DndContext의 onDragEnd에서 arrayMove로 계산한 새 순서(di 배열)를 받아
   // 각 날짜의 sort_order를 그 배열 인덱스로 다시 매겨서 저장합니다.
   async function handleReorder(newOrder) {
+    // upsert만 하고 기다리면, 실시간 구독이 DB에 쓴 값을 다시 받아올 때까지(약
+    // 0.5~1초) 로컬 edits는 그대로라 카드가 놓은 자리에서 원래 자리로 튕겼다가
+    // 나중에 훅 옮겨지는 것처럼 보입니다. 저장과 동시에 로컬 상태도 바로 반영해서
+    // 놓은 자리에 즉시 고정되게 하고, 나중에 도착하는 실시간 갱신은 같은 값이라
+    // 화면이 다시 바뀌지 않습니다.
+    setEdits((prev) => {
+      const next = [...prev];
+      newOrder.forEach((di, idx) => {
+        const i = next.findIndex((e) => e.mode === mode && e.day_index === di && e.item_key === "__order__");
+        if (i >= 0) {
+          next[i] = { ...next[i], sort_order: idx };
+        } else {
+          next.push({ region_id: regionId, mode, day_index: di, item_key: "__order__", text: null, deleted: false, sort_order: idx, lat: null, lng: null });
+        }
+      });
+      return next;
+    });
     await Promise.all(newOrder.map((di, idx) => upsert(di, "__order__", { sort_order: idx })));
   }
 
