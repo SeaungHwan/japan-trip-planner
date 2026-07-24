@@ -50,6 +50,8 @@ function toRegion(row) {
     moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
     days: row.days || [],
     userId: row.user_id || null,
+    startDate: row.start_date || null,
+    endDate: row.end_date || null,
   };
 }
 
@@ -286,6 +288,20 @@ export default function Planner() {
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
   }
 
+  async function saveRegionDates(region, startDate, endDate) {
+    const { data, error } = await supabase
+      .from("user_regions")
+      .update({ start_date: startDate, end_date: endDate })
+      .eq("id", region.id)
+      .select()
+      .single();
+    if (error) {
+      alert("날짜 저장에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
     // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
@@ -336,10 +352,10 @@ export default function Planner() {
           canShare={canShareActiveTrip}
           shareLevel={activeTripShareLevel}
           onSetShareLevel={setTripShareLevel}
-          weatherLat={baseRegions[0]?.lat}
-          weatherLng={baseRegions[0]?.lng}
-          startDate={activeTrip.start_date}
-          endDate={activeTrip.end_date}
+          weatherLat={region?.lat}
+          weatherLng={region?.lng}
+          startDate={region?.startDate || activeTrip.start_date}
+          endDate={region?.endDate || activeTrip.end_date}
         />
         <div className="mb-4 anim-fadeup">
           <div className="flex items-center justify-between">
@@ -420,6 +436,8 @@ export default function Planner() {
                 <RegionHeader
                   region={region}
                   onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
+                  canEdit={canManageRegion(region)}
+                  onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
                 <SpotsPanel

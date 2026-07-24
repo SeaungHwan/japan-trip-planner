@@ -81,6 +81,11 @@ alter table user_regions add column if not exists trip_id text not null default 
 alter table user_regions alter column trip_id drop default;
 create index if not exists user_regions_trip_idx on user_regions (trip_id);
 
+-- 지역별로 여행 기간이 트립 전체 기간과 다를 수 있어(예: 그 지역만 나중에 방문) 지역
+-- 단위로도 날짜를 오버라이드할 수 있게 합니다. 비어 있으면 trips.start_date/end_date를 그대로 씁니다.
+alter table user_regions add column if not exists start_date date;
+alter table user_regions add column if not exists end_date date;
+
 -- id는 uuid가 아니라 text입니다: 클라이언트가 생성한 uuid 문자열을 그대로 씁니다.
 create table if not exists trips (
   id text primary key default gen_random_uuid()::text,
