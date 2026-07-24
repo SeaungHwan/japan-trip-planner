@@ -113,8 +113,8 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(15,42,61,0.5)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-4 max-h-[90vh] overflow-y-auto" style={{ background: "#FFFFFF" }}>
-        <div className="flex items-center justify-between mb-3">
+      <div className="w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col" style={{ background: "#FFFFFF" }}>
+        <div className="flex items-center justify-between p-4 pb-3 shrink-0">
           <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             새 지역 추가
           </span>
@@ -123,124 +123,128 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           </button>
         </div>
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          지역 이름 (필수)
-        </label>
-        <input
-          value={kr}
-          onChange={(e) => setKr(e.target.value)}
-          placeholder="예: 벳푸"
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
+        <div className="px-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            지역 이름 (필수)
+          </label>
+          <input
+            value={kr}
+            onChange={(e) => setKr(e.target.value)}
+            placeholder="예: 벳푸"
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          AI에게 추가 요청사항 (선택)
-        </label>
-        <textarea
-          value={extraPrompt}
-          onChange={(e) => setExtraPrompt(e.target.value)}
-          placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
-          rows={2}
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            AI에게 추가 요청사항 (선택)
+          </label>
+          <textarea
+            value={extraPrompt}
+            onChange={(e) => setExtraPrompt(e.target.value)}
+            placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
+            rows={2}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
 
-        <button
-          onClick={generateWithAI}
-          disabled={generating}
-          className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
-          style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
-        >
-          <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성"}
-        </button>
-        {days?.length > 0 && (
-          <p className="text-[12px] mb-2" style={{ color: SKY }}>
-            {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
-          </p>
-        )}
+          <button
+            onClick={generateWithAI}
+            disabled={generating}
+            className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
+            style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
+          >
+            <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성"}
+          </button>
+          {days?.length > 0 && (
+            <p className="text-[12px] mb-2" style={{ color: SKY }}>
+              {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
+            </p>
+          )}
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          일본어 이름 (선택)
-        </label>
-        <input
-          value={jp}
-          onChange={(e) => setJp(e.target.value)}
-          placeholder="예: 別府"
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            일본어 이름 (선택)
+          </label>
+          <input
+            value={jp}
+            onChange={(e) => setJp(e.target.value)}
+            placeholder="예: 別府"
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
-        </label>
-        <LocationPicker point={point} onPick={setPoint} />
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
+          </label>
+          <LocationPicker point={point} onPick={setPoint} />
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          가볼만한 곳 (선택, 쉼표로 구분)
-        </label>
-        <input
-          value={spotsText}
-          onChange={(e) => setSpotsText(e.target.value)}
-          placeholder="예: 벳푸 지옥온천, 유노하나 마을"
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
-        {aiSpots?.length > 0 && (
-          <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
-            이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
-          </p>
-        )}
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            가볼만한 곳 (선택, 쉼표로 구분)
+          </label>
+          <input
+            value={spotsText}
+            onChange={(e) => setSpotsText(e.target.value)}
+            placeholder="예: 벳푸 지옥온천, 유노하나 마을"
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
+          {aiSpots?.length > 0 && (
+            <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+              이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
+            </p>
+          )}
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          항공편 정보 (선택)
-        </label>
-        <input
-          value={flightIncheon}
-          onChange={(e) => setFlightIncheon(e.target.value)}
-          placeholder="인천 출발 — 예: 대한항공 주3회 (약 2시간)"
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
-        <input
-          value={flightCheongju}
-          onChange={(e) => setFlightCheongju(e.target.value)}
-          placeholder="청주 출발 — 예: 정기 직항 없음"
-          className="w-full text-sm rounded px-2 py-1.5 mb-1"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
-        {(flightIncheon || flightCheongju) && (
-          <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
-            AI가 생성한 대략적인 정보예요. 예약 전 항공사 홈페이지에서 꼭 재확인해주세요.
-          </p>
-        )}
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            항공편 정보 (선택)
+          </label>
+          <input
+            value={flightIncheon}
+            onChange={(e) => setFlightIncheon(e.target.value)}
+            placeholder="인천 출발 — 예: 대한항공 주3회 (약 2시간)"
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
+          <input
+            value={flightCheongju}
+            onChange={(e) => setFlightCheongju(e.target.value)}
+            placeholder="청주 출발 — 예: 정기 직항 없음"
+            className="w-full text-sm rounded px-2 py-1.5 mb-1"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
+          {(flightIncheon || flightCheongju) && (
+            <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+              AI가 생성한 대략적인 정보예요. 예약 전 항공사 홈페이지에서 꼭 재확인해주세요.
+            </p>
+          )}
 
-        <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
-          자유 메모 (선택)
-        </label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="이 지역을 추천하는 이유, 참고할 점 등"
-          rows={3}
-          className="w-full text-sm rounded px-2 py-1.5 mb-2"
-          style={{ border: "1px solid #BAE6FD" }}
-        />
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            자유 메모 (선택)
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="이 지역을 추천하는 이유, 참고할 점 등"
+            rows={3}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
+        </div>
 
-        {error && (
-          <p className="text-[12px] mb-2" style={{ color: "#EF4444" }}>
-            {error}
-          </p>
-        )}
+        <div className="p-4 pt-3 shrink-0">
+          {error && (
+            <p className="text-[12px] mb-2" style={{ color: "#EF4444" }}>
+              {error}
+            </p>
+          )}
 
-        <button
-          onClick={submit}
-          disabled={saving}
-          className="w-full text-sm rounded-lg py-2 mt-1"
-          style={{ background: SKY, color: "#FFFFFF", fontWeight: 700, opacity: saving ? 0.6 : 1 }}
-        >
-          {saving ? "저장 중..." : "추가하기"}
-        </button>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="w-full text-sm rounded-lg py-2"
+            style={{ background: SKY, color: "#FFFFFF", fontWeight: 700, opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? "저장 중..." : "추가하기"}
+          </button>
+        </div>
       </div>
     </div>
   );

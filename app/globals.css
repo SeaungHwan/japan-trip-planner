@@ -11,6 +11,25 @@ body {
   background: #ffffff;
 }
 
+/* 모바일 앱처럼 스크롤은 그대로 되지만 스크롤바는 보이지 않게 합니다. */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 .serif {
   font-family: "Sora", -apple-system, BlinkMacSystemFont, sans-serif;
 }
