@@ -71,7 +71,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   {n.photo_url && (
-                    <img src={n.photo_url} alt="" className="rounded mb-1.5 w-full object-cover" style={{ maxHeight: 200 }} />
+                    <img src={n.photo_url} alt="" loading="lazy" className="rounded mb-1.5 w-full object-cover" style={{ maxHeight: 200 }} />
                   )}
                   {n.text && (
                     <p className="text-[13px] whitespace-pre-wrap" style={{ color: "#0F2A3D" }}>

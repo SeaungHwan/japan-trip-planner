@@ -5,6 +5,15 @@ import { CloudSun, Umbrella } from "lucide-react";
 
 const SKY = "#0EA5E9";
 
+// 과거 평균치라 같은 좌표·기간이면 응답이 절대 바뀌지 않는데도, 지역을 오갈 때마다
+// 매번 Open-Meteo를 3년치씩 다시 불러오고 있었습니다(요청당 1~3초). 세션 동안은
+// 같은 조회를 반복하지 않도록 모듈 스코프에 캐싱합니다(탭을 새로고침하면 비워짐).
+const weatherCache = new Map();
+
+function cacheKey(lat, lng, startDate, endDate) {
+  return `${lat.toFixed(2)},${lng.toFixed(2)},${startDate},${endDate}`;
+}
+
 export default function WeatherBadge({ lat, lng, startDate, endDate }) {
   const [weather, setWeather] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -13,16 +22,27 @@ export default function WeatherBadge({ lat, lng, startDate, endDate }) {
     setWeather(null);
     if (typeof lat !== "number" || typeof lng !== "number" || !startDate || !endDate) return;
     let alive = true;
-    fetch("/api/weather", {
+
+    const key = cacheKey(lat, lng, startDate, endDate);
+    const cached = weatherCache.get(key);
+    if (cached) {
+      cached.then((data) => alive && data && setWeather(data));
+      return () => {
+        alive = false;
+      };
+    }
+
+    const request = fetch("/api/weather", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat, lng, startDate, endDate }),
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (alive && !data.error) setWeather(data);
-      })
-      .catch(() => {});
+      .then((data) => (data.error ? null : data))
+      .catch(() => null);
+    weatherCache.set(key, request);
+    request.then((data) => alive && data && setWeather(data));
+
     return () => {
       alive = false;
     };
