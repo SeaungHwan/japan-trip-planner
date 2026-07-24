@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Reorder, useDragControls } from "framer-motion";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, X } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { checkIsMaster } from "@/lib/auth";
 import Spinner from "@/components/Spinner";
+import DayItemNotesModal from "@/components/DayItemNotesModal";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -47,6 +47,7 @@ function DayCardItem({
   isEditing,
   reorderMode,
   canEdit,
+  dayNotes,
   drafts,
   setDrafts,
   newText,
@@ -65,9 +66,11 @@ function DayCardItem({
   onToggleEdit,
   onDeleteDay,
   onLocateItem,
+  onOpenNotes,
 }) {
   const dragControls = useDragControls();
   const isLocatingHere = locatingItem?.dayIdx === di;
+  const noteCountFor = (key) => dayNotes.filter((n) => n.item_key === key).length;
 
   return (
     <Reorder.Item
@@ -126,23 +129,31 @@ function DayCardItem({
                   <button onClick={() => onOpenLocationPicker(di, it)} aria-label="위치 설정" className="shrink-0">
                     <MapPin size={13} color={it.lat != null ? SKY : "#94A9B8"} />
                   </button>
+                  <button onClick={() => onOpenNotes(di, it)} aria-label="메모/사진" className="shrink-0">
+                    <StickyNote size={13} color={noteCountFor(it.key) > 0 ? SKY : "#94A9B8"} />
+                  </button>
                   <button onClick={() => onDeleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
                     <Trash2 size={13} color="#94A9B8" />
                   </button>
                 </li>
-              ) : it.lat != null ? (
-                <li key={it.key}>
-                  <button
-                    onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
-                    className="text-[13px] flex items-center gap-1 text-left"
-                    style={{ color: "#5B7A90" }}
-                  >
-                    <MapPin size={11} color={SKY} className="shrink-0" /> {it.text}
-                  </button>
-                </li>
               ) : (
-                <li key={it.key} className="text-[13px]" style={{ color: "#5B7A90" }}>
-                  &middot; {it.text}
+                <li key={it.key} className="flex items-center justify-between gap-1">
+                  {it.lat != null ? (
+                    <button
+                      onClick={() => onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text })}
+                      className="text-[13px] flex items-center gap-1 text-left min-w-0"
+                      style={{ color: "#5B7A90" }}
+                    >
+                      <MapPin size={11} color={SKY} className="shrink-0" /> <span className="truncate">{it.text}</span>
+                    </button>
+                  ) : (
+                    <span className="text-[13px] min-w-0 truncate" style={{ color: "#5B7A90" }}>
+                      &middot; {it.text}
+                    </span>
+                  )}
+                  <button onClick={() => onOpenNotes(di, it)} aria-label="메모/사진" className="shrink-0">
+                    <StickyNote size={12} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
+                  </button>
                 </li>
               )
             )}
@@ -209,21 +220,18 @@ function DayCardItem({
   );
 }
 
-export default function DayCards({ days, mode, regionId, onLocateItem }) {
+export default function DayCards({ days, mode, regionId, onLocateItem, canEdit = false }) {
   const [edits, setEdits] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
   const [locatingItem, setLocatingItem] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
+  const [notingItem, setNotingItem] = useState(null);
   const cardRefs = useRef({});
-  const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    checkIsMaster().then(setCanEdit);
-  }, []);
 
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -258,12 +266,37 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   }, [regionId]);
 
   useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      const { data } = await supabase.from("day_item_notes").select("*").eq("region_id", regionId).order("created_at");
+      if (alive) setNotes(data || []);
+    }
+    load();
+
+    // filter 없이 구독합니다: DELETE 이벤트는 기본 REPLICA IDENTITY에서 기본키(id)만
+    // 실려오고 region_id는 빠져서, region_id 필터를 걸면 삭제 이벤트 자체가 조용히
+    // 무시됩니다(추가/수정은 새 행 전체가 오니 문제 없지만 삭제만 이 문제가 있음).
+    // load()가 어차피 region_id로 다시 걸러서 가져오므로 필터 없이도 결과는 정확합니다.
+    const channel = supabase
+      .channel(`day_item_notes:${regionId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "day_item_notes" }, load)
+      .subscribe();
+
+    return () => {
+      alive = false;
+      supabase.removeChannel(channel);
+    };
+  }, [regionId]);
+
+  useEffect(() => {
     setEditingDay(null);
     setDrafts({});
     setNewText("");
     setReorderMode(false);
     setLocatingItem(null);
     setPendingPoint(null);
+    setNotingItem(null);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
@@ -342,6 +375,55 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
   async function clearItemLocation(dayIdx, item) {
     await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
     closeLocationPicker();
+  }
+
+  function notesForDay(dayIdx) {
+    return notes.filter((n) => n.mode === mode && n.day_index === dayIdx);
+  }
+
+  function notesForItem(dayIdx, itemKey) {
+    return notesForDay(dayIdx).filter((n) => n.item_key === itemKey);
+  }
+
+  function openNotes(dayIdx, item) {
+    setNotingItem({ dayIdx, item });
+  }
+
+  function closeNotes() {
+    setNotingItem(null);
+  }
+
+  async function addNote(dayIdx, item, text, file) {
+    let photo_url = null;
+    if (file) {
+      const path = `${regionId}/${crypto.randomUUID()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from("day-item-photos").upload(path, file);
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("day-item-photos").getPublicUrl(path);
+      photo_url = pub.publicUrl;
+    }
+    const { error } = await supabase.from("day_item_notes").insert({
+      region_id: regionId,
+      mode,
+      day_index: dayIdx,
+      item_key: item.key,
+      text: text || null,
+      photo_url,
+    });
+    if (error) throw error;
+  }
+
+  async function deleteNote(id) {
+    // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
+    // 행을 확인합니다(deleteRegion/deleteTrip과 같은 패턴).
+    const { data, error } = await supabase.from("day_item_notes").delete().eq("id", id).select();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("삭제 권한이 없어요.");
+    }
   }
 
   function titleFor(dayIdx, baseTitle) {
@@ -450,6 +532,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
               isEditing={editingDay === di}
               reorderMode={reorderMode}
               canEdit={canEdit}
+              dayNotes={notesForDay(di)}
               drafts={drafts}
               setDrafts={setDrafts}
               newText={newText}
@@ -468,10 +551,22 @@ export default function DayCards({ days, mode, regionId, onLocateItem }) {
               onToggleEdit={toggleEditDay}
               onDeleteDay={deleteDay}
               onLocateItem={onLocateItem}
+              onOpenNotes={openNotes}
             />
           );
         })}
       </Reorder.Group>
+
+      {notingItem && (
+        <DayItemNotesModal
+          itemText={notingItem.item.text}
+          notes={notesForItem(notingItem.dayIdx, notingItem.item.key)}
+          canEdit={canEdit}
+          onAdd={(text, file) => addNote(notingItem.dayIdx, notingItem.item, text, file)}
+          onDelete={deleteNote}
+          onClose={closeNotes}
+        />
+      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ function ClickHandler({ onPick }) {
   return null;
 }
 
-export default function CoordsMap({ points, onPick }) {
+export default function CoordsMap({ points, onPick, onDelete }) {
   return (
     <div className="mb-4" style={{ height: 480 }}>
       <MapContainer center={JAPAN_CENTER} zoom={5} style={{ height: "100%", width: "100%" }} attributionControl={false}>
@@ -33,7 +33,12 @@ export default function CoordsMap({ points, onPick }) {
         <AttributionControl position="bottomright" prefix={false} />
         <ClickHandler onPick={onPick} />
         {points.map((p, i) => (
-          <Marker key={i} position={[p.lat, p.lng]} icon={markerIcon} />
+          <Marker
+            key={i}
+            position={[p.lat, p.lng]}
+            icon={markerIcon}
+            eventHandlers={{ click: () => onDelete(i) }}
+          />
         ))}
       </MapContainer>
     </div>

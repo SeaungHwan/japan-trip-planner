@@ -101,6 +101,10 @@ alter table trips add column if not exists user_id uuid references auth.users(id
 -- is_shared 값과 무관하게 항상 전원에게 공개된 것으로 취급합니다(아래 정책 참고).
 alter table trips add column if not exists is_shared boolean not null default false;
 
+-- 공유를 "보기만" / "편집까지" 두 단계로 나눕니다. is_shared가 꺼져 있으면 이 값은 의미가 없고,
+-- is_shared가 켜져 있을 때만 shared_editable로 편집 허용 여부를 추가로 판단합니다.
+alter table trips add column if not exists shared_editable boolean not null default false;
+
 -- 혹시 이 스키마의 이전 버전(id uuid)을 이미 실행했다면 text로 바꿔줍니다.
 do $$
 begin
@@ -149,6 +153,21 @@ create table if not exists day_item_edits (
 alter table day_item_edits add column if not exists lat double precision;
 alter table day_item_edits add column if not exists lng double precision;
 
+-- 일정 항목에 자유롭게 메모/사진을 남기는 테이블. day_item_edits와 달리 unique 제약이 없어
+-- 댓글처럼 한 항목에 여러 건이 계속 쌓일 수 있고(수정은 없이 추가/삭제만), 지역을 만든 사람
+-- 또는 마스터만 남기고 지울 수 있습니다("가볼만한 곳"/spots과 같은 권한 규칙).
+create table if not exists day_item_notes (
+  id uuid primary key default gen_random_uuid(),
+  region_id text not null,
+  mode text not null check (mode in ('transit', 'car')),
+  day_index int not null,
+  item_key text not null,
+  text text,
+  photo_url text,
+  created_at timestamptz not null default now()
+);
+create index if not exists day_item_notes_item_idx on day_item_notes (region_id, mode, day_index, item_key);
+
 create index if not exists comments_target_key_idx on comments (target_key);
 create index if not exists reactions_target_key_idx on reactions (target_key);
 create index if not exists day_item_edits_region_idx on day_item_edits (region_id);
@@ -157,6 +176,7 @@ alter table comments enable row level security;
 alter table reactions enable row level security;
 alter table user_regions enable row level security;
 alter table day_item_edits enable row level security;
+alter table day_item_notes enable row level security;
 alter table trips enable row level security;
 
 -- 구글 로그인 + klic.co.kr 도메인 계정만 허용. 프론트(AuthGate)에서도 이메일 도메인을
@@ -190,6 +210,20 @@ as $$
 $$;
 grant execute on function is_master_user() to authenticated, anon;
 
+-- 트립 소유자가 "편집까지 공유"를 켜면(is_shared and shared_editable), 그 트립에 속한
+-- 지역/spots/일정카드/메모를 마스터·소유자가 아닌 다른 허용된 사용자도 고칠 수 있게 합니다.
+-- is_shared가 꺼져 있으면 shared_editable 값과 무관하게 항상 false입니다.
+create or replace function trip_shared_editable(p_trip_id text)
+returns boolean
+language sql
+stable
+as $$
+  select exists (
+    select 1 from trips t where t.id = p_trip_id and t.is_shared and t.shared_editable
+  );
+$$;
+grant execute on function trip_shared_editable(text) to authenticated, anon;
+
 -- 여행 공유 기능이 생기기 전에 만들어진 여행은 user_id가 비어있을 수 있는데, 그러면 본인조차
 -- 그 여행을 수정/공유 전환할 방법이 없어집니다. 관리자(admins) 계정으로 소유권을 넘겨
 -- 최소한 마스터는 계속 관리할 수 있게 안전망을 둡니다.
@@ -220,20 +254,72 @@ create policy "user_regions_select" on user_regions for select using (
     or exists (select 1 from trips t where t.id = user_regions.trip_id and (t.is_shared or t.user_id = auth.uid()))
   )
 );
+-- 지역을 새로 넣으려면 그 트립의 주인이거나(japan-trip은 예외), 트립이 "편집까지 공유"
+-- 상태여야 합니다. 예전에는 is_allowed_user()만 확인해서 트립 소유권과 무관하게 아무나
+-- 아무 trip_id에나 지역을 꽂을 수 있었는데(UI에선 막혀 있었지만 API 직접 호출은 가능했음),
+-- 이번에 편집 권한을 명시적으로 나누면서 이 구멍도 같이 막습니다.
 drop policy if exists "user_regions_insert" on user_regions;
-create policy "user_regions_insert" on user_regions for insert with check (is_allowed_user());
+create policy "user_regions_insert" on user_regions for insert with check (
+  is_allowed_user() and (
+    trip_id = 'japan-trip'
+    or exists (select 1 from trips t where t.id = user_regions.trip_id and t.user_id = auth.uid())
+    or trip_shared_editable(trip_id)
+  )
+);
 drop policy if exists "user_regions_delete" on user_regions;
-create policy "user_regions_delete" on user_regions for delete using (is_master_user() or auth.uid() = user_id);
--- "가볼만한 곳" 추가/삭제처럼 지역 자체를 고치는 것도 삭제와 같은 규칙(만든 사람 또는 마스터)을 씁니다.
+create policy "user_regions_delete" on user_regions for delete using (
+  is_master_user() or auth.uid() = user_id or trip_shared_editable(trip_id)
+);
+-- "가볼만한 곳" 추가/삭제처럼 지역 자체를 고치는 것도 삭제와 같은 규칙(만든 사람·마스터·편집공유 대상)을 씁니다.
 drop policy if exists "user_regions_update" on user_regions;
-create policy "user_regions_update" on user_regions for update using (is_master_user() or auth.uid() = user_id);
+create policy "user_regions_update" on user_regions for update using (
+  is_master_user() or auth.uid() = user_id or trip_shared_editable(trip_id)
+);
 
+-- 일정 카드(제목/항목 추가·수정·삭제·순서변경)는 원래 마스터 전용이었지만, 지역 소유자가
+-- 자기 트립의 "편집까지 공유"를 켰을 때는 다른 허용된 사용자도 고칠 수 있어야 하므로
+-- 지역 소유자 본인과 trip_shared_editable() 대상도 함께 허용합니다.
 drop policy if exists "day_item_edits_select" on day_item_edits;
 create policy "day_item_edits_select" on day_item_edits for select using (is_allowed_user());
 drop policy if exists "day_item_edits_insert" on day_item_edits;
-create policy "day_item_edits_insert" on day_item_edits for insert with check (is_master_user());
+create policy "day_item_edits_insert" on day_item_edits for insert with check (
+  is_master_user()
+  or exists (select 1 from user_regions r where r.id = day_item_edits.region_id and (r.user_id = auth.uid() or trip_shared_editable(r.trip_id)))
+);
 drop policy if exists "day_item_edits_update" on day_item_edits;
-create policy "day_item_edits_update" on day_item_edits for update using (is_master_user());
+create policy "day_item_edits_update" on day_item_edits for update using (
+  is_master_user()
+  or exists (select 1 from user_regions r where r.id = day_item_edits.region_id and (r.user_id = auth.uid() or trip_shared_editable(r.trip_id)))
+);
+
+drop policy if exists "day_item_notes_select" on day_item_notes;
+create policy "day_item_notes_select" on day_item_notes for select using (is_allowed_user());
+drop policy if exists "day_item_notes_insert" on day_item_notes;
+create policy "day_item_notes_insert" on day_item_notes for insert with check (
+  is_master_user()
+  or exists (select 1 from user_regions r where r.id = day_item_notes.region_id and (r.user_id = auth.uid() or trip_shared_editable(r.trip_id)))
+);
+drop policy if exists "day_item_notes_delete" on day_item_notes;
+create policy "day_item_notes_delete" on day_item_notes for delete using (
+  is_master_user()
+  or exists (select 1 from user_regions r where r.id = day_item_notes.region_id and (r.user_id = auth.uid() or trip_shared_editable(r.trip_id)))
+);
+
+-- 메모에 붙일 사진을 저장하는 버킷: 공개 읽기, 업로드/삭제는 허용된 사용자 전체로 제한합니다.
+-- 실제로 버튼이 보이는 건 지역 소유자·마스터뿐이라(canManageRegion), 이 정도로 충분합니다.
+insert into storage.buckets (id, name, public)
+values ('day-item-photos', 'day-item-photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "day_item_photos_read" on storage.objects;
+create policy "day_item_photos_read" on storage.objects for select
+  using (bucket_id = 'day-item-photos');
+drop policy if exists "day_item_photos_insert" on storage.objects;
+create policy "day_item_photos_insert" on storage.objects for insert
+  with check (bucket_id = 'day-item-photos' and is_allowed_user());
+drop policy if exists "day_item_photos_delete" on storage.objects;
+create policy "day_item_photos_delete" on storage.objects for delete
+  using (bucket_id = 'day-item-photos' and is_allowed_user());
 
 -- 여행은 기본적으로 개인 전용입니다. 공유(is_shared)한 여행이거나 내가 만든 여행만 보이고,
 -- 마스터라고 해서 다른 사람의 비공개 여행을 볼 수 있는 예외는 없습니다. 기본 여행(japan-trip)은
@@ -258,7 +344,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['comments', 'reactions', 'user_regions', 'day_item_edits', 'trips']
+  foreach t in array array['comments', 'reactions', 'user_regions', 'day_item_edits', 'day_item_notes', 'trips']
   loop
     if not exists (
       select 1 from pg_publication_tables

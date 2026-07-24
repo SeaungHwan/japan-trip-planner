@@ -17,6 +17,12 @@ import TripSwitcher from "@/components/TripSwitcher";
 
 const DEFAULT_TRIP = { id: "japan-trip", title: "일본 여행", subtitle: "9.18 — 9.22" };
 const MAX_BASE_REGIONS = 6;
+const LAST_TRIP_KEY = "japan-trip-planner:lastTripId";
+
+function readLastTripId() {
+  if (typeof window === "undefined") return DEFAULT_TRIP.id;
+  return localStorage.getItem(LAST_TRIP_KEY) || DEFAULT_TRIP.id;
+}
 
 function toRegion(row) {
   return {
@@ -45,7 +51,8 @@ export default function Planner() {
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
-  const [activeTripId, setActiveTripId] = useState(DEFAULT_TRIP.id);
+  const [tripsLoaded, setTripsLoaded] = useState(false);
+  const [activeTripId, setActiveTripId] = useState(readLastTripId);
   const [identity, setIdentity] = useState(null);
   const [isMaster, setIsMaster] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState(true);
@@ -84,7 +91,10 @@ export default function Planner() {
 
     async function load() {
       const { data } = await supabase.from("trips").select("*").order("created_at", { ascending: true });
-      if (active) setTrips(data || []);
+      if (active) {
+        setTrips(data || []);
+        setTripsLoaded(true);
+      }
     }
     load();
 
@@ -105,6 +115,17 @@ export default function Planner() {
   const allTrips = [defaultTripOverride || DEFAULT_TRIP, ...trips.filter((t) => t.id !== DEFAULT_TRIP.id)];
   const activeTrip = allTrips.find((t) => t.id === activeTripId) || DEFAULT_TRIP;
   const isDefaultTrip = activeTripId === DEFAULT_TRIP.id;
+
+  // 마지막으로 보던 여행이 삭제됐거나 더 이상 접근 권한이 없으면(비공개로 바뀜 등)
+  // 기본 여행으로 되돌립니다. trips가 다 로드되기 전(빈 배열)에는 판단하지 않습니다.
+  useEffect(() => {
+    if (!tripsLoaded || activeTripId === DEFAULT_TRIP.id) return;
+    if (!trips.some((t) => t.id === activeTripId)) setActiveTripId(DEFAULT_TRIP.id);
+  }, [tripsLoaded, trips, activeTripId]);
+
+  useEffect(() => {
+    localStorage.setItem(LAST_TRIP_KEY, activeTripId);
+  }, [activeTripId]);
 
   // 처음 만들어진 순서(created_at 오름차순)로 앞의 MAX_BASE_REGIONS개만 메인 스크롤에 두고
   // 나머지는 전부 "더보기"로 넘깁니다. 그래서 새로 추가한 지역은 항상 더보기 쪽에 들어가고,
@@ -159,13 +180,16 @@ export default function Planner() {
   // 기본 여행(일본 여행)은 이미 항상 전원에게 공개된 상태라 공유 버튼 자체가 필요 없습니다.
   const canShareActiveTrip = activeTrip.id !== DEFAULT_TRIP.id && !!identity && activeTrip.user_id === identity.id;
 
-  async function toggleShareTrip() {
-    const { data, error } = await supabase
-      .from("trips")
-      .update({ is_shared: !activeTrip.is_shared })
-      .eq("id", activeTrip.id)
-      .select()
-      .single();
+  const activeTripShareLevel = !activeTrip.is_shared ? "private" : activeTrip.shared_editable ? "edit" : "view";
+
+  async function setTripShareLevel(level) {
+    const patch =
+      level === "edit"
+        ? { is_shared: true, shared_editable: true }
+        : level === "view"
+        ? { is_shared: true, shared_editable: false }
+        : { is_shared: false, shared_editable: false };
+    const { data, error } = await supabase.from("trips").update(patch).eq("id", activeTrip.id).select().single();
     if (error) {
       alert("공유 설정을 바꾸지 못했어요: " + error.message);
       return;
@@ -190,8 +214,14 @@ export default function Planner() {
     if (activeTripId === trip.id) selectTrip(DEFAULT_TRIP.id);
   }
 
+  // 트립 소유자가 "편집까지 공유"를 켰다면, 그 트립에 속한 지역은 소유자 본인이 아니어도
+  // (마스터가 아니어도) 관리할 수 있습니다. DB의 trip_shared_editable() 정책과 동일한 규칙입니다.
+  function canEditTrip(trip) {
+    return isMaster || (!!identity && trip.user_id === identity.id) || (!!trip.is_shared && !!trip.shared_editable);
+  }
+
   function canManageRegion(region) {
-    return isMaster || (!!identity && region.userId === identity.id);
+    return isMaster || (!!identity && region.userId === identity.id) || canEditTrip(activeTrip);
   }
 
   async function addSpot(region, name) {
@@ -263,7 +293,7 @@ export default function Planner() {
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md mx-auto px-4 pt-8 pb-16">
-        <UserBadge canShare={canShareActiveTrip} isShared={!!activeTrip.is_shared} onToggleShare={toggleShareTrip} />
+        <UserBadge canShare={canShareActiveTrip} shareLevel={activeTripShareLevel} onSetShareLevel={setTripShareLevel} />
         <div className="mb-4 anim-fadeup">
           <div className="flex items-center justify-between">
             <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
@@ -307,13 +337,15 @@ export default function Planner() {
           baseCount={baseRegions.length}
         />
 
-        <button
-          className="text-xs mb-4 -mt-3 flex items-center gap-1"
-          style={{ color: "#5B7A90", fontWeight: 700 }}
-          onClick={() => setShowAddForm(true)}
-        >
-          + 새 지역 추가
-        </button>
+        {canEditTrip(activeTrip) && (
+          <button
+            className="text-xs mb-4 -mt-3 flex items-center gap-1"
+            style={{ color: "#5B7A90", fontWeight: 700 }}
+            onClick={() => setShowAddForm(true)}
+          >
+            + 새 지역 추가
+          </button>
+        )}
 
         {loadingRegions ? (
           <div className="flex justify-center mt-8">
@@ -321,7 +353,8 @@ export default function Planner() {
           </div>
         ) : regions.length === 0 ? (
           <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
-            이 여행에는 아직 지역이 없어요. 위의 &quot;+ 새 지역 추가&quot;로 시작해보세요.
+            이 여행에는 아직 지역이 없어요.
+            {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
           </p>
         ) : (
           <>
@@ -343,7 +376,13 @@ export default function Planner() {
             {region.days?.length > 0 && (
               <>
                 <ModeToggle mode={mode} onChange={setMode} />
-                <DayCards days={region.days} mode={mode} regionId={region.id} onLocateItem={locateItem} />
+                <DayCards
+                  days={region.days}
+                  mode={mode}
+                  regionId={region.id}
+                  onLocateItem={locateItem}
+                  canEdit={canManageRegion(region)}
+                />
               </>
             )}
           </>

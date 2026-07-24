@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const CoordsMap = dynamic(() => import("./CoordsMap"), {
@@ -8,13 +8,33 @@ const CoordsMap = dynamic(() => import("./CoordsMap"), {
   loading: () => <div className="mb-4" style={{ height: 480, background: "#F0F9FF" }} />,
 });
 
+const STORAGE_KEY = "coords-picker-points";
+
 export default function CoordsPickerPage() {
   const [points, setPoints] = useState([]);
   const [name, setName] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setPoints(JSON.parse(saved));
+    } catch {}
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+  }, [points, loaded]);
 
   function addPoint({ lat, lng }) {
     setPoints((prev) => [...prev, { name: name || `spot${prev.length + 1}`, lat, lng }]);
     setName("");
+  }
+
+  function updatePoint(i, field, value) {
+    setPoints((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
   }
 
   function removePoint(i) {
@@ -31,7 +51,7 @@ export default function CoordsPickerPage() {
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-2">지도 좌표 피커</h1>
       <p className="text-sm mb-4 text-gray-600">
-        이름을 입력하고 지도를 클릭하면 그 위치의 위경도가 기록됩니다. 이름을 비워두면 spot1, spot2...로 자동 채워집니다.
+        이름을 입력하고 지도를 클릭하면 그 위치의 위경도가 기록됩니다. 이름을 비워두면 spot1, spot2...로 자동 채워집니다. 마커를 클릭하면 삭제되고, 표에서 값을 바로 수정할 수 있습니다.
       </p>
 
       <input
@@ -42,7 +62,7 @@ export default function CoordsPickerPage() {
         className="border rounded px-2 py-1 mb-3 w-full"
       />
 
-      <CoordsMap points={points} onPick={addPoint} />
+      <CoordsMap points={points} onPick={addPoint} onDelete={removePoint} />
 
       <table className="w-full text-sm mb-3 border-collapse">
         <thead>
@@ -56,9 +76,32 @@ export default function CoordsPickerPage() {
         <tbody>
           {points.map((p, i) => (
             <tr key={i} className="border-b">
-              <td className="py-1">{p.name}</td>
-              <td className="py-1">{p.lat}</td>
-              <td className="py-1">{p.lng}</td>
+              <td className="py-1">
+                <input
+                  type="text"
+                  value={p.name}
+                  onChange={(e) => updatePoint(i, "name", e.target.value)}
+                  className="border rounded px-1 py-0.5 w-full"
+                />
+              </td>
+              <td className="py-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={p.lat}
+                  onChange={(e) => updatePoint(i, "lat", +e.target.value)}
+                  className="border rounded px-1 py-0.5 w-20"
+                />
+              </td>
+              <td className="py-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={p.lng}
+                  onChange={(e) => updatePoint(i, "lng", +e.target.value)}
+                  className="border rounded px-1 py-0.5 w-20"
+                />
+              </td>
               <td className="py-1">
                 <button onClick={() => removePoint(i)} className="text-red-500">
                   삭제
