@@ -78,11 +78,26 @@ export default function Planner() {
     checkIsMaster().then(setIsMaster);
   }, []);
 
+  // 트립이 늘어날수록, 예전처럼 트립 필터 없이 user_regions 테이블 전체(지역별
+  // days/spots jsonb 포함)를 매번 받아오면 다른 사람의 트립 데이터까지 모든 클라이언트가
+  // 계속 다운로드하게 됩니다. 조회를 활성 트립으로 좁혀서 실제로 보고 있는 트립의
+  // 지역만 받아옵니다.
   useEffect(() => {
+    if (!activeTripId) {
+      setUserRegions([]);
+      setLoadingRegions(false);
+      return;
+    }
+
     let active = true;
+    setLoadingRegions(true);
 
     async function load() {
-      const { data } = await supabase.from("user_regions").select("*").order("created_at", { ascending: true });
+      const { data } = await supabase
+        .from("user_regions")
+        .select("*")
+        .eq("trip_id", activeTripId)
+        .order("created_at", { ascending: true });
       if (active) {
         setUserRegions((data || []).map(toRegion));
         setLoadingRegions(false);
@@ -90,8 +105,13 @@ export default function Planner() {
     }
     load();
 
+    // day_item_notes와 같은 이유로 구독 자체엔 trip_id 필터를 걸지 않습니다: DELETE
+    // 이벤트는 기본 REPLICA IDENTITY에서 기본키만 실려오고 trip_id는 빠져서, 필터를
+    // 걸면 삭제 이벤트가 조용히 무시됩니다. load()가 이미 activeTripId로 좁혀서 다시
+    // 받아오므로, 다른 트립에서 일어난 변경으로 재조회가 한 번 더 일어나는 정도의
+    // 비용만 남고 결과 자체는 정확합니다.
     const channel = supabase
-      .channel("user_regions_feed")
+      .channel(`user_regions_feed:${activeTripId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "user_regions" }, load)
       .subscribe();
 
@@ -99,7 +119,7 @@ export default function Planner() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [activeTripId]);
 
   useEffect(() => {
     let active = true;
@@ -144,14 +164,15 @@ export default function Planner() {
 
   // 처음 만들어진 순서(created_at 오름차순)로 앞의 MAX_BASE_REGIONS개만 메인 스크롤에 두고
   // 나머지는 전부 "더보기"로 넘깁니다. 그래서 새로 추가한 지역은 항상 더보기 쪽에 들어가고,
-  // 지역별로 is_extra를 일일이 설정/관리할 필요가 없습니다.
+  // 지역별로 is_extra를 일일이 설정/관리할 필요가 없습니다. userRegions는 이제 위
+  // useEffect에서 이미 activeTripId로 좁혀서 가져오므로, 여기서 다시 트립으로 거를
+  // 필요가 없습니다.
   const { baseRegions, extraRegions } = useMemo(() => {
-    const tripRegions = userRegions.filter((r) => r.tripId === activeTripId);
     return {
-      baseRegions: tripRegions.slice(0, MAX_BASE_REGIONS),
-      extraRegions: tripRegions.slice(MAX_BASE_REGIONS),
+      baseRegions: userRegions.slice(0, MAX_BASE_REGIONS),
+      extraRegions: userRegions.slice(MAX_BASE_REGIONS),
     };
-  }, [userRegions, activeTripId]);
+  }, [userRegions]);
   const regions = showMore ? baseRegions.concat(extraRegions) : baseRegions;
   const region = regions[active];
 
@@ -320,22 +341,25 @@ export default function Planner() {
     setActive(0);
   }
 
-  function locateItem(point) {
+  // useCallback으로 고정합니다: DayCards가 일정 카드마다 이 함수를 그대로 props로
+  // 넘기는데, 여기가 매 렌더마다 새 함수면 DayCardItem을 memo로 감싼 의미가 없어져서
+  // (카드 수가 늘어도) 무관한 카드까지 계속 리렌더됩니다.
+  const locateItem = useCallback((point) => {
     setRoutePoints(null);
     setFocus(point);
     setZoomed(true);
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  }, []);
 
   // 일정 카드를 누르면(편집 모드가 아닐 때) 그날 위치가 찍힌 항목들을 순서대로
   // 지도에 선으로 이어서 보여줍니다.
-  function showDayRoute(points) {
+  const showDayRoute = useCallback((points) => {
     if (!points || points.length === 0) return;
     setFocus(null);
     setRoutePoints(points);
     setZoomed(true);
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  }, []);
 
   function toggleMore() {
     setShowMore((prev) => {

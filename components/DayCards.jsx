@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -12,6 +12,12 @@ import DayItemNotesModal from "@/components/DayItemNotesModal";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
+
+// 편집/위치지정 중이 아닌 카드에는 항상 이 고정 참조를 넘겨서, 다른 카드에서 타이핑해도
+// (drafts/newText/locatingItem/pendingPoint가 바뀌어도) 이 카드들의 props는 그대로라
+// React.memo가 리렌더를 건너뛸 수 있게 합니다.
+const EMPTY_DRAFTS = {};
+const EMPTY_NOTES = [];
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
@@ -57,7 +63,13 @@ function mergeItems(baseItems, edits) {
 // @dnd-kit/sortable은 매 프레임 포인터와 가장 가까운 카드를 다시 계산해서 놓은 지점에
 // 정확히 삽입되므로 이걸로 교체했습니다. 그립 아이콘에서만 드래그가 시작되도록
 // attributes/listeners를 그립 엘리먼트에만 붙입니다.
-function DayCardItem({
+//
+// memo로 감쌉니다: 일정 카드 수가 늘어날 걸 대비해, 한 카드에서 타이핑/드래그/위치지정을
+// 해도 나머지 카드들은 리렌더되지 않게 합니다. 이게 실제로 효과가 있으려면 부모(DayCards)가
+// 넘기는 모든 props가 "관련 없는 카드"에는 항상 같은 값(참조)을 유지해야 해서, 부모 쪽도
+// 핸들러를 useCallback으로, drafts/newText/locatingItem/pendingPoint는 활성 카드에만
+// 실제 값을 주고 나머지에는 고정된 값(EMPTY_DRAFTS/""/null)을 주도록 같이 손봤습니다.
+const DayCardItem = memo(function DayCardItem({
   di,
   displayIdx,
   title,
@@ -73,7 +85,7 @@ function DayCardItem({
   locatingItem,
   pendingPoint,
   setPendingPoint,
-  setCardRef,
+  onSetCardRef,
   onCommitDraft,
   onDeleteItem,
   onAddItem,
@@ -100,7 +112,7 @@ function DayCardItem({
     <div
       ref={(el) => {
         setNodeRef(el);
-        setCardRef(el);
+        onSetCardRef(di, el);
       }}
       onClick={() => {
         if (dayEditMode) {
@@ -290,7 +302,7 @@ function DayCardItem({
       )}
     </div>
   );
-}
+});
 
 export default function DayCards({ days, mode, regionId, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
@@ -306,6 +318,13 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
   const cardRefs = useRef({});
   const [loading, setLoading] = useState(true);
   const sensors = useSensors(useSensor(PointerSensor));
+
+  // 타이핑/위치지정 중에도 매번 새로 만들어지는 핸들러(useCallback)가 옛날 값을 들고
+  // 있지 않도록, 자주 바뀌는 값들은 여기 ref로도 미러링해서 콜백 안에서 최신값을 읽습니다.
+  // 이렇게 하면 커밋/추가/위치확정 핸들러 자체는 참조가 안 바뀌어서(=다른 카드에 영향 없음)
+  // 다른 카드들이 이 값들이 바뀔 때마다 같이 리렌더되는 걸 막을 수 있습니다.
+  const liveRef = useRef({});
+  liveRef.current = { edits, notes, drafts, newText, locatingItem, pendingPoint };
 
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -383,62 +402,72 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
     return e ? e.sort_order : dayIdx;
   }
 
-  async function upsert(dayIdx, itemKey, patch) {
-    const existing = edits.find((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === itemKey);
-    await supabase.from("day_item_edits").upsert(
-      {
-        region_id: regionId,
-        mode,
-        day_index: dayIdx,
-        item_key: itemKey,
-        text: existing?.text ?? null,
-        deleted: existing?.deleted ?? false,
-        sort_order: existing?.sort_order ?? 0,
-        lat: existing?.lat ?? null,
-        lng: existing?.lng ?? null,
-        ...patch,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "region_id,mode,day_index,item_key" }
-    );
-  }
+  const upsert = useCallback(
+    async (dayIdx, itemKey, patch) => {
+      const existing = liveRef.current.edits.find((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === itemKey);
+      await supabase.from("day_item_edits").upsert(
+        {
+          region_id: regionId,
+          mode,
+          day_index: dayIdx,
+          item_key: itemKey,
+          text: existing?.text ?? null,
+          deleted: existing?.deleted ?? false,
+          sort_order: existing?.sort_order ?? 0,
+          lat: existing?.lat ?? null,
+          lng: existing?.lng ?? null,
+          ...patch,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "region_id,mode,day_index,item_key" }
+      );
+    },
+    [mode, regionId]
+  );
 
-  async function commitDraft(dayIdx, item) {
-    const text = (drafts[item.key] ?? item.text).trim();
-    if (text && text !== item.text) {
-      // item.lat/lng(현재 화면에 보이는 위치, AI 기본값일 수도 있음)를 같이 넘겨야
-      // 이 항목의 첫 수정 기록이 생기면서 위치가 null로 초기화되는 걸 막을 수 있습니다.
-      await upsert(dayIdx, item.key, { text, sort_order: item.sortOrder, lat: item.lat, lng: item.lng });
-    }
-  }
+  const commitDraft = useCallback(
+    async (dayIdx, item) => {
+      const text = (liveRef.current.drafts[item.key] ?? item.text).trim();
+      if (text && text !== item.text) {
+        // item.lat/lng(현재 화면에 보이는 위치, AI 기본값일 수도 있음)를 같이 넘겨야
+        // 이 항목의 첫 수정 기록이 생기면서 위치가 null로 초기화되는 걸 막을 수 있습니다.
+        await upsert(dayIdx, item.key, { text, sort_order: item.sortOrder, lat: item.lat, lng: item.lng });
+      }
+    },
+    [upsert]
+  );
 
-  async function deleteItem(dayIdx, item) {
-    await upsert(dayIdx, item.key, { deleted: true, sort_order: item.sortOrder, text: item.text });
-  }
+  const deleteItem = useCallback(
+    async (dayIdx, item) => {
+      await upsert(dayIdx, item.key, { deleted: true, sort_order: item.sortOrder, text: item.text });
+    },
+    [upsert]
+  );
 
-  async function addItem(dayIdx, currentItems) {
-    const text = newText.trim();
-    if (!text) return;
-    const maxOrder = currentItems.reduce((m, it) => Math.max(m, it.sortOrder), -1);
-    const key = `custom:${crypto.randomUUID()}`;
-    setNewText("");
-    await upsert(dayIdx, key, { text, sort_order: maxOrder + 1 });
-  }
+  const addItem = useCallback(
+    async (dayIdx, currentItems) => {
+      const text = liveRef.current.newText.trim();
+      if (!text) return;
+      const maxOrder = currentItems.reduce((m, it) => Math.max(m, it.sortOrder), -1);
+      const key = `custom:${crypto.randomUUID()}`;
+      setNewText("");
+      await upsert(dayIdx, key, { text, sort_order: maxOrder + 1 });
+    },
+    [upsert]
+  );
 
-  function openLocationPicker(dayIdx, item) {
-    setLocatingItem((cur) => {
-      if (cur?.item.key === item.key) return null;
-      return { dayIdx, item };
-    });
+  const openLocationPicker = useCallback((dayIdx, item) => {
+    setLocatingItem((cur) => (cur?.item.key === item.key ? null : { dayIdx, item }));
     setPendingPoint(item.lat != null ? { lat: item.lat, lng: item.lng } : null);
-  }
+  }, []);
 
-  function closeLocationPicker() {
+  const closeLocationPicker = useCallback(() => {
     setLocatingItem(null);
     setPendingPoint(null);
-  }
+  }, []);
 
-  async function confirmItemLocation() {
+  const confirmItemLocation = useCallback(async () => {
+    const { locatingItem, pendingPoint } = liveRef.current;
     if (!locatingItem || !pendingPoint) return;
     await upsert(locatingItem.dayIdx, locatingItem.item.key, {
       text: locatingItem.item.text,
@@ -447,24 +476,23 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
       lng: pendingPoint.lng,
     });
     closeLocationPicker();
-  }
+  }, [upsert, closeLocationPicker]);
 
-  async function clearItemLocation(dayIdx, item) {
-    await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
-    closeLocationPicker();
-  }
-
-  function notesForDay(dayIdx) {
-    return notes.filter((n) => n.mode === mode && n.day_index === dayIdx);
-  }
+  const clearItemLocation = useCallback(
+    async (dayIdx, item) => {
+      await upsert(dayIdx, item.key, { text: item.text, sort_order: item.sortOrder, lat: null, lng: null });
+      closeLocationPicker();
+    },
+    [upsert, closeLocationPicker]
+  );
 
   function notesForItem(dayIdx, itemKey) {
-    return notesForDay(dayIdx).filter((n) => n.item_key === itemKey);
+    return notes.filter((n) => n.mode === mode && n.day_index === dayIdx && n.item_key === itemKey);
   }
 
-  function openNotes(dayIdx, item) {
+  const openNotes = useCallback((dayIdx, item) => {
     setNotingItem({ dayIdx, item });
-  }
+  }, []);
 
   function closeNotes() {
     setNotingItem(null);
@@ -512,18 +540,24 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
     return edits.some((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === "__day__" && e.deleted);
   }
 
-  async function deleteDay(dayIdx) {
-    if (!canEdit) return;
-    if (!window.confirm("이 일정을 삭제할까요?")) return;
-    await upsert(dayIdx, "__day__", { deleted: true });
-  }
+  const deleteDay = useCallback(
+    async (dayIdx) => {
+      if (!canEdit) return;
+      if (!window.confirm("이 일정을 삭제할까요?")) return;
+      await upsert(dayIdx, "__day__", { deleted: true });
+    },
+    [canEdit, upsert]
+  );
 
-  function toggleEditDay(dayIdx) {
-    if (!canEdit) return;
-    setEditingDay((cur) => (cur === dayIdx ? null : dayIdx));
-    setDrafts({});
-    setNewText("");
-  }
+  const toggleEditDay = useCallback(
+    (dayIdx) => {
+      if (!canEdit) return;
+      setEditingDay((cur) => (cur === dayIdx ? null : dayIdx));
+      setDrafts({});
+      setNewText("");
+    },
+    [canEdit]
+  );
 
   function toggleReorderMode() {
     if (!canEdit) return;
@@ -543,6 +577,13 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
     setReorderMode(false);
   }
 
+  // 카드 DOM을 di별로 저장만 하면 되는 콜백이라 useCallback([])로 고정합니다 — 매번
+  // 새로 만들면(예전처럼 .map 안에서 인라인 화살표 함수로 넘기면) 그 자체로 모든 카드의
+  // props가 매 렌더마다 바뀐 것처럼 보여서 memo가 무력화됩니다.
+  const setCardRef = useCallback((di, el) => {
+    cardRefs.current[di] = el;
+  }, []);
+
   function planFor(di) {
     if (di < days.length) {
       const plan = days[di][mode];
@@ -551,9 +592,11 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
     return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)) };
   }
 
-  // edits는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
-  // drafts/newText 같은 타이핑용 로컬 상태가 바뀌어도(즉 편집 중 매 입력마다) 다시 계산하지 않습니다.
-  const { customDayIndices, visibleDays, dayPlans } = useMemo(() => {
+  // edits/notes는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
+  // drafts/newText 같은 타이핑용 로컬 상태가 바뀌어도(즉 편집 중 매 입력마다) 다시
+  // 계산하지 않습니다. notesByDay도 같이 묶어서, 메모 개수 배지 때문에 노트가 안 바뀐
+  // 카드까지 매번 새 배열을 받아 리렌더되는 일이 없게 합니다.
+  const { customDayIndices, visibleDays, dayPlans, notesByDay } = useMemo(() => {
     const customDayIndices = [...new Set(edits.filter((e) => e.item_key === "__custom_day__").map((e) => e.day_index))];
     const allDayIndices = days.map((_, i) => i).concat(customDayIndices);
 
@@ -563,35 +606,60 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
       .sort((a, b) => a.order - b.order);
 
     const dayPlans = new Map(visibleDays.map(({ di }) => [di, planFor(di)]));
+    const notesByDay = new Map(
+      visibleDays.map(({ di }) => [di, notes.filter((n) => n.mode === mode && n.day_index === di)])
+    );
 
-    return { customDayIndices, visibleDays, dayPlans };
+    return { customDayIndices, visibleDays, dayPlans, notesByDay };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edits, days, mode]);
+  }, [edits, days, mode, notes]);
 
-  const diOrder = visibleDays.map((v) => v.di);
+  // .map()은 매번 새 배열을 만들어서, visibleDays 자체가 안 바뀌어도 diOrder는 매
+  // 렌더마다 새 참조가 됩니다. 이 배열이 DndContext/SortableContext에 그대로 들어가는데,
+  // dnd-kit의 useSortable은 그 컨텍스트를 구독하고 있어서 컨텍스트 값이 바뀌면(참조 비교)
+  // React.memo와 무관하게 모든 카드가 다시 렌더링됩니다(memo는 부모→자식 props 경로만
+  // 막지, 컨텍스트를 통한 리렌더는 막지 못합니다). visibleDays가 실제로 안 바뀌는 한
+  // diOrder도 같은 참조를 유지하게 묶어둡니다.
+  const diOrder = useMemo(() => visibleDays.map((v) => v.di), [visibleDays]);
 
   // DndContext의 onDragEnd에서 arrayMove로 계산한 새 순서(di 배열)를 받아
   // 각 날짜의 sort_order를 그 배열 인덱스로 다시 매겨서 저장합니다.
-  async function handleReorder(newOrder) {
-    // upsert만 하고 기다리면, 실시간 구독이 DB에 쓴 값을 다시 받아올 때까지(약
-    // 0.5~1초) 로컬 edits는 그대로라 카드가 놓은 자리에서 원래 자리로 튕겼다가
-    // 나중에 훅 옮겨지는 것처럼 보입니다. 저장과 동시에 로컬 상태도 바로 반영해서
-    // 놓은 자리에 즉시 고정되게 하고, 나중에 도착하는 실시간 갱신은 같은 값이라
-    // 화면이 다시 바뀌지 않습니다.
-    setEdits((prev) => {
-      const next = [...prev];
-      newOrder.forEach((di, idx) => {
-        const i = next.findIndex((e) => e.mode === mode && e.day_index === di && e.item_key === "__order__");
-        if (i >= 0) {
-          next[i] = { ...next[i], sort_order: idx };
-        } else {
-          next.push({ region_id: regionId, mode, day_index: di, item_key: "__order__", text: null, deleted: false, sort_order: idx, lat: null, lng: null });
-        }
+  const handleReorder = useCallback(
+    async (newOrder) => {
+      // upsert만 하고 기다리면, 실시간 구독이 DB에 쓴 값을 다시 받아올 때까지(약
+      // 0.5~1초) 로컬 edits는 그대로라 카드가 놓은 자리에서 원래 자리로 튕겼다가
+      // 나중에 훅 옮겨지는 것처럼 보입니다. 저장과 동시에 로컬 상태도 바로 반영해서
+      // 놓은 자리에 즉시 고정되게 하고, 나중에 도착하는 실시간 갱신은 같은 값이라
+      // 화면이 다시 바뀌지 않습니다.
+      setEdits((prev) => {
+        const next = [...prev];
+        newOrder.forEach((di, idx) => {
+          const i = next.findIndex((e) => e.mode === mode && e.day_index === di && e.item_key === "__order__");
+          if (i >= 0) {
+            next[i] = { ...next[i], sort_order: idx };
+          } else {
+            next.push({ region_id: regionId, mode, day_index: di, item_key: "__order__", text: null, deleted: false, sort_order: idx, lat: null, lng: null });
+          }
+        });
+        return next;
       });
-      return next;
-    });
-    await Promise.all(newOrder.map((di, idx) => upsert(di, "__order__", { sort_order: idx })));
-  }
+      await Promise.all(newOrder.map((di, idx) => upsert(di, "__order__", { sort_order: idx })));
+    },
+    [mode, regionId, upsert]
+  );
+
+  // 위와 같은 이유로 onDragEnd 자체도 고정합니다 — 인라인 화살표 함수로 넘기면 매
+  // 렌더마다 새 참조라 DndContext의 컨텍스트 값이 매번 바뀝니다.
+  const onDragEnd = useCallback(
+    ({ active, over }) => {
+      if (!over || active.id === over.id) return;
+      const oldIndex = diOrder.indexOf(active.id);
+      const newIndex = diOrder.indexOf(over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      handleReorder(arrayMove(diOrder, oldIndex, newIndex));
+    },
+    [diOrder, handleReorder]
+  );
 
   async function addDay() {
     if (!canEdit) return;
@@ -632,18 +700,14 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragEnd={({ active, over }) => {
-          if (!over || active.id === over.id) return;
-          const oldIndex = diOrder.indexOf(active.id);
-          const newIndex = diOrder.indexOf(over.id);
-          if (oldIndex === -1 || newIndex === -1) return;
-          handleReorder(arrayMove(diOrder, oldIndex, newIndex));
-        }}
+        onDragEnd={onDragEnd}
       >
         <SortableContext items={diOrder} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-3">
             {visibleDays.map(({ di }, displayIdx) => {
               const { title, items } = dayPlans.get(di);
+              const isEditing = editingDay === di;
+              const isLocatingHere = locatingItem?.dayIdx === di;
               return (
                 <DayCardItem
                   key={`${regionId}-${mode}-${di}`}
@@ -651,18 +715,18 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
                   displayIdx={displayIdx}
                   title={title}
                   items={items}
-                  isEditing={editingDay === di}
+                  isEditing={isEditing}
                   reorderMode={reorderMode}
                   dayEditMode={dayEditMode}
-                  dayNotes={notesForDay(di)}
-                  drafts={drafts}
+                  dayNotes={notesByDay.get(di) || EMPTY_NOTES}
+                  drafts={isEditing ? drafts : EMPTY_DRAFTS}
                   setDrafts={setDrafts}
-                  newText={newText}
+                  newText={isEditing ? newText : ""}
                   setNewText={setNewText}
-                  locatingItem={locatingItem}
-                  pendingPoint={pendingPoint}
+                  locatingItem={isLocatingHere ? locatingItem : null}
+                  pendingPoint={isLocatingHere ? pendingPoint : null}
                   setPendingPoint={setPendingPoint}
-                  setCardRef={(el) => (cardRefs.current[di] = el)}
+                  onSetCardRef={setCardRef}
                   onCommitDraft={commitDraft}
                   onDeleteItem={deleteItem}
                   onAddItem={addItem}
