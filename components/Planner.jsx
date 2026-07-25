@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
@@ -14,8 +15,16 @@ import SpotsPanel from "@/components/SpotsPanel";
 import FoodsPanel from "@/components/FoodsPanel";
 import ModeToggle from "@/components/ModeToggle";
 import DayCards from "@/components/DayCards";
-import AddRegionForm from "@/components/AddRegionForm";
 import TripSwitcher from "@/components/TripSwitcher";
+
+const AddRegionForm = dynamic(() => import("@/components/AddRegionForm"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex justify-center py-6">
+      <Spinner size={20} />
+    </div>
+  ),
+});
 
 const MAX_BASE_REGIONS = 6;
 const LAST_TRIP_KEY = "japan-trip-planner:lastTripId";
@@ -520,7 +529,6 @@ export default function Planner() {
                       mode={mode}
                       regionId={region.id}
                       regionName={region.kr}
-                      regionImageUrl={region.imageUrl}
                       onLocateItem={locateItem}
                       onShowRoute={showDayRoute}
                       canEdit={canManageRegion(region)}
