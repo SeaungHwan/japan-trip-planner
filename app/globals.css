@@ -7,6 +7,15 @@ body {
   background: #ffffff;
 }
 
+/* 모바일 브라우저(특히 WebKit)의 자동 폰트 부스팅(text autosizing)을 끕니다. 이 기능은
+   좁은 컨테이너의 글자를 "읽기 편하게" 자동으로 키우는데, 드래그 재정렬 중인 카드에 걸린
+   transform(scale+translate3d)과 상호작용하면서 텍스트가 갑자기 과도하게 커지고 깨지는
+   원인이었습니다. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* 모바일 앱처럼 스크롤은 그대로 되지만 스크롤바는 보이지 않게 합니다. */
 html,
 body {

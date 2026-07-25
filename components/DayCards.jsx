@@ -10,6 +10,7 @@ import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X 
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
+import ImageSwiper from "@/components/ImageSwiper";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -63,12 +64,14 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
-// 일정 카드의 "자세히보기"에서 여는 팝업: 지역 대표 이미지 + 그 날 항목들을 카드보다
-// 자세히(팝업 안에서만 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는 메인
-// 지도를 건드리지 않고 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가
+// 일정 카드의 "자세히보기"에서 여는 팝업: 그 날 항목들에 실제로 남긴 메모 사진을
+// 스와이퍼로(사진이 없으면 아예 안 보임 — 지역 전체의 대표 이미지는 모든 날짜에 똑같이
+// 나와서 "그 일정 데이터"라고 보기 어려워 여기엔 쓰지 않습니다), 그리고 그 날 항목들을
+// 카드보다 자세히(팝업 안에서만 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는
+// 메인 지도를 건드리지 않고 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가
 // anim-fadeup 애니메이션을 쓰는 조상이라 position:fixed가 깨지는 문제가 있어(다른
 // 모달들과 동일한 이유) createPortal로 document.body에 붙입니다.
-function DayDetailModal({ title, items, imageUrl, onClose }) {
+function DayDetailModal({ title, items, notePhotos, onClose }) {
   const [focusPoint, setFocusPoint] = useState(null);
   const mapPoints = items
     .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
@@ -85,7 +88,7 @@ function DayDetailModal({ title, items, imageUrl, onClose }) {
         style={{ background: "#FFFFFF" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {imageUrl && <img src={imageUrl} alt="" className="w-full shrink-0" style={{ height: 140, objectFit: "cover" }} />}
+        <ImageSwiper images={notePhotos} height={140} />
         <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
@@ -389,7 +392,7 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionImageUrl, onLocateItem, onShowRoute, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -857,7 +860,7 @@ export default function DayCards({ days, mode, regionId, regionImageUrl, onLocat
         <DayDetailModal
           title={dayPlans.get(detailDay).title}
           items={dayPlans.get(detailDay).items}
-          imageUrl={regionImageUrl}
+          notePhotos={(notesByDay.get(detailDay) || []).map((n) => n.photo_url).filter(Boolean)}
           onClose={closeDetail}
         />
       )}
