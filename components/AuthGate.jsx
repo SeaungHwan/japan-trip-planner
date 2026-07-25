@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import { ALLOWED_DOMAIN } from "@/lib/auth";
+import { Plane, MapPin } from "lucide-react";
+
+const SKY_GRADIENT = "linear-gradient(180deg, #E0F2FE 0%, #F0F9FF 55%, #FFFFFF 100%)";
 
 function GoogleIcon() {
   return (
@@ -59,7 +62,7 @@ export default function AuthGate({ children }) {
 
   if (session === undefined) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center" style={{ background: "#FFFFFF" }}>
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ background: SKY_GRADIENT }}>
         <Spinner size={28} />
       </div>
     );
@@ -67,21 +70,50 @@ export default function AuthGate({ children }) {
 
   if (!session) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(15,42,61,0.6)" }}>
-        <div className="w-full max-w-xs rounded-2xl p-6 text-center anim-fadeup" style={{ background: "#FFFFFF" }}>
-          <p className="text-base mb-5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+      <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4" style={{ background: SKY_GRADIENT }}>
+        {/* 여행 느낌을 주는 장식 요소들: 점선 항로, 하늘을 가로지르는 비행기, 은은하게
+            떠다니는 핀. 전부 배경 장식이라 interaction/레이아웃에는 관여하지 않습니다. */}
+        <svg
+          className="absolute inset-0 w-full h-full"
+          style={{ opacity: 0.4 }}
+          viewBox="0 0 400 800"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M -20 640 Q 140 520 190 360 T 420 90" fill="none" stroke="#7DD3FC" strokeWidth="2" strokeDasharray="7 10" />
+        </svg>
+        <div className="plane-fly absolute" style={{ color: "#0EA5E9", left: 0, top: "60%" }} aria-hidden="true">
+          <Plane size={22} />
+        </div>
+        <MapPin className="float-slow absolute" size={18} style={{ top: "16%", left: "14%", color: "#93C5FD" }} aria-hidden="true" />
+        <MapPin className="float-slow2 absolute" size={22} style={{ top: "72%", right: "12%", color: "#BAE6FD" }} aria-hidden="true" />
+
+        <div
+          className="w-full max-w-xs rounded-3xl p-7 text-center anim-popin relative"
+          style={{ background: "rgba(255,255,255,0.92)", boxShadow: "0 20px 45px rgba(15,42,61,0.18)" }}
+        >
+          <div
+            className="mx-auto mb-4 flex items-center justify-center rounded-full"
+            style={{ width: 56, height: 56, background: "linear-gradient(135deg, #0EA5E9, #38BDF8)" }}
+          >
+            <Plane size={24} color="#FFFFFF" />
+          </div>
+          <p className="text-lg mb-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             일본 여행 플래너
+          </p>
+          <p className="text-[12px] mb-6" style={{ color: "#94A9B8" }}>
+            일정을 함께 계획하고 공유해보세요
           </p>
           <button
             onClick={signIn}
-            className="w-full text-sm rounded-lg py-2.5 flex items-center justify-center gap-2"
+            className="w-full text-sm rounded-xl py-2.5 flex items-center justify-center gap-2"
             style={{ background: "#FFFFFF", color: "#3C4043", fontWeight: 600, border: "1px solid #DADCE0" }}
           >
             <GoogleIcon /> Google로 계속하기
           </button>
           <button
             onClick={signInAsDifferentAccount}
-            className="w-full text-[12px] mt-2"
+            className="w-full text-[12px] mt-3"
             style={{ color: "#94A9B8", fontWeight: 700 }}
           >
             다른 계정으로 로그인

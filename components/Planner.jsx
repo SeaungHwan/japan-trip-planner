@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
@@ -371,7 +372,7 @@ export default function Planner() {
 
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
-      <div className="max-w-md mx-auto px-4 pt-8 pb-16">
+      <div className="max-w-md mx-auto px-4 pt-10 pb-16">
         <UserBadge
           canShare={canShareActiveTrip}
           shareLevel={activeTripShareLevel}
@@ -438,11 +439,11 @@ export default function Planner() {
 
             {canEditTrip(activeTrip) && (
               <button
-                className="text-xs mb-4 -mt-3 flex items-center gap-1"
-                style={{ color: "#5B7A90", fontWeight: 700 }}
+                className="text-xs mb-5 px-3 py-1.5 rounded-full flex items-center gap-1"
+                style={{ color: "#0EA5E9", fontWeight: 700, border: "1px dashed #BAE6FD", background: "#F8FCFF" }}
                 onClick={() => setShowAddForm(true)}
               >
-                + 새 지역 추가
+                <Plus size={13} /> 새 지역 추가
               </button>
             )}
 

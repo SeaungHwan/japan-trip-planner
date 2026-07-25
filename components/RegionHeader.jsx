@@ -37,7 +37,7 @@ export default function RegionHeader({ region, onDelete, canEdit, onSaveDates })
   }
 
   return (
-    <div className="mb-3 anim-fadeup" key={region.id}>
+    <div className="mb-4 anim-fadeup" key={region.id}>
       <div className="flex items-center gap-2">
         <Icon size={18} color={SKY} />
         <span className="text-lg serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>

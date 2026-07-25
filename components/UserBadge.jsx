@@ -27,7 +27,7 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
   const current = LEVELS.find((l) => l.value === shareLevel) || LEVELS[0];
 
   return (
-    <div className="flex items-center justify-between mb-2 text-xs">
+    <div className="flex items-center justify-between mb-5 text-xs">
       <span style={{ color: "#5B7A90" }}>{identity.nickname}님</span>
       <div className="flex items-center gap-3">
         <WeatherBadge lat={weatherLat} lng={weatherLng} startDate={startDate} endDate={endDate} />
