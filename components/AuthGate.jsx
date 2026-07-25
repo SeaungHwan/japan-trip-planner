@@ -93,7 +93,7 @@ export default function AuthGate({ children }) {
             <Plane size={24} color="#FFFFFF" />
           </div>
           <p className="text-lg mb-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-            일본 여행 플래너
+            여행 플래너
           </p>
           <p className="text-[12px] mb-6" style={{ color: "#94A9B8" }}>
             일정을 함께 계획하고 공유해보세요
