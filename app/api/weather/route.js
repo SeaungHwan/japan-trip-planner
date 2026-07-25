@@ -35,8 +35,11 @@ export async function POST(req) {
   const lows = [];
   const precs = [];
 
-  for (const year of years) {
-    const daily = await fetchYear(lat, lng, year, monthDay1, monthDay2);
+  // 연도별 조회는 서로 완전히 독립적인데 순서대로 기다리고 있어서, 응답이 3배로
+  // 느려지고 있었습니다(요청당 1초 안팎 × 3년). 동시에 요청해서 가장 느린 한 건의
+  // 시간만 기다리면 되게 합니다.
+  const results = await Promise.all(years.map((year) => fetchYear(lat, lng, year, monthDay1, monthDay2)));
+  for (const daily of results) {
     if (!daily) continue;
     (daily.temperature_2m_max || []).forEach((v) => typeof v === "number" && highs.push(v));
     (daily.temperature_2m_min || []).forEach((v) => typeof v === "number" && lows.push(v));
