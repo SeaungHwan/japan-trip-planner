@@ -1,11 +1,12 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X, Info } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
@@ -57,6 +58,69 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
+// 일정 카드의 "자세히보기"에서 여는 팝업: 지역 대표 이미지 + 그 날 항목들을 카드보다
+// 자세히(위치보기 버튼 포함) 보여줍니다. day-card가 anim-fadeup 애니메이션을 쓰는
+// 조상이라 position:fixed가 깨지는 문제가 있어(다른 모달들과 동일한 이유) createPortal로
+// document.body에 붙입니다.
+function DayDetailModal({ title, items, imageUrl, onLocateItem, onClose }) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,42,61,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        style={{ background: "#FFFFFF" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {imageUrl && <img src={imageUrl} alt="" className="w-full shrink-0" style={{ height: 140, objectFit: "cover" }} />}
+        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              {title}
+            </span>
+            <button onClick={onClose} aria-label="닫기">
+              <X size={18} color="#5B7A90" />
+            </button>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {items.map((it, i) => (
+              <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                <span
+                  className="shrink-0 rounded-full flex items-center justify-center text-[11px]"
+                  style={{ width: 20, height: 20, background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                >
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px]" style={{ color: "#0F2A3D" }}>
+                    {it.text}
+                  </p>
+                  {it.lat != null && (
+                    <button
+                      onClick={() => {
+                        // 지도로 이동하는 건데 팝업이 그대로 위에 떠 있으면 지도가 안 보이니 같이 닫습니다.
+                        onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text });
+                        onClose();
+                      }}
+                      className="text-[11px] flex items-center gap-1 mt-0.5"
+                      style={{ color: SKY, fontWeight: 700 }}
+                    >
+                      <MapPin size={11} /> 지도에서 보기
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // 손가락으로 잡아서 실시간으로 위젯이 따라오고, 카드 사이에 끼워 넣을 수 있는 드래그 재정렬.
 // framer-motion의 Reorder는 인접 카드와 하나씩만 순차 스왑하는 방식이라 카드 높이가
 // 제각각일 때(항목 개수가 다 다름) 놓은 지점보다 한 칸 더 밀리는 오버슈트가 있었습니다.
@@ -98,6 +162,7 @@ const DayCardItem = memo(function DayCardItem({
   onLocateItem,
   onOpenNotes,
   onShowRoute,
+  onShowDetail,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: di,
@@ -286,8 +351,20 @@ const DayCardItem = memo(function DayCardItem({
         </div>
       </div>
 
-      {dayEditMode && (
-        <div className="flex items-center justify-end mt-3">
+      <div className="flex items-center justify-between mt-3">
+        {!isEditing && (
+          <button
+            className="text-[12px] flex items-center gap-1"
+            style={{ color: SKY, fontWeight: 700 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowDetail(di);
+            }}
+          >
+            <Info size={13} /> 자세히보기
+          </button>
+        )}
+        {dayEditMode && (
           <button
             className="text-[12px] flex items-center gap-1"
             style={{ color: "#94A9B8", fontWeight: 700 }}
@@ -298,13 +375,13 @@ const DayCardItem = memo(function DayCardItem({
           >
             <Trash2 size={13} /> 삭제
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 });
 
-export default function DayCards({ days, mode, regionId, onLocateItem, onShowRoute, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionImageUrl, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -315,6 +392,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
   const [locatingItem, setLocatingItem] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
   const [notingItem, setNotingItem] = useState(null);
+  const [detailDay, setDetailDay] = useState(null);
   const cardRefs = useRef({});
   const [loading, setLoading] = useState(true);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -391,6 +469,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
     setLocatingItem(null);
     setPendingPoint(null);
     setNotingItem(null);
+    setDetailDay(null);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
@@ -496,6 +575,14 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
 
   function closeNotes() {
     setNotingItem(null);
+  }
+
+  const showDetail = useCallback((dayIdx) => {
+    setDetailDay(dayIdx);
+  }, []);
+
+  function closeDetail() {
+    setDetailDay(null);
   }
 
   async function addNote(dayIdx, item, text, file) {
@@ -739,6 +826,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
                   onLocateItem={onLocateItem}
                   onShowRoute={onShowRoute}
                   onOpenNotes={openNotes}
+                  onShowDetail={showDetail}
                 />
               );
             })}
@@ -754,6 +842,16 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
           onAdd={(text, file) => addNote(notingItem.dayIdx, notingItem.item, text, file)}
           onDelete={deleteNote}
           onClose={closeNotes}
+        />
+      )}
+
+      {detailDay !== null && dayPlans.get(detailDay) && (
+        <DayDetailModal
+          title={dayPlans.get(detailDay).title}
+          items={dayPlans.get(detailDay).items}
+          imageUrl={regionImageUrl}
+          onLocateItem={onLocateItem}
+          onClose={closeDetail}
         />
       )}
     </div>

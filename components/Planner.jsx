@@ -483,6 +483,7 @@ export default function Planner() {
                       days={region.days}
                       mode={mode}
                       regionId={region.id}
+                      regionImageUrl={region.imageUrl}
                       onLocateItem={locateItem}
                       onShowRoute={showDayRoute}
                       canEdit={canManageRegion(region)}
