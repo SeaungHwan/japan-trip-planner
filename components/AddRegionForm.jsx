@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -15,6 +15,17 @@ function base64ToFile(base64, mimeType, name) {
 }
 
 const SKY = "#0EA5E9";
+
+// AI 생성이 텍스트+사진+음식까지 합쳐 15~25초 걸릴 수 있어서, 그냥 "생성 중..."만
+// 띄우면 멈춘 것처럼 보입니다. 실제 진행 단계와 정확히 맞물리진 않지만, 실제로 하고
+// 있는 작업 순서를 반영한 문구를 돌아가며 보여줘서 계속 진행 중이라는 걸 알립니다.
+const LOADING_MESSAGES = [
+  "지역 정보를 살펴보는 중...",
+  "가볼만한 명소를 찾는 중...",
+  "대표 음식을 조사하는 중...",
+  "5일 일정을 구성하는 중...",
+  "대표 사진을 찾는 중...",
+];
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
@@ -37,6 +48,18 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+
+  useEffect(() => {
+    if (!generating) {
+      setLoadingMsgIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMsgIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [generating]);
 
   async function generateWithAI() {
     if (!kr.trim()) {
@@ -184,14 +207,30 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             style={{ border: "1px solid #BAE6FD" }}
           />
 
-          <button
-            onClick={generateWithAI}
-            disabled={generating}
-            className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
-            style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD", opacity: generating ? 0.6 : 1 }}
-          >
-            <Sparkles size={13} /> {generating ? "AI가 생성 중..." : "AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성"}
-          </button>
+          {generating ? (
+            <div
+              className="w-full rounded-lg mb-3 p-3 flex flex-col items-center gap-2"
+              style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}
+            >
+              <div className="ai-loading-icon" style={{ color: SKY }}>
+                <Sparkles size={22} />
+              </div>
+              <p key={loadingMsgIndex} className="ai-loading-text text-[12px]" style={{ color: SKY, fontWeight: 700 }}>
+                {LOADING_MESSAGES[loadingMsgIndex]}
+              </p>
+              <div className="ai-loading-bar-track">
+                <div className="ai-loading-bar" />
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={generateWithAI}
+              className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
+              style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD" }}
+            >
+              <Sparkles size={13} /> AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성
+            </button>
+          )}
           {days?.length > 0 && (
             <p className="text-[12px] mb-2" style={{ color: SKY }}>
               {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.

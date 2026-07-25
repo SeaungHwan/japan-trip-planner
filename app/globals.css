@@ -203,3 +203,46 @@ body::-webkit-scrollbar {
 .anim-popin {
   animation: popIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+/* AI 지역 생성 로딩: 살짝 흔들리는 아이콘 + 페이드 인되는 상태 문구 + 오가는 진행 바로
+   15~25초 정도 걸리는 생성 과정이 "멈춘 것처럼" 보이지 않게 합니다. */
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(6deg);
+  }
+}
+.ai-loading-icon {
+  animation: iconBounce 1.1s ease-in-out infinite;
+}
+
+.ai-loading-text {
+  animation: fadeUp 0.3s ease both;
+}
+
+.ai-loading-bar-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: #bae6fd;
+  overflow: hidden;
+  position: relative;
+}
+@keyframes barSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+.ai-loading-bar {
+  width: 30%;
+  height: 100%;
+  border-radius: 9999px;
+  background: #0ea5e9;
+  animation: barSlide 1.3s ease-in-out infinite;
+}
