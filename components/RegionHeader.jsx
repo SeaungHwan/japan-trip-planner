@@ -38,14 +38,6 @@ export default function RegionHeader({ region, onDelete, canEdit, onSaveDates })
 
   return (
     <div className="mb-4 anim-fadeup" key={region.id}>
-      {region.imageUrl && (
-        <img
-          src={region.imageUrl}
-          alt={`${region.kr} 대표 이미지`}
-          className="w-full rounded-xl mb-2"
-          style={{ maxHeight: 160, objectFit: "cover" }}
-        />
-      )}
       <div className="flex items-center gap-2">
         <Icon size={18} color={SKY} />
         <span className="text-lg serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>

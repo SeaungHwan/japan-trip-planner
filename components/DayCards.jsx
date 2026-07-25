@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X, Info } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
@@ -23,6 +23,11 @@ const EMPTY_NOTES = [];
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
   loading: () => <div className="rounded mb-2" style={{ height: 180, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+});
+
+const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
+  ssr: false,
+  loading: () => <div className="rounded-lg mb-3" style={{ height: 160, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 function mergeItems(baseItems, edits) {
@@ -59,10 +64,16 @@ function mergeItems(baseItems, edits) {
 }
 
 // 일정 카드의 "자세히보기"에서 여는 팝업: 지역 대표 이미지 + 그 날 항목들을 카드보다
-// 자세히(위치보기 버튼 포함) 보여줍니다. day-card가 anim-fadeup 애니메이션을 쓰는
-// 조상이라 position:fixed가 깨지는 문제가 있어(다른 모달들과 동일한 이유) createPortal로
-// document.body에 붙입니다.
-function DayDetailModal({ title, items, imageUrl, onLocateItem, onClose }) {
+// 자세히(팝업 안에서만 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는 메인
+// 지도를 건드리지 않고 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가
+// anim-fadeup 애니메이션을 쓰는 조상이라 position:fixed가 깨지는 문제가 있어(다른
+// 모달들과 동일한 이유) createPortal로 document.body에 붙입니다.
+function DayDetailModal({ title, items, imageUrl, onClose }) {
+  const [focusPoint, setFocusPoint] = useState(null);
+  const mapPoints = items
+    .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
+    .filter((p) => p.lat != null);
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -84,6 +95,7 @@ function DayDetailModal({ title, items, imageUrl, onLocateItem, onClose }) {
               <X size={18} color="#5B7A90" />
             </button>
           </div>
+          {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
           <ul className="flex flex-col gap-2">
             {items.map((it, i) => (
               <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
@@ -99,11 +111,7 @@ function DayDetailModal({ title, items, imageUrl, onLocateItem, onClose }) {
                   </p>
                   {it.lat != null && (
                     <button
-                      onClick={() => {
-                        // 지도로 이동하는 건데 팝업이 그대로 위에 떠 있으면 지도가 안 보이니 같이 닫습니다.
-                        onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text });
-                        onClose();
-                      }}
+                      onClick={() => setFocusPoint({ lat: it.lat, lng: it.lng })}
                       className="text-[11px] flex items-center gap-1 mt-0.5"
                       style={{ color: SKY, fontWeight: 700 }}
                     >
@@ -351,19 +359,7 @@ const DayCardItem = memo(function DayCardItem({
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-3">
-        {!isEditing && (
-          <button
-            className="text-[12px] flex items-center gap-1"
-            style={{ color: SKY, fontWeight: 700 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowDetail(di);
-            }}
-          >
-            <Info size={13} /> 자세히보기
-          </button>
-        )}
+      <div className="flex items-center justify-end gap-3 mt-3">
         {dayEditMode && (
           <button
             className="text-[12px] flex items-center gap-1"
@@ -374,6 +370,18 @@ const DayCardItem = memo(function DayCardItem({
             }}
           >
             <Trash2 size={13} /> 삭제
+          </button>
+        )}
+        {!isEditing && (
+          <button
+            className="text-[12px]"
+            style={{ color: SKY, fontWeight: 700 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowDetail(di);
+            }}
+          >
+            자세히보기
           </button>
         )}
       </div>
@@ -850,7 +858,6 @@ export default function DayCards({ days, mode, regionId, regionImageUrl, onLocat
           title={dayPlans.get(detailDay).title}
           items={dayPlans.get(detailDay).items}
           imageUrl={regionImageUrl}
-          onLocateItem={onLocateItem}
           onClose={closeDetail}
         />
       )}
