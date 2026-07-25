@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import { ALLOWED_DOMAIN } from "@/lib/auth";
-import { Plane, MapPin } from "lucide-react";
+import { Plane } from "lucide-react";
 
 const SKY_GRADIENT = "linear-gradient(180deg, #E0F2FE 0%, #F0F9FF 55%, #FFFFFF 100%)";
 
@@ -71,8 +71,7 @@ export default function AuthGate({ children }) {
   if (!session) {
     return (
       <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4" style={{ background: SKY_GRADIENT }}>
-        {/* 여행 느낌을 주는 장식 요소들: 점선 항로, 하늘을 가로지르는 비행기, 은은하게
-            떠다니는 핀. 전부 배경 장식이라 interaction/레이아웃에는 관여하지 않습니다. */}
+        {/* 여행 느낌을 주는 배경 장식: 점선 항로. interaction/레이아웃에는 관여하지 않습니다. */}
         <svg
           className="absolute inset-0 w-full h-full"
           style={{ opacity: 0.4 }}
@@ -82,11 +81,6 @@ export default function AuthGate({ children }) {
         >
           <path d="M -20 640 Q 140 520 190 360 T 420 90" fill="none" stroke="#7DD3FC" strokeWidth="2" strokeDasharray="7 10" />
         </svg>
-        <div className="plane-fly absolute" style={{ color: "#0EA5E9", left: 0, top: "60%" }} aria-hidden="true">
-          <Plane size={22} />
-        </div>
-        <MapPin className="float-slow absolute" size={18} style={{ top: "16%", left: "14%", color: "#93C5FD" }} aria-hidden="true" />
-        <MapPin className="float-slow2 absolute" size={22} style={{ top: "72%", right: "12%", color: "#BAE6FD" }} aria-hidden="true" />
 
         <div
           className="w-full max-w-xs rounded-3xl p-7 text-center anim-popin relative"

@@ -191,43 +191,6 @@ body::-webkit-scrollbar {
   animation: spin 0.7s linear infinite;
 }
 
-/* 로그인 화면: 하늘을 가로지르는 비행기와 은은하게 떠다니는 구름/핀으로 여행 느낌을 냅니다. */
-@keyframes flyDiagonal {
-  0% {
-    transform: translate(-60px, 70px) rotate(38deg);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.9;
-  }
-  88% {
-    opacity: 0.9;
-  }
-  100% {
-    transform: translate(360px, -560px) rotate(38deg);
-    opacity: 0;
-  }
-}
-.plane-fly {
-  animation: flyDiagonal 8s ease-in-out infinite;
-}
-
-@keyframes floatY {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-14px);
-  }
-}
-.float-slow {
-  animation: floatY 5s ease-in-out infinite;
-}
-.float-slow2 {
-  animation: floatY 6s ease-in-out infinite 1s;
-}
-
 .anim-popin {
   animation: popIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
