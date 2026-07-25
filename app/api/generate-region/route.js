@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWikipediaImage } from "@/lib/wikipediaImage";
 
 // 무료 AI 두 곳을 순서대로 시도합니다: Gemini가 되면 그걸 쓰고,
 // 실패(키 없음·요청 제한·오류)하면 Groq로 자동 전환합니다.
@@ -38,25 +39,6 @@ items는 2~4개의 구체적인 실제 장소/활동명과 그 위치의 실제 
 
 function buildUserMessage(name, extra) {
   return extra ? `지역: ${name}\n추가 요청사항: ${extra}` : `지역: ${name}`;
-}
-
-// 지역 이름 그대로의 문서에는 대표 이미지가 없는 경우가 많아서(예: "시즈오카"는 없지만
-// "시즈오카현"/"시즈오카 공항"에는 있음), 검색 결과 여러 개를 받아 그중 이미지가 있는
-// 첫 번째(가장 관련도 높은 순서)를 씁니다.
-async function fetchWikipediaImage(name) {
-  try {
-    const url = `https://ko.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
-      name
-    )}&gsrlimit=5&prop=pageimages&piprop=original&format=json`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const pages = Object.values(data.query?.pages || {});
-    const withImages = pages.filter((p) => p.original?.source).sort((a, b) => a.index - b.index);
-    return withImages[0]?.original.source || null;
-  } catch {
-    return null;
-  }
 }
 
 // 위키피디아에 쓸만한 사진이 없을 때만 쓰는 대체 경로입니다. 참고: 이 글을 쓰는 시점

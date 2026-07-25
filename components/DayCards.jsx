@@ -64,18 +64,56 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
-// 일정 카드의 "자세히보기"에서 여는 팝업: 그 날 항목들에 실제로 남긴 메모 사진을
-// 스와이퍼로(사진이 없으면 아예 안 보임 — 지역 전체의 대표 이미지는 모든 날짜에 똑같이
-// 나와서 "그 일정 데이터"라고 보기 어려워 여기엔 쓰지 않습니다), 그리고 그 날 항목들을
-// 카드보다 자세히(팝업 안에서만 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는
-// 메인 지도를 건드리지 않고 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가
-// anim-fadeup 애니메이션을 쓰는 조상이라 position:fixed가 깨지는 문제가 있어(다른
-// 모달들과 동일한 이유) createPortal로 document.body에 붙입니다.
-function DayDetailModal({ title, items, notePhotos, onClose }) {
+// 일정 항목별 사진은 그 날 팝업을 열 때마다 새로 조회하기엔 아까워서(위키피디아 검색
+// 여러 건 + 병렬 요청) 세션 동안은 같은 지역+항목 조합을 다시 열면 재요청하지 않도록
+// 캐싱합니다(WeatherBadge와 같은 패턴, 탭을 새로고침하면 비워짐).
+const dayPhotosCache = new Map();
+
+// 일정 카드의 "자세히보기"에서 여는 팝업: 그 날 항목에 맞는 실제 사진(위키피디아에서
+// 항목별로 찾음) + 실제로 남긴 메모 사진을 스와이퍼로(둘 다 없으면 아예 안 보임 —
+// 지역 전체의 대표 이미지는 모든 날짜에 똑같이 나와서 "그 일정 데이터"라고 보기
+// 어려워 여기엔 쓰지 않습니다), 그리고 그 날 항목들을 카드보다 자세히(팝업 안에서만
+// 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는 메인 지도를 건드리지 않고
+// 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가 anim-fadeup 애니메이션을
+// 쓰는 조상이라 position:fixed가 깨지는 문제가 있어(다른 모달들과 동일한 이유)
+// createPortal로 document.body에 붙입니다.
+function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
   const [focusPoint, setFocusPoint] = useState(null);
+  const [itemPhotos, setItemPhotos] = useState([]);
   const mapPoints = items
     .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
     .filter((p) => p.lat != null);
+
+  const itemTexts = items.map((it) => it.text);
+  const cacheKey = `${regionName}|${itemTexts.join("|")}`;
+
+  useEffect(() => {
+    let alive = true;
+    setItemPhotos([]);
+
+    const cached = dayPhotosCache.get(cacheKey);
+    const request =
+      cached ||
+      fetch("/api/day-photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ regionName, items: itemTexts }),
+      })
+        .then((res) => res.json())
+        .then((data) => (Array.isArray(data.photos) ? data.photos : []))
+        .catch(() => []);
+    if (!cached) dayPhotosCache.set(cacheKey, request);
+
+    request.then((photos) => {
+      if (alive) setItemPhotos(photos.filter(Boolean));
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey]);
+
+  const images = [...notePhotos, ...itemPhotos];
 
   return createPortal(
     <div
@@ -88,7 +126,7 @@ function DayDetailModal({ title, items, notePhotos, onClose }) {
         style={{ background: "#FFFFFF" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <ImageSwiper images={notePhotos} height={140} />
+        <ImageSwiper images={images} height={140} />
         <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
@@ -392,7 +430,7 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, onLocateItem, onShowRoute, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionName, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -861,6 +899,7 @@ export default function DayCards({ days, mode, regionId, onLocateItem, onShowRou
           title={dayPlans.get(detailDay).title}
           items={dayPlans.get(detailDay).items}
           notePhotos={(notesByDay.get(detailDay) || []).map((n) => n.photo_url).filter(Boolean)}
+          regionName={regionName}
           onClose={closeDetail}
         />
       )}
