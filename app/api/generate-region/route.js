@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWikipediaImage } from "@/lib/wikipediaImage";
 
 // 무료 AI 두 곳을 순서대로 시도합니다: Gemini가 되면 그걸 쓰고,
 // 실패(키 없음·요청 제한·오류)하면 Groq로 자동 전환합니다.
@@ -40,6 +41,34 @@ items는 2~4개의 구체적인 실제 장소/활동명과 그 위치의 실제 
 
 function buildUserMessage(name, extra) {
   return extra ? `지역: ${name}\n추가 요청사항: ${extra}` : `지역: ${name}`;
+}
+
+// 위키피디아에 쓸만한 사진이 없을 때만 쓰는 대체 경로입니다. 참고: 이 글을 쓰는 시점
+// 기준 Gemini 이미지 생성 모델(gemini-2.5-flash-image)은 무료 티어 할당량이 0이라
+// 실제로는 항상 실패하고 조용히 이미지 없이 넘어갑니다 — 유료 결제가 붙으면 별도
+// 코드 수정 없이 그대로 동작합니다.
+async function generateImageWithGemini(name) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${name}을(를) 대표하는 실사 여행 사진 같은 풍경 이미지를 생성해주세요.` }] }],
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+    if (!part) return null;
+    return { base64: part.inlineData.data, mimeType: part.inlineData.mimeType || "image/png" };
+  } catch {
+    return null;
+  }
 }
 
 async function generateWithGemini(name, extra) {
@@ -119,6 +148,11 @@ export async function POST(req) {
     return NextResponse.json({ error: "지역 이름을 입력해주세요" }, { status: 400 });
   }
 
+  // 텍스트 생성(1~수 초)과 동시에 위키피디아 검색을 미리 보내둡니다. 텍스트 생성이
+  // 끝날 때쯤엔 대부분 이미 응답이 와 있어서, 사진을 찾는다고 추가로 기다리는 시간이
+  // 거의 없습니다.
+  const wikiImagePromise = fetchWikipediaImage(trimmed);
+
   for (const generate of [generateWithGemini, generateWithGroq]) {
     try {
       const result = await generate(trimmed, extraTrimmed);
@@ -134,6 +168,13 @@ export async function POST(req) {
         typeof result.lng === "number" &&
         days.length >= 5
       ) {
+        const wikiImageUrl = await wikiImagePromise;
+        let image = wikiImageUrl ? { imageUrl: wikiImageUrl } : null;
+        if (!image) {
+          const generated = await generateImageWithGemini(trimmed);
+          if (generated) image = { imageBase64: generated.base64, imageMimeType: generated.mimeType };
+        }
+
         return NextResponse.json({
           jp: result.jp,
           spots,
@@ -143,6 +184,7 @@ export async function POST(req) {
           lng: result.lng,
           days,
           flight: isValidFlight(result.flight) ? result.flight : null,
+          ...image,
         });
       }
     } catch {

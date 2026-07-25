@@ -75,9 +75,9 @@ end $$;
 -- AI로 지역을 추가할 때 최소 5일치 일정(대중교통/렌트카 코스)도 함께 생성해 저장합니다.
 alter table user_regions add column if not exists days jsonb not null default '[]'::jsonb;
 
--- 지역 대표 이미지(image_url) 기능은 화면에 거의 안 보여서 뺐습니다. 이미 이 컬럼을
--- 추가한 적이 있으면 정리합니다.
-alter table user_regions drop column if exists image_url;
+-- AI로 지역을 생성할 때 위키피디아에서 찾은 실제 사진(또는 못 찾으면 AI가 생성해
+-- day-item-photos 버킷에 올린 이미지)의 URL을 같이 저장합니다.
+alter table user_regions add column if not exists image_url text;
 
 -- 지역 음식(대표 향토음식/요리 이름 목록). "가볼만한 곳"(spots)과 달리 위치 데이터가
 -- 필요 없어서 이름 문자열 배열로만 저장합니다.

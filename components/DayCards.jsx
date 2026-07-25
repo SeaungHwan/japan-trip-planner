@@ -430,7 +430,7 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionName, onLocateItem, onShowRoute, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionName, regionImageUrl, onLocateItem, onShowRoute, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -809,7 +809,17 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
   }
 
   if (loading) {
-    return (
+    // 일정 데이터(day_item_edits/notes)를 불러오는 짧은 순간에도 그냥 빈 스피너보다는,
+    // 지역에 대표 사진이 있으면 그 사진 위에 스피너를 얹어서 "이 지역으로 들어가는 중"
+    // 같은 느낌을 줍니다. 사진이 없으면 기존처럼 스피너만 보여줍니다.
+    return regionImageUrl ? (
+      <div className="rounded-2xl overflow-hidden relative anim-fadeup" style={{ height: 160 }}>
+        <img src={regionImageUrl} alt="" className="w-full h-full" style={{ objectFit: "cover" }} />
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(15,42,61,0.35)" }}>
+          <Spinner size={22} />
+        </div>
+      </div>
+    ) : (
       <div className="flex justify-center py-6">
         <Spinner size={20} />
       </div>
