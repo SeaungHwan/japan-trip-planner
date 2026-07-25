@@ -11,6 +11,7 @@ import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
 import FlightCard from "@/components/FlightCard";
 import SpotsPanel from "@/components/SpotsPanel";
+import FoodsPanel from "@/components/FoodsPanel";
 import ModeToggle from "@/components/ModeToggle";
 import DayCards from "@/components/DayCards";
 import AddRegionForm from "@/components/AddRegionForm";
@@ -49,6 +50,7 @@ function toRegion(row) {
     note: row.note,
     flight: row.flight || null,
     moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
+    foods: row.foods || [],
     days: row.days || [],
     userId: row.user_id || null,
     startDate: row.start_date || null,
@@ -62,6 +64,7 @@ export default function Planner() {
   const [mode, setMode] = useState("transit");
   const [showMore, setShowMore] = useState(false);
   const [showSpots, setShowSpots] = useState(false);
+  const [showFoods, setShowFoods] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [focus, setFocus] = useState(null);
   const [routePoints, setRoutePoints] = useState(null);
@@ -181,6 +184,7 @@ export default function Planner() {
   const selectRegion = useCallback((i) => {
     setActive(i);
     setShowSpots(false);
+    setShowFoods(false);
     setZoomed(true);
     setFocus(null);
     setRoutePoints(null);
@@ -191,6 +195,7 @@ export default function Planner() {
     setActive(0);
     setShowMore(false);
     setShowSpots(false);
+    setShowFoods(false);
     setZoomed(false);
     setFocus(null);
     setRoutePoints(null);
@@ -306,6 +311,29 @@ export default function Planner() {
     const { data, error } = await supabase.from("user_regions").update({ spots: newSpots }).eq("id", region.id).select().single();
     if (error) {
       alert("위치 저장에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  // 지역 음식은 명소와 달리 위치가 필요 없어서 이름 문자열만 다룹니다.
+  async function addFood(region, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const newFoods = [...(region.foods || []), trimmed];
+    const { data, error } = await supabase.from("user_regions").update({ foods: newFoods }).eq("id", region.id).select().single();
+    if (error) {
+      alert("추가에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  async function deleteFood(region, index) {
+    const newFoods = (region.foods || []).filter((_, i) => i !== index);
+    const { data, error } = await supabase.from("user_regions").update({ foods: newFoods }).eq("id", region.id).select().single();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
       return;
     }
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
@@ -475,6 +503,14 @@ export default function Planner() {
                   onAddSpot={(name) => addSpot(region, name)}
                   onDeleteSpot={(i) => deleteSpot(region, i)}
                   onSetLocation={(i, point) => setSpotLocation(region, i, point)}
+                />
+                <FoodsPanel
+                  foods={region.foods}
+                  open={showFoods}
+                  onToggle={() => setShowFoods((v) => !v)}
+                  canEdit={canManageRegion(region)}
+                  onAddFood={(name) => addFood(region, name)}
+                  onDeleteFood={(i) => deleteFood(region, i)}
                 />
                 {region.days?.length > 0 && (
                   <>

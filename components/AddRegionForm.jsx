@@ -27,6 +27,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [jp, setJp] = useState("");
   const [spotsText, setSpotsText] = useState("");
   const [aiSpots, setAiSpots] = useState(null);
+  const [foodsText, setFoodsText] = useState("");
   const [note, setNote] = useState("");
   const [point, setPoint] = useState(null);
   const [days, setDays] = useState(null);
@@ -56,6 +57,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       setJp(data.jp || "");
       setSpotsText(data.spots.map((s) => s.name).join(", "));
       setAiSpots(data.spots);
+      setFoodsText((data.foods || []).join(", "));
       setNote(data.note);
       setPoint({ lat: data.lat, lng: data.lng });
       setDays(data.days);
@@ -108,6 +110,10 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         const match = aiSpots?.find((s) => s.name === name);
         return match ? { name, lat: match.lat, lng: match.lng } : { name };
       });
+    const foods = foodsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const flight =
       flightIncheon.trim() || flightCheongju.trim()
         ? { incheon: flightIncheon.trim() || "확인 필요", cheongju: flightCheongju.trim() || "확인 필요" }
@@ -122,6 +128,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         lng: point.lng,
         note: note.trim() || null,
         spots,
+        foods,
         days: days || [],
         flight,
         image_url: imageUrl,
@@ -230,6 +237,17 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
               이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
             </p>
           )}
+
+          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+            지역 음식 (선택, 쉼표로 구분)
+          </label>
+          <input
+            value={foodsText}
+            onChange={(e) => setFoodsText(e.target.value)}
+            placeholder="예: 벚꽃새우 덮밥, 우나기 파이"
+            className="w-full text-sm rounded px-2 py-1.5 mb-2"
+            style={{ border: "1px solid #BAE6FD" }}
+          />
 
           <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
             항공편 정보 (선택)

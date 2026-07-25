@@ -13,6 +13,7 @@ const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스�
     {"name": "명소1", "lat": 33.29, "lng": 131.50},
     {"name": "명소2", "lat": 33.27, "lng": 131.47}
   ],
+  "foods": ["음식1", "음식2", "음식3"],
   "note": "이 지역을 추천하는 이유나 참고할 점을 1~2문장으로",
   "flight": {
     "incheon": "인천국제공항에서 이 지역(또는 가장 가까운 공항)까지의 항공편 상황을 한 문장으로",
@@ -28,6 +29,7 @@ const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스�
 jp는 실제 지역명의 일본어 표기입니다(한자 표기가 있으면 한자로, 없으면 가나로).
 lat/lng는 해당 지역 중심의 실제 위경도(십진수)입니다.
 spots는 실제로 존재하는 명소 4개를 한국어 이름과 그 명소의 실제 위경도(십진수)로 작성하세요.
+foods는 그 지역의 실제 대표 향토음식/특산물 이름 3~4개를 한국어로 작성하세요(위치 정보는 필요 없습니다).
 note는 한국어로 간결하게 작성하세요.
 flight는 항공사명·운항 횟수·소요시간을 확실히 알 때만 구체적으로 쓰고, 조금이라도 불확실하면 반드시
 "정기 직항 없음" 또는 "확인 필요"라고 답하세요. 항공사명이나 편수를 지어내지 마세요.
@@ -118,6 +120,10 @@ function isValidSpot(spot) {
   return spot && typeof spot.name === "string" && typeof spot.lat === "number" && typeof spot.lng === "number";
 }
 
+function isValidFood(food) {
+  return typeof food === "string" && food.trim().length > 0;
+}
+
 function isValidItem(item) {
   return item && typeof item.text === "string" && typeof item.lat === "number" && typeof item.lng === "number";
 }
@@ -152,8 +158,10 @@ export async function POST(req) {
       const result = await generate(trimmed, extraTrimmed);
       const days = Array.isArray(result.days) ? result.days.filter(isValidDay) : [];
       const spots = Array.isArray(result.spots) ? result.spots.filter(isValidSpot) : [];
+      const foods = Array.isArray(result.foods) ? result.foods.filter(isValidFood).map((f) => f.trim()) : [];
       if (
         spots.length > 0 &&
+        foods.length > 0 &&
         typeof result.jp === "string" &&
         typeof result.note === "string" &&
         typeof result.lat === "number" &&
@@ -170,6 +178,7 @@ export async function POST(req) {
         return NextResponse.json({
           jp: result.jp,
           spots,
+          foods,
           note: result.note,
           lat: result.lat,
           lng: result.lng,
