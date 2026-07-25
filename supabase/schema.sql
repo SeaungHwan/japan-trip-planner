@@ -75,6 +75,10 @@ end $$;
 -- AI로 지역을 추가할 때 최소 5일치 일정(대중교통/렌트카 코스)도 함께 생성해 저장합니다.
 alter table user_regions add column if not exists days jsonb not null default '[]'::jsonb;
 
+-- AI로 지역을 생성할 때 위키피디아에서 찾은 실제 사진(또는 못 찾으면 AI가 생성해
+-- day-item-photos 버킷에 올린 이미지)의 URL을 같이 저장합니다.
+alter table user_regions add column if not exists image_url text;
+
 -- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 모든 지역은 반드시
 -- 특정 트립(trips.id)에 속해야 하므로 기본값 없이 앱이 항상 명시적으로 넣습니다.
 alter table user_regions add column if not exists trip_id text not null default 'japan-trip';

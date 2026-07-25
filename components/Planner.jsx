@@ -53,6 +53,7 @@ function toRegion(row) {
     userId: row.user_id || null,
     startDate: row.start_date || null,
     endDate: row.end_date || null,
+    imageUrl: row.image_url || null,
   };
 }
 

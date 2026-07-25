@@ -5,6 +5,14 @@ import dynamic from "next/dynamic";
 import { X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
+import { compressImage } from "@/lib/imageOptimize";
+
+function base64ToFile(base64, mimeType, name) {
+  const byteChars = atob(base64);
+  const bytes = new Uint8Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+  return new File([bytes], name, { type: mimeType });
+}
 
 const SKY = "#0EA5E9";
 
@@ -27,6 +35,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [imageUrl, setImageUrl] = useState(null);
 
   async function generateWithAI() {
     if (!kr.trim()) {
@@ -35,6 +44,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
     }
     setGenerating(true);
     setError("");
+    setImageUrl(null);
     try {
       const res = await fetch("/api/generate-region", {
         method: "POST",
@@ -52,6 +62,25 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       if (data.flight) {
         setFlightIncheon(data.flight.incheon);
         setFlightCheongju(data.flight.cheongju);
+      }
+      if (data.imageUrl) {
+        // 위키피디아 실제 사진은 외부 URL을 그대로 씁니다.
+        setImageUrl(data.imageUrl);
+      } else if (data.imageBase64) {
+        // 위키피디아에 사진이 없어서 AI가 생성한 경우만 우리 스토리지에 업로드해서
+        // 영구적인 URL을 만듭니다(day-item-photos 버킷 재사용, 업로드 전 리사이즈/압축).
+        try {
+          const file = base64ToFile(data.imageBase64, data.imageMimeType || "image/png", "region-cover.png");
+          const optimized = await compressImage(file);
+          const path = `region-covers/${crypto.randomUUID()}-${optimized.name}`;
+          const { error: upErr } = await supabase.storage.from("day-item-photos").upload(path, optimized);
+          if (!upErr) {
+            const { data: pub } = supabase.storage.from("day-item-photos").getPublicUrl(path);
+            setImageUrl(pub.publicUrl);
+          }
+        } catch {
+          // 이미지 없이도 지역 생성 자체는 계속 진행할 수 있어야 하므로 조용히 넘어갑니다.
+        }
       }
     } catch (e) {
       setError(e.message);
@@ -95,6 +124,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         spots,
         days: days || [],
         flight,
+        image_url: imageUrl,
         trip_id: tripId,
         created_by: identity.nickname,
         user_id: identity.id,
@@ -159,6 +189,14 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             <p className="text-[12px] mb-2" style={{ color: SKY }}>
               {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
             </p>
+          )}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt="지역 대표 이미지 미리보기"
+              className="w-full rounded-lg mb-2"
+              style={{ maxHeight: 160, objectFit: "cover" }}
+            />
           )}
 
           <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
