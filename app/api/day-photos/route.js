@@ -16,12 +16,14 @@ export async function POST(req) {
 
   const name = (regionName || "").trim();
   const photos = await Promise.all(
-    list.map((item) => {
+    list.map(async (item) => {
       const place = extractPlaceName(item);
       const query = name ? `${name} ${place}` : place;
       // 관련도 판단은 지역명이 아니라 장소명 쪽 단어로만 합니다 — 지역명만 일치해도
       // 통과시키면 그 지역을 그냥 언급하는 무관한 문서(지리/역사 등)가 걸릴 수 있습니다.
-      return fetchWikipediaImage(query, place.split(/\s+/));
+      const url = await fetchWikipediaImage(query, place.split(/\s+/));
+      // 사진만 있으면 무슨 명소인지 알기 어려워서, 스와이퍼에 캡션으로 쓸 장소 이름을 같이 내려줍니다.
+      return url ? { url, name: place } : null;
     })
   );
 

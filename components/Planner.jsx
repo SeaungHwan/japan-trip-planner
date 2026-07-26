@@ -76,7 +76,7 @@ export default function Planner() {
   const [showFoods, setShowFoods] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [focus, setFocus] = useState(null);
-  const [routePoints, setRoutePoints] = useState(null);
+  const [dayPins, setDayPins] = useState([]);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
@@ -196,7 +196,6 @@ export default function Planner() {
     setShowFoods(false);
     setZoomed(true);
     setFocus(null);
-    setRoutePoints(null);
   }, []);
 
   function selectTrip(id) {
@@ -207,7 +206,6 @@ export default function Planner() {
     setShowFoods(false);
     setZoomed(false);
     setFocus(null);
-    setRoutePoints(null);
   }
 
   async function saveTrip(id, title, subtitle, startDate, endDate) {
@@ -384,18 +382,7 @@ export default function Planner() {
   // 넘기는데, 여기가 매 렌더마다 새 함수면 DayCardItem을 memo로 감싼 의미가 없어져서
   // (카드 수가 늘어도) 무관한 카드까지 계속 리렌더됩니다.
   const locateItem = useCallback((point) => {
-    setRoutePoints(null);
     setFocus(point);
-    setZoomed(true);
-    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  // 일정 카드를 누르면(편집 모드가 아닐 때) 그날 위치가 찍힌 항목들을 순서대로
-  // 지도에 선으로 이어서 보여줍니다.
-  const showDayRoute = useCallback((points) => {
-    if (!points || points.length === 0) return;
-    setFocus(null);
-    setRoutePoints(points);
     setZoomed(true);
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
@@ -458,10 +445,9 @@ export default function Planner() {
                 onZoomOut={() => {
                   setZoomed(false);
                   setFocus(null);
-                  setRoutePoints(null);
                 }}
                 focus={focus}
-                route={routePoints}
+                dayPins={dayPins}
               />
             </div>
 
@@ -530,7 +516,7 @@ export default function Planner() {
                       regionId={region.id}
                       regionName={region.kr}
                       onLocateItem={locateItem}
-                      onShowRoute={showDayRoute}
+                      onDaysPinsChange={setDayPins}
                       canEdit={canManageRegion(region)}
                     />
                   </>

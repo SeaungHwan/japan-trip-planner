@@ -220,7 +220,6 @@ const DayCardItem = memo(function DayCardItem({
   onDeleteDay,
   onLocateItem,
   onOpenNotes,
-  onShowRoute,
   onShowDetail,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -243,9 +242,7 @@ const DayCardItem = memo(function DayCardItem({
           if (!isEditing) onToggleEdit(di);
           return;
         }
-        onShowRoute(
-          items.filter((it) => it.lat != null).map((it) => ({ lat: it.lat, lng: it.lng, name: it.text }))
-        );
+        onShowDetail(di);
       }}
       // day-card의 등장 애니메이션(fadeUp)은 fill-mode: both라 끝난 뒤에도 transform:
       // translateY(0)을 계속 붙들고 있습니다. CSS 애니메이션은 같은 인라인 style보다
@@ -410,8 +407,8 @@ const DayCardItem = memo(function DayCardItem({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 mt-3">
-        {dayEditMode && (
+      {dayEditMode && (
+        <div className="flex items-center justify-end gap-3 mt-3">
           <button
             className="text-[12px] flex items-center gap-1"
             style={{ color: "#94A9B8", fontWeight: 700 }}
@@ -422,25 +419,13 @@ const DayCardItem = memo(function DayCardItem({
           >
             <Trash2 size={13} /> 삭제
           </button>
-        )}
-        {!isEditing && (
-          <button
-            className="text-[12px]"
-            style={{ color: SKY, fontWeight: 700 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowDetail(di);
-            }}
-          >
-            자세히보기
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionName, onLocateItem, onShowRoute, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionName, onLocateItem, onDaysPinsChange, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -760,6 +745,20 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edits, days, mode, notes]);
 
+  // 메인 지도에는 특정 하루가 아니라 항상 1일차부터 마지막 날까지의 핀을 전부 보여줘야
+  // 해서, 카드가 클릭될 때만 계산하던 방식 대신 표시 중인 일정이 바뀔 때마다(추가/삭제/
+  // 순서변경/위치지정 포함) 매번 위쪽(Planner)으로 최신 핀 목록을 올려보냅니다.
+  useEffect(() => {
+    const pins = visibleDays.flatMap(({ di }, displayIdx) => {
+      const plan = dayPlans.get(di);
+      if (!plan) return [];
+      return plan.items
+        .filter((it) => it.lat != null && it.lng != null)
+        .map((it) => ({ lat: it.lat, lng: it.lng, name: it.text, day: displayIdx + 1 }));
+    });
+    onDaysPinsChange?.(pins);
+  }, [visibleDays, dayPlans, onDaysPinsChange]);
+
   // .map()은 매번 새 배열을 만들어서, visibleDays 자체가 안 바뀌어도 diOrder는 매
   // 렌더마다 새 참조가 됩니다. 이 배열이 DndContext/SortableContext에 그대로 들어가는데,
   // dnd-kit의 useSortable은 그 컨텍스트를 구독하고 있어서 컨텍스트 값이 바뀌면(참조 비교)
@@ -883,7 +882,6 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
                   onToggleEdit={toggleEditDay}
                   onDeleteDay={deleteDay}
                   onLocateItem={onLocateItem}
-                  onShowRoute={onShowRoute}
                   onOpenNotes={openNotes}
                   onShowDetail={showDetail}
                 />
@@ -908,7 +906,12 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
         <DayDetailModal
           title={dayPlans.get(detailDay).title}
           items={dayPlans.get(detailDay).items}
-          notePhotos={(notesByDay.get(detailDay) || []).map((n) => n.photo_url).filter(Boolean)}
+          notePhotos={(notesByDay.get(detailDay) || [])
+            .filter((n) => n.photo_url)
+            .map((n) => ({
+              url: n.photo_url,
+              name: dayPlans.get(detailDay).items.find((it) => it.key === n.item_key)?.text || null,
+            }))}
           regionName={regionName}
           onClose={closeDetail}
         />

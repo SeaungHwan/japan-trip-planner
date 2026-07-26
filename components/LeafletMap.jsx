@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2 } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
 
@@ -22,27 +22,21 @@ function pinIcon(size, color) {
   });
 }
 
+// 일정 핀에는 몇 일차 항목인지 배지로 표시합니다(항목 이름은 툴팁으로).
+function dayPinIcon(day, size, color) {
+  return L.divIcon({
+    className: "",
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:9999px;background:${color};color:#fff;font-size:10px;font-weight:700;border:2px solid #FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.3)">${day}</span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
 function FlyTo({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
     map.flyTo(center, zoom, { duration: 0.6 });
   }, [center[0], center[1], zoom]);
-  return null;
-}
-
-// 일정 하루치 위치가 여러 개라 하나의 center/zoom으로는 다 안 보일 수 있어서,
-// 그 지점들이 전부 화면에 들어오게 지도를 맞춥니다.
-function FitRoute({ points }) {
-  const map = useMap();
-  const key = points.map((p) => `${p.lat},${p.lng}`).join("|");
-  useEffect(() => {
-    if (points.length < 2) return;
-    map.flyToBounds(
-      points.map((p) => [p.lat, p.lng]),
-      { padding: [48, 48], duration: 0.6 }
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
   return null;
 }
 
@@ -59,7 +53,7 @@ function badgeScale(zoom) {
   return "badge-lg";
 }
 
-export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, route }) {
+export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPins }) {
   const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
 
@@ -69,15 +63,12 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
   const hasCoords = !!activeRegion && typeof activeRegion.lat === "number" && typeof activeRegion.lng === "number";
   const hasFocus = zoomed && focus && typeof focus.lat === "number" && typeof focus.lng === "number";
-  const hasRoute = zoomed && Array.isArray(route) && route.length > 0;
   const center = hasFocus
     ? [focus.lat, focus.lng]
-    : hasRoute
-    ? [route[0].lat, route[0].lng]
     : zoomed && hasCoords
     ? [activeRegion.lat, activeRegion.lng]
     : JAPAN_CENTER;
-  const zoom = hasFocus || hasRoute ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
+  const zoom = hasFocus ? FOCUS_ZOOM : zoomed && hasCoords ? REGION_ZOOM : JAPAN_ZOOM;
 
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const scaleClass = badgeScale(currentZoom);
@@ -99,7 +90,6 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
         <MapZoomControl />
         <FlyTo center={center} zoom={zoom} />
         <ZoomWatcher onZoom={setCurrentZoom} />
-        {hasRoute && <FitRoute points={route} />}
 
         {regions
           .map((r, i) => ({ r, i }))
@@ -130,22 +120,17 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           </Marker>
         )}
 
-        {hasRoute && (
-          <>
-            <Polyline
-              key={`route-${route.length}`}
-              positions={route.map((p) => [p.lat, p.lng])}
-              pathOptions={{ color: "#EF4444", weight: 3, opacity: 0.8, dashArray: "6 6" }}
-            />
-            {route.map((p, i) => (
-              <Marker key={`route-${i}-${scaleClass}`} position={[p.lat, p.lng]} icon={pinIcon(13, "#EF4444")}>
+        {zoomed &&
+          activeRegion &&
+          (dayPins || [])
+            .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
+            .map((p, i) => (
+              <Marker key={`day-${i}-${scaleClass}`} position={[p.lat, p.lng]} icon={dayPinIcon(p.day, 16, "#EF4444")}>
                 <Tooltip permanent direction="top" offset={[0, -8]} className={`spot-tooltip ${scaleClass}`}>
-                  {i + 1}. {p.name}
+                  {p.day}일차 · {p.name}
                 </Tooltip>
               </Marker>
             ))}
-          </>
-        )}
 
         {zoomed &&
           activeRegion &&
