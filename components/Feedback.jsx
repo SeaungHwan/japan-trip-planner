@@ -101,7 +101,7 @@ export default function Feedback({ targetKey }) {
 
       {open && (
         <div className="rounded-lg p-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-          <div className="flex flex-col gap-1 mb-2 max-h-40 overflow-y-auto">
+          <div className="no-auto-phrase flex flex-col gap-1 mb-2 max-h-40 overflow-y-auto">
             {comments.map((c) => (
               <div key={c.id} className="text-[12px]">
                 <span style={{ fontWeight: 700, color: "#0F2A3D" }}>{c.nickname}</span>{" "}

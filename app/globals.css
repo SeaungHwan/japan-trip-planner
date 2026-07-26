@@ -5,6 +5,12 @@
 body {
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   background: #ffffff;
+  word-break: auto-phrase;
+}
+
+/* 댓글은 사용자가 자유롭게 쓴 글이라 구문 단위 줄바꿈이 오히려 어색해서 기본 줄바꿈으로 되돌립니다. */
+.no-auto-phrase {
+  word-break: normal;
 }
 
 /* 모바일 브라우저(특히 WebKit)의 자동 폰트 부스팅(text autosizing)을 끕니다. 이 기능은

@@ -14,13 +14,17 @@ export default function FlightCard({ flight }) {
         </span>
       </div>
       <div className="text-[12px] space-y-1.5" style={{ color: "#3B586B" }}>
-        <div>
-          <span style={{ color: SKY, fontWeight: 700 }}>인천 → </span>
-          {flight.incheon}
+        <div className="flex gap-1.5">
+          <span className="shrink-0" style={{ color: SKY, fontWeight: 700 }}>
+            인천 →
+          </span>
+          <span className="flex-1 min-w-0">{flight.incheon}</span>
         </div>
-        <div>
-          <span style={{ color: SKY, fontWeight: 700 }}>청주 → </span>
-          {flight.cheongju}
+        <div className="flex gap-1.5">
+          <span className="shrink-0" style={{ color: SKY, fontWeight: 700 }}>
+            청주 →
+          </span>
+          <span className="flex-1 min-w-0">{flight.cheongju}</span>
         </div>
         {flight.note && (
           <div className="text-[11px] pt-1" style={{ color: "#5B7A90" }}>
