@@ -485,24 +485,26 @@ export default function Planner() {
                   onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
-                <SpotsPanel
-                  spots={region.moreSpots}
-                  open={showSpots}
-                  onToggle={() => setShowSpots((v) => !v)}
-                  onLocateSpot={locateItem}
-                  canEdit={canManageRegion(region)}
-                  onAddSpot={(name) => addSpot(region, name)}
-                  onDeleteSpot={(i) => deleteSpot(region, i)}
-                  onSetLocation={(i, point) => setSpotLocation(region, i, point)}
-                />
-                <FoodsPanel
-                  foods={region.foods}
-                  open={showFoods}
-                  onToggle={() => setShowFoods((v) => !v)}
-                  canEdit={canManageRegion(region)}
-                  onAddFood={(name) => addFood(region, name)}
-                  onDeleteFood={(i) => deleteFood(region, i)}
-                />
+                <div className="flex gap-2 mb-4">
+                  <SpotsPanel
+                    spots={region.moreSpots}
+                    open={showSpots}
+                    onToggle={() => setShowSpots((v) => !v)}
+                    onLocateSpot={locateItem}
+                    canEdit={canManageRegion(region)}
+                    onAddSpot={(name) => addSpot(region, name)}
+                    onDeleteSpot={(i) => deleteSpot(region, i)}
+                    onSetLocation={(i, point) => setSpotLocation(region, i, point)}
+                  />
+                  <FoodsPanel
+                    foods={region.foods}
+                    open={showFoods}
+                    onToggle={() => setShowFoods((v) => !v)}
+                    canEdit={canManageRegion(region)}
+                    onAddFood={(name) => addFood(region, name)}
+                    onDeleteFood={(i) => deleteFood(region, i)}
+                  />
+                </div>
                 {region.days?.length > 0 && (
                   <>
                     <ModeToggle mode={mode} onChange={setMode} />

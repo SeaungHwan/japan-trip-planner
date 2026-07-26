@@ -25,14 +25,14 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
   return (
     <>
       <button
-        className="w-full rounded-lg mb-2 flex items-center justify-between px-2.5 py-1.5"
+        className="flex-1 min-w-0 rounded-lg flex items-center justify-between px-2.5 py-1.5"
         style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}
         onClick={onToggle}
       >
-        <span className="flex items-center gap-1 text-[12px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-          <UtensilsCrossed size={12} color={SKY} /> 지역 음식
+        <span className="flex items-center gap-1 text-[12px] min-w-0" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+          <UtensilsCrossed size={12} color={SKY} className="shrink-0" /> <span className="truncate">지역 음식</span>
         </span>
-        <span className="flex items-center gap-0.5">
+        <span className="flex items-center gap-0.5 shrink-0">
           <span className="text-[11px]" style={{ color: "#94A9B8" }}>
             {(foods || []).length}
           </span>

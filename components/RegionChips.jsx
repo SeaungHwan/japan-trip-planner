@@ -43,7 +43,7 @@ export default function RegionChips({ regions, active, onSelect, showMore, onTog
         ))}
         {canAddRegion && (
           <button
-            className="shrink-0 flex items-center justify-center rounded-full sticky right-0"
+            className="shrink-0 flex items-center justify-center rounded-full sticky right-0 ml-auto"
             style={{ width: 40, height: 40, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
             onClick={onAddRegion}
             aria-label="새 지역 추가"

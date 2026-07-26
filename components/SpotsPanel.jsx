@@ -57,14 +57,14 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
   return (
     <>
       <button
-        className="w-full rounded-lg mb-2 flex items-center justify-between px-2.5 py-1.5"
+        className="flex-1 min-w-0 rounded-lg flex items-center justify-between px-2.5 py-1.5"
         style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}
         onClick={onToggle}
       >
-        <span className="flex items-center gap-1 text-[12px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-          <Star size={12} color="#0EA5E9" /> 주변 명소
+        <span className="flex items-center gap-1 text-[12px] min-w-0" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+          <Star size={12} color="#0EA5E9" className="shrink-0" /> <span className="truncate">주변 명소</span>
         </span>
-        <span className="flex items-center gap-0.5">
+        <span className="flex items-center gap-0.5 shrink-0">
           <span className="text-[11px]" style={{ color: "#94A9B8" }}>
             {(spots || []).length}
           </span>
