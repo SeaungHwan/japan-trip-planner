@@ -77,6 +77,7 @@ export default function Planner() {
   const [zoomed, setZoomed] = useState(false);
   const [focus, setFocus] = useState(null);
   const [dayPins, setDayPins] = useState([]);
+  const [showAllDayPins, setShowAllDayPins] = useState(false);
   const [userRegions, setUserRegions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [trips, setTrips] = useState([]);
@@ -196,6 +197,7 @@ export default function Planner() {
     setShowFoods(false);
     setZoomed(true);
     setFocus(null);
+    setShowAllDayPins(false);
   }, []);
 
   function selectTrip(id) {
@@ -206,6 +208,7 @@ export default function Planner() {
     setShowFoods(false);
     setZoomed(false);
     setFocus(null);
+    setShowAllDayPins(false);
   }
 
   async function saveTrip(id, title, subtitle, startDate, endDate) {
@@ -448,6 +451,8 @@ export default function Planner() {
                 }}
                 focus={focus}
                 dayPins={dayPins}
+                showAllDayPins={showAllDayPins}
+                onToggleAllDayPins={() => setShowAllDayPins((v) => !v)}
               />
             </div>
 

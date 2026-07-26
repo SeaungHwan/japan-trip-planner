@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
-import { Minimize2 } from "lucide-react";
+import { Minimize2, LayoutGrid } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
 
 const SKY = "#0EA5E9";
@@ -53,7 +53,49 @@ function badgeScale(zoom) {
   return "badge-lg";
 }
 
-export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPins }) {
+// 기본값은 하루에 첫 번째 위치 있는 일정만 보여줍니다(전체보기를 눌러야 그 날의 나머지도 다 나옴).
+function firstPinPerDay(pins) {
+  const seen = new Set();
+  const result = [];
+  for (const p of pins) {
+    if (seen.has(p.day)) continue;
+    seen.add(p.day);
+    result.push(p);
+  }
+  return result;
+}
+
+// 같은 지점(예: 공항)에 여러 날짜의 핀이 겹치면 배지 텍스트가 서로 가려서 안 보이므로,
+// 좌표가 사실상 같은 핀들을 화면 픽셀 기준으로 살짝 원형으로 벌려서 겹치지 않게 합니다.
+function metersPerPixel(zoom, lat) {
+  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom);
+}
+
+function spreadOverlappingPins(pins, zoom) {
+  const groups = new Map();
+  pins.forEach((p, i) => {
+    const key = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+
+  const spread = pins.map((p) => ({ ...p }));
+  groups.forEach((indices) => {
+    if (indices.length < 2) return;
+    const lat = pins[indices[0]].lat;
+    const radiusMeters = 22 * metersPerPixel(zoom, lat);
+    const latPerMeter = 1 / 111320;
+    const lngPerMeter = 1 / (111320 * Math.cos((lat * Math.PI) / 180) || 1);
+    indices.forEach((idx, j) => {
+      const angle = (2 * Math.PI * j) / indices.length;
+      spread[idx].lat += radiusMeters * latPerMeter * Math.cos(angle);
+      spread[idx].lng += radiusMeters * lngPerMeter * Math.sin(angle);
+    });
+  });
+  return spread;
+}
+
+export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPins, showAllDayPins, onToggleAllDayPins }) {
   const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
 
@@ -72,6 +114,10 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const scaleClass = badgeScale(currentZoom);
+
+  const validDayPins = (dayPins || []).filter((p) => typeof p.lat === "number" && typeof p.lng === "number");
+  const shownDayPins = showAllDayPins ? validDayPins : firstPinPerDay(validDayPins);
+  const spreadDayPins = spreadOverlappingPins(shownDayPins, currentZoom);
 
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
@@ -122,15 +168,13 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
         {zoomed &&
           activeRegion &&
-          (dayPins || [])
-            .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
-            .map((p, i) => (
-              <Marker key={`day-${i}-${scaleClass}`} position={[p.lat, p.lng]} icon={dayPinIcon(p.day, 16, "#EF4444")}>
-                <Tooltip permanent direction="top" offset={[0, -8]} className={`spot-tooltip ${scaleClass}`}>
-                  {p.day}일차 · {p.name}
-                </Tooltip>
-              </Marker>
-            ))}
+          spreadDayPins.map((p, i) => (
+            <Marker key={`day-${i}-${scaleClass}`} position={[p.lat, p.lng]} icon={dayPinIcon(p.day, 16, "#EF4444")}>
+              <Tooltip permanent direction="top" offset={[0, -8]} className={`spot-tooltip ${scaleClass}`}>
+                {p.day}일차 · {p.name}
+              </Tooltip>
+            </Marker>
+          ))}
 
         {zoomed &&
           activeRegion &&
@@ -159,6 +203,16 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
           onClick={onZoomOut}
         >
           <Minimize2 size={12} /> 전체 지도
+        </button>
+      )}
+
+      {zoomed && activeRegion && validDayPins.length > 0 && (
+        <button
+          className="zoom-btn absolute top-11 right-2 z-[1000] rounded-full px-3 py-1.5 text-xs flex items-center gap-1"
+          style={{ background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : "#0F2A3D", border: "1px solid #BAE6FD", fontWeight: 700 }}
+          onClick={onToggleAllDayPins}
+        >
+          <LayoutGrid size={12} /> 전체보기
         </button>
       )}
     </div>
