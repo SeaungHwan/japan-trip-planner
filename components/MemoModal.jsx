@@ -49,6 +49,16 @@ export default function MemoModal({ memo, onSave, onClose }) {
   const [items, setItems] = useState(() => parseMemoItems(memo));
   const [draft, setDraft] = useState("");
   const [adding, setAdding] = useState(false);
+  const [expanded, setExpanded] = useState(() => new Set());
+
+  function toggleExpand(i) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
 
   function persist(nextItems) {
     setItems(nextItems);
@@ -101,19 +111,39 @@ export default function MemoModal({ memo, onSave, onClose }) {
           </div>
         </div>
       ) : (
-        <ul className="flex flex-col gap-1.5" style={items.length >= 5 ? { maxHeight: 200, overflowY: "auto" } : undefined}>
-          {items.map((text, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
-              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
-            >
-              <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{linkifyMemo(text)}</span>
-              <button onClick={() => deleteItem(i)} aria-label="메모 삭제" className="shrink-0">
-                <X size={13} color="#94A9B8" />
-              </button>
-            </li>
-          ))}
+        <ul className="flex flex-col gap-1.5" style={{ maxHeight: 400, overflowY: "auto" }}>
+          {items.map((text, i) => {
+            const isExpanded = expanded.has(i);
+            return (
+              <li
+                key={i}
+                onClick={() => toggleExpand(i)}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
+                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D", cursor: "pointer" }}
+              >
+                <span
+                  className="no-auto-phrase flex-1 min-w-0"
+                  style={
+                    isExpanded
+                      ? { whiteSpace: "pre-wrap" }
+                      : { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }
+                  }
+                >
+                  {linkifyMemo(text)}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteItem(i);
+                  }}
+                  aria-label="메모 삭제"
+                  className="shrink-0"
+                >
+                  <X size={13} color="#94A9B8" />
+                </button>
+              </li>
+            );
+          })}
           {items.length === 0 && (
             <li className="text-[12px] text-center py-2" style={{ color: "#94A9B8" }}>
               아직 메모가 없어요
