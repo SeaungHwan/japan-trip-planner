@@ -126,7 +126,6 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
         style={{ background: "#FFFFFF" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <ImageSwiper images={images} height={140} />
         <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
@@ -137,6 +136,11 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
             </button>
           </div>
           {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
+          {images.length > 0 && (
+            <div className="mb-3">
+              <ImageSwiper images={images} />
+            </div>
+          )}
           <ul className="flex flex-col gap-2">
             {items.map((it, i) => (
               <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
