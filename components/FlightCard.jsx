@@ -6,7 +6,7 @@ const SKY = "#0EA5E9";
 
 export default function FlightCard({ flight }) {
   return (
-    <div className="rounded-xl p-3 mb-4 anim-fadeup" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
+    <div className="rounded-xl p-3 mb-3 anim-fadeup" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
       <div className="flex items-center gap-1.5 mb-2">
         <PlaneTakeoff size={14} color={SKY} />
         <span className="text-[13px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>

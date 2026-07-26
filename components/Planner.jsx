@@ -485,7 +485,7 @@ export default function Planner() {
                   onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-3">
                   <SpotsPanel
                     spots={region.moreSpots}
                     open={showSpots}

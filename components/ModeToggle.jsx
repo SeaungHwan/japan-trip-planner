@@ -4,7 +4,7 @@ import { TrainFront, Car } from "lucide-react";
 
 export default function ModeToggle({ mode, onChange }) {
   return (
-    <div className="relative flex rounded-full p-1 mb-4" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
+    <div className="relative flex rounded-full p-1 mb-3" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
       <div
         className="toggle-indicator absolute top-1 bottom-1 rounded-full"
         style={{
