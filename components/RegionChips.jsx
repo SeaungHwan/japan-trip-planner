@@ -52,32 +52,34 @@ export default function RegionChips({ regions, active, onSelect, showMore, onTog
           </button>
         )}
       </div>
-      <div className="mb-5">
-        {moreCount > 0 && (
-          <button
-            className="text-xs mb-2 flex items-center gap-1"
-            style={{ color: SKY, fontWeight: 700 }}
-            onClick={onToggleMore}
-          >
-            {showMore ? (
-              <>
-                <ChevronUp size={14} /> 접기
-              </>
-            ) : (
-              <>
-                <ChevronDown size={14} /> 여행지 더보기 (+{moreCount})
-              </>
-            )}
-          </button>
-        )}
-        {extra.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {extra.map((r, j) => (
-              <Chip key={r.id} r={r} isActive={baseCount + j === active} index={baseCount + j} onSelect={onSelect} />
-            ))}
-          </div>
-        )}
-      </div>
+      {(moreCount > 0 || extra.length > 0) && (
+        <div className="mb-5">
+          {moreCount > 0 && (
+            <button
+              className="text-xs mb-2 flex items-center gap-1"
+              style={{ color: SKY, fontWeight: 700 }}
+              onClick={onToggleMore}
+            >
+              {showMore ? (
+                <>
+                  <ChevronUp size={14} /> 접기
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={14} /> 여행지 더보기 (+{moreCount})
+                </>
+              )}
+            </button>
+          )}
+          {extra.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {extra.map((r, j) => (
+                <Chip key={r.id} r={r} isActive={baseCount + j === active} index={baseCount + j} onSelect={onSelect} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
