@@ -83,6 +83,14 @@ alter table user_regions add column if not exists image_url text;
 -- 필요 없어서 이름 문자열 배열로만 저장합니다.
 alter table user_regions add column if not exists foods jsonb not null default '[]'::jsonb;
 
+-- 자유롭게 쓰는 메모장(체크리스트, 준비물 등). 일정 항목별 메모(day_item_notes)와 달리
+-- 특정 항목에 묶이지 않는 지역 전체용 자유 텍스트라 그냥 문자열 하나로 저장합니다.
+alter table user_regions add column if not exists memo text;
+
+-- 총무 기능: 항공권/숙박/렌트카 등 비용 항목을 {name, amount} 형태로 자유롭게 추가합니다.
+-- 카테고리를 고정하지 않고 이름 문자열 배열로 저장하는 foods와 같은 패턴입니다.
+alter table user_regions add column if not exists budget jsonb not null default '[]'::jsonb;
+
 -- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 모든 지역은 반드시
 -- 특정 트립(trips.id)에 속해야 하므로 기본값 없이 앱이 항상 명시적으로 넣습니다.
 alter table user_regions add column if not exists trip_id text not null default 'japan-trip';

@@ -59,6 +59,8 @@ function toRegion(row) {
     flight: row.flight || null,
     moreSpots: (row.spots || []).map((s) => (typeof s === "string" ? { name: s } : s)),
     foods: row.foods || [],
+    memo: row.memo || "",
+    budget: row.budget || [],
     days: row.days || [],
     userId: row.user_id || null,
     startDate: row.start_date || null,
@@ -362,6 +364,37 @@ export default function Planner() {
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
   }
 
+  async function saveRegionMemo(region, memo) {
+    const { data, error } = await supabase.from("user_regions").update({ memo }).eq("id", region.id).select().single();
+    if (error) {
+      alert("메모 저장에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  async function addBudgetItem(region, name, amount) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const newBudget = [...(region.budget || []), { name: trimmed, amount: amount || 0 }];
+    const { data, error } = await supabase.from("user_regions").update({ budget: newBudget }).eq("id", region.id).select().single();
+    if (error) {
+      alert("추가에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  async function deleteBudgetItem(region, index) {
+    const newBudget = (region.budget || []).filter((_, i) => i !== index);
+    const { data, error } = await supabase.from("user_regions").update({ budget: newBudget }).eq("id", region.id).select().single();
+    if (error) {
+      alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
     // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
@@ -483,6 +516,8 @@ export default function Planner() {
                   onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
                   canEdit={canManageRegion(region)}
                   onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
+                  onAddBudgetItem={(name, amount) => addBudgetItem(region, name, amount)}
+                  onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
                 <div className="flex gap-2 mb-3">
@@ -513,6 +548,8 @@ export default function Planner() {
                       mode={mode}
                       regionId={region.id}
                       regionName={region.kr}
+                      memo={region.memo}
+                      onSaveMemo={(memo) => saveRegionMemo(region, memo)}
                       onLocateItem={locateItem}
                       onDaysPinsChange={setDayPins}
                       canEdit={canManageRegion(region)}

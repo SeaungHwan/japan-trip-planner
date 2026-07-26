@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, FileText, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
@@ -173,6 +173,56 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
               </li>
             ))}
           </ul>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// 특정 일정 항목이 아니라 지역 전체에 자유롭게 남기는 메모장(준비물, 체크리스트 등).
+// 저장 전까지는 로컬 draft로만 들고 있다가 "저장"을 눌러야 실제로 반영됩니다.
+function MemoModal({ memo, onSave, onClose }) {
+  const [draft, setDraft] = useState(memo || "");
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,42,61,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        style={{ background: "#FFFFFF" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              <FileText size={16} color={SKY} /> 메모장
+            </span>
+            <button onClick={onClose} aria-label="닫기">
+              <X size={18} color="#5B7A90" />
+            </button>
+          </div>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="자유롭게 메모를 남겨보세요 (준비물, 체크리스트 등)"
+            rows={8}
+            className="w-full text-[13px] rounded-lg p-2.5"
+            style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
+          />
+          <button
+            onClick={() => {
+              onSave(draft);
+              onClose();
+            }}
+            className="w-full mt-2 rounded-lg py-2 text-[13px]"
+            style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+          >
+            저장
+          </button>
         </div>
       </div>
     </div>,
@@ -425,7 +475,7 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionName, onLocateItem, onDaysPinsChange, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionName, memo, onSaveMemo, onLocateItem, onDaysPinsChange, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -437,6 +487,7 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
   const [pendingPoint, setPendingPoint] = useState(null);
   const [notingItem, setNotingItem] = useState(null);
   const [detailDay, setDetailDay] = useState(null);
+  const [memoOpen, setMemoOpen] = useState(false);
   const cardRefs = useRef({});
   const [loading, setLoading] = useState(true);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -514,6 +565,7 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
     setPendingPoint(null);
     setNotingItem(null);
     setDetailDay(null);
+    setMemoOpen(false);
   }, [regionId, mode]);
 
   function editsFor(dayIdx) {
@@ -842,6 +894,9 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
               <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서"}
             </button>
           )}
+          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={() => setMemoOpen(true)}>
+            <FileText size={13} /> 메모장
+          </button>
           <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleDayEditMode}>
             <Pencil size={13} /> {dayEditMode ? "완료" : "편집"}
           </button>
@@ -921,6 +976,8 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
           onClose={closeDetail}
         />
       )}
+
+      {memoOpen && <MemoModal memo={memo} onSave={onSaveMemo} onClose={() => setMemoOpen(false)} />}
     </div>
   );
 }
