@@ -25,6 +25,7 @@ function parseMemoItems(memo) {
 export default function MemoModal({ memo, onSave, onClose }) {
   const [items, setItems] = useState(() => parseMemoItems(memo));
   const [draft, setDraft] = useState("");
+  const [adding, setAdding] = useState(false);
 
   function persist(nextItems) {
     setItems(nextItems);
@@ -43,7 +44,16 @@ export default function MemoModal({ memo, onSave, onClose }) {
   }
 
   return (
-    <Modal icon={FileText} title="메모장" onClose={onClose}>
+    <Modal
+      icon={FileText}
+      title="메모장"
+      onClose={onClose}
+      headerExtra={
+        <button onClick={() => setAdding((v) => !v)} aria-label="메모 추가" className="shrink-0">
+          <Plus size={18} color={adding ? SKY : "#5B7A90"} />
+        </button>
+      }
+    >
       <ul className="flex flex-col gap-1.5 mb-2" style={items.length >= 5 ? { maxHeight: 200, overflowY: "auto" } : undefined}>
         {items.map((text, i) => (
           <li
@@ -63,19 +73,22 @@ export default function MemoModal({ memo, onSave, onClose }) {
           </li>
         )}
       </ul>
-      <div className="flex items-start gap-1.5">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="새 메모 (준비물, 체크리스트 등) — 엔터로 줄바꿈"
-          rows={2}
-          className="flex-1 min-w-0 text-[13px] rounded px-2 py-1.5"
-          style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
-        />
-        <button onClick={addItem} aria-label="추가" className="shrink-0 mt-1.5">
-          <Plus size={16} color={SKY} />
-        </button>
-      </div>
+      {adding && (
+        <div className="flex items-start gap-1.5">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="새 메모 (준비물, 체크리스트 등) — 엔터로 줄바꿈"
+            rows={2}
+            autoFocus
+            className="flex-1 min-w-0 text-[13px] rounded px-2 py-1.5"
+            style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
+          />
+          <button onClick={addItem} aria-label="추가" className="shrink-0 mt-1.5">
+            <Plus size={16} color={SKY} />
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }
