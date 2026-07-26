@@ -483,41 +483,43 @@ export default function Planner() {
   return (
     <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pt-10 pb-4">
-        <UserBadge
-          canShare={canShareActiveTrip}
-          shareLevel={activeTripShareLevel}
-          onSetShareLevel={setTripShareLevel}
-          weatherLat={region?.lat}
-          weatherLng={region?.lng}
-          startDate={region?.startDate || activeTrip.start_date}
-          endDate={region?.endDate || activeTrip.end_date}
-        />
-        <div className="mb-2 anim-fadeup">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
-                {(region?.startDate && formatRange(region.startDate, region.endDate)) || activeTrip.subtitle || "TRIP"}
-              </p>
-              {region && (
-                <RegionDateButton
-                  region={region}
-                  canEdit={canManageRegion(region)}
-                  onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
-                />
-              )}
+        <div className="md:sticky md:top-0 md:z-10 md:bg-white md:pt-4 md:pb-2">
+          <UserBadge
+            canShare={canShareActiveTrip}
+            shareLevel={activeTripShareLevel}
+            onSetShareLevel={setTripShareLevel}
+            weatherLat={region?.lat}
+            weatherLng={region?.lng}
+            startDate={region?.startDate || activeTrip.start_date}
+            endDate={region?.endDate || activeTrip.end_date}
+          />
+          <div className="mb-2 anim-fadeup">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
+                  {(region?.startDate && formatRange(region.startDate, region.endDate)) || activeTrip.subtitle || "TRIP"}
+                </p>
+                {region && (
+                  <RegionDateButton
+                    region={region}
+                    canEdit={canManageRegion(region)}
+                    onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
+                  />
+                )}
+              </div>
+              <TripSwitcher
+                trips={trips}
+                activeTripId={activeTripId}
+                onSelect={selectTrip}
+                onSave={saveTrip}
+                canDelete={canDeleteTrip}
+                onDelete={deleteTrip}
+              />
             </div>
-            <TripSwitcher
-              trips={trips}
-              activeTripId={activeTripId}
-              onSelect={selectTrip}
-              onSave={saveTrip}
-              canDelete={canDeleteTrip}
-              onDelete={deleteTrip}
-            />
+            <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              {activeTrip.title}
+            </h1>
           </div>
-          <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-            {activeTrip.title}
-          </h1>
         </div>
 
         {!tripsLoaded ? (
@@ -531,7 +533,7 @@ export default function Planner() {
         ) : (
           <>
             <div className="md:flex md:items-start md:gap-4">
-              <div className="md:flex-1 md:min-w-0 md:sticky md:top-4">
+              <div className="md:flex-1 md:min-w-0 md:sticky md:top-40">
                 <MapView
                   regions={regions}
                   active={active}
@@ -568,43 +570,41 @@ export default function Planner() {
                     {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
                   </p>
                 ) : (
-                  <>
-                    <RegionHeader
-                      region={region}
-                      onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
-                      canEdit={canManageRegion(region)}
-                      onAddBudgetItem={(item) => addBudgetItem(region, item)}
-                      onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
-                      onSaveParticipants={(participants) => saveParticipants(region, participants)}
-                      memo={region.memo}
-                      onSaveMemo={(memo) => saveRegionMemo(region, memo)}
-                    />
-                    <div className="flex gap-2 mb-3">
-                      <SpotsPanel
-                        spots={region.moreSpots}
-                        open={showSpots}
-                        onToggle={() => setShowSpots((v) => !v)}
-                        canEdit={canManageRegion(region)}
-                        onAddSpot={(name) => addSpot(region, name)}
-                        onDeleteSpot={(i) => deleteSpot(region, i)}
-                        onSetLocation={(i, point) => setSpotLocation(region, i, point)}
-                      />
-                      <FoodsPanel
-                        foods={region.foods}
-                        open={showFoods}
-                        onToggle={() => setShowFoods((v) => !v)}
-                        canEdit={canManageRegion(region)}
-                        onAddFood={(name) => addFood(region, name)}
-                        onDeleteFood={(i) => deleteFood(region, i)}
-                      />
-                    </div>
-                  </>
+                  <RegionHeader
+                    region={region}
+                    onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
+                    canEdit={canManageRegion(region)}
+                    onAddBudgetItem={(item) => addBudgetItem(region, item)}
+                    onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
+                    onSaveParticipants={(participants) => saveParticipants(region, participants)}
+                    memo={region.memo}
+                    onSaveMemo={(memo) => saveRegionMemo(region, memo)}
+                  />
                 )}
               </div>
 
-              {!loadingRegions && regions.length > 0 && (region.flight || region.days?.length > 0) && (
+              {!loadingRegions && regions.length > 0 && (
                 <div className="md:flex-1 md:min-w-0">
                   {region.flight && <FlightCard flight={region.flight} />}
+                  <div className="flex gap-2 mb-3">
+                    <SpotsPanel
+                      spots={region.moreSpots}
+                      open={showSpots}
+                      onToggle={() => setShowSpots((v) => !v)}
+                      canEdit={canManageRegion(region)}
+                      onAddSpot={(name) => addSpot(region, name)}
+                      onDeleteSpot={(i) => deleteSpot(region, i)}
+                      onSetLocation={(i, point) => setSpotLocation(region, i, point)}
+                    />
+                    <FoodsPanel
+                      foods={region.foods}
+                      open={showFoods}
+                      onToggle={() => setShowFoods((v) => !v)}
+                      canEdit={canManageRegion(region)}
+                      onAddFood={(name) => addFood(region, name)}
+                      onDeleteFood={(i) => deleteFood(region, i)}
+                    />
+                  </div>
                   {region.days?.length > 0 && (
                     <>
                       <ModeToggle mode={mode} onChange={setMode} />
