@@ -31,6 +31,12 @@ const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
   loading: () => <div className="rounded-lg mb-3" style={{ height: 160, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
+// "1Day" 배지가 이미 순번을 보여주므로, 제목에 남아있는 "1일차"/"1일차:" 같은
+// 중복 표기는 화면에서 걷어냅니다(과거에 생성된 지역 데이터에도 그대로 적용됨).
+function stripDayLabel(title) {
+  return typeof title === "string" ? title.replace(/^\s*\d+\s*일차\s*[:\-]?\s*/, "") : title;
+}
+
 function mergeItems(baseItems, edits) {
   const editMap = new Map(edits.map((e) => [e.item_key, e]));
   const merged = [];
@@ -287,7 +293,7 @@ const DayCardItem = memo(function DayCardItem({
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <input
-              value={drafts.__title__ ?? title}
+              value={drafts.__title__ ?? stripDayLabel(title)}
               onChange={(e) => setDrafts((d) => ({ ...d, __title__: e.target.value }))}
               onBlur={() => onCommitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
               onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
@@ -297,7 +303,7 @@ const DayCardItem = memo(function DayCardItem({
             />
           ) : (
             <div className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-              {title}
+              {stripDayLabel(title)}
             </div>
           )}
           <ul className="mt-1.5 space-y-1" style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}>

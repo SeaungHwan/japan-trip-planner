@@ -21,8 +21,8 @@ const SYSTEM_PROMPT = `당신은 일본 여행 코스를 설계하는 어시스�
   },
   "days": [
     {
-      "transit": {"title": "1일차 제목", "items": [{"text": "대중교통 코스 항목1", "lat": 33.28, "lng": 131.48}, {"text": "항목2", "lat": 33.29, "lng": 131.49}]},
-      "car": {"title": "1일차 제목", "items": [{"text": "렌트카 코스 항목1", "lat": 33.30, "lng": 131.46}, {"text": "항목2", "lat": 33.31, "lng": 131.45}]}
+      "transit": {"title": "그날의 주제(예: 도착 & 시내 산책)", "items": [{"text": "대중교통 코스 항목1", "lat": 33.28, "lng": 131.48}, {"text": "항목2", "lat": 33.29, "lng": 131.49}]},
+      "car": {"title": "그날의 주제(예: 도착 & 시내 산책)", "items": [{"text": "렌트카 코스 항목1", "lat": 33.30, "lng": 131.46}, {"text": "항목2", "lat": 33.31, "lng": 131.45}]}
     }
   ]
 }
@@ -33,14 +33,30 @@ foods는 그 지역의 실제 대표 향토음식/특산물 이름 3~4개를 한
 note는 한국어로 간결하게 작성하세요.
 flight는 항공사명·운항 횟수·소요시간을 확실히 알 때만 구체적으로 쓰고, 조금이라도 불확실하면 반드시
 "정기 직항 없음" 또는 "확인 필요"라고 답하세요. 항공사명이나 편수를 지어내지 마세요.
-days는 정확히 5개를 채우고, 각 day는 "transit"(대중교통)과 "car"(렌트카) 두 코스를 모두 포함하며, title은 그날의 주제,
-items는 2~4개의 구체적인 실제 장소/활동명과 그 위치의 실제 위경도(십진수)입니다. 5일 전체가 자연스러운 여행 동선이 되도록 구성하세요.
+days는 사용자 메시지에 명시된 정확한 일수만큼 채우고, 각 day는 "transit"(대중교통)과 "car"(렌트카) 두 코스를 모두 포함하며,
+title은 그날의 테마만 간단히 쓰고 "1일차", "Day 1" 같은 날짜 번호/순번은 절대 붙이지 마세요(번호는 앱 화면에 이미 따로 표시됩니다).
+items는 2~4개의 구체적인 실제 장소/활동명과 그 위치의 실제 위경도(십진수)입니다. 전체 일수가 자연스러운 여행 동선이 되도록 구성하세요.
 모든 lat/lng는 실제로 알고 있는 좌표를 최대한 정확히 쓰고, 확실하지 않으면 해당 장소가 속한 동네/구역의 대략적인 중심 좌표라도 반드시 채우세요(비워두지 마세요).
 사용자가 "추가 요청사항"을 주면 spots/note/days 구성 전체에 최대한 반영하세요(예: "아이랑 가기 좋은 곳 위주로"라면
 놀이시설·체험형 명소·아이가 걷기 힘들지 않은 코스를 우선하세요). 다만 위 JSON 형식과 필드 구성은 항상 그대로 유지하세요.`;
 
-function buildUserMessage(name, extra) {
-  return extra ? `지역: ${name}\n추가 요청사항: ${extra}` : `지역: ${name}`;
+const DEFAULT_DAY_COUNT = 5;
+const MAX_DAY_COUNT = 14;
+
+// "5박6일", "6일", "6일간/코스/일정" 같은 표현에서 실제 일수를 뽑아냅니다. "N박M일"은
+// 뒤의 M(일수)이 실제 날짜 수이므로 그걸 우선합니다. 못 찾으면 기본 5일을 씁니다.
+function extractRequestedDayCount(extra) {
+  if (!extra) return DEFAULT_DAY_COUNT;
+  const nights = extra.match(/(\d+)\s*박\s*(\d+)\s*일/);
+  if (nights) return Math.min(parseInt(nights[2], 10), MAX_DAY_COUNT);
+  const days = extra.match(/(\d+)\s*일(?:간|짜리|코스|일정)?/);
+  if (days) return Math.min(Math.max(parseInt(days[1], 10), 1), MAX_DAY_COUNT);
+  return DEFAULT_DAY_COUNT;
+}
+
+function buildUserMessage(name, extra, dayCount) {
+  const base = extra ? `지역: ${name}\n추가 요청사항: ${extra}` : `지역: ${name}`;
+  return `${base}\n일정(days)은 반드시 정확히 ${dayCount}일치로 작성하세요.`;
 }
 
 // 위키피디아에 쓸만한 사진이 없을 때만 쓰는 대체 경로입니다. 참고: 이 글을 쓰는 시점
@@ -71,7 +87,7 @@ async function generateImageWithGemini(name) {
   }
 }
 
-async function generateWithGemini(name, extra) {
+async function generateWithGemini(name, extra, dayCount) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY missing");
 
@@ -81,7 +97,7 @@ async function generateWithGemini(name, extra) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n${buildUserMessage(name, extra)}` }] }],
+        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n${buildUserMessage(name, extra, dayCount)}` }] }],
         generationConfig: { responseMimeType: "application/json" },
       }),
     }
@@ -93,7 +109,7 @@ async function generateWithGemini(name, extra) {
   return JSON.parse(text);
 }
 
-async function generateWithGroq(name, extra) {
+async function generateWithGroq(name, extra, dayCount) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY missing");
 
@@ -104,7 +120,7 @@ async function generateWithGroq(name, extra) {
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildUserMessage(name, extra) },
+        { role: "user", content: buildUserMessage(name, extra, dayCount) },
       ],
       response_format: { type: "json_object" },
     }),
@@ -152,10 +168,11 @@ export async function POST(req) {
   // 끝날 때쯤엔 대부분 이미 응답이 와 있어서, 사진을 찾는다고 추가로 기다리는 시간이
   // 거의 없습니다.
   const wikiImagePromise = fetchWikipediaImage(trimmed);
+  const dayCount = extractRequestedDayCount(extraTrimmed);
 
   for (const generate of [generateWithGemini, generateWithGroq]) {
     try {
-      const result = await generate(trimmed, extraTrimmed);
+      const result = await generate(trimmed, extraTrimmed, dayCount);
       const days = Array.isArray(result.days) ? result.days.filter(isValidDay) : [];
       const spots = Array.isArray(result.spots) ? result.spots.filter(isValidSpot) : [];
       const foods = Array.isArray(result.foods) ? result.foods.filter(isValidFood).map((f) => f.trim()) : [];
@@ -166,7 +183,7 @@ export async function POST(req) {
         typeof result.note === "string" &&
         typeof result.lat === "number" &&
         typeof result.lng === "number" &&
-        days.length >= 5
+        days.length >= dayCount
       ) {
         const wikiImageUrl = await wikiImagePromise;
         let image = wikiImageUrl ? { imageUrl: wikiImageUrl } : null;
@@ -182,7 +199,7 @@ export async function POST(req) {
           note: result.note,
           lat: result.lat,
           lng: result.lng,
-          days,
+          days: days.slice(0, dayCount),
           flight: isValidFlight(result.flight) ? result.flight : null,
           ...image,
         });
