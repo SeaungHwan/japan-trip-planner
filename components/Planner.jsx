@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { arrayMove } from "@dnd-kit/sortable";
 import { supabase } from "@/lib/supabaseClient";
@@ -104,10 +104,29 @@ export default function Planner() {
   const [identity, setIdentity] = useState(null);
   const [isMaster, setIsMaster] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState(true);
+  const headerRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     getIdentity().then(setIdentity);
     checkIsMaster().then(setIsMaster);
+  }, []);
+
+  // 왼쪽 영역(지도 등)이 데스크톱에서 고정될 때, 위 헤더(사용자 정보+날짜/제목) 바로
+  // 아래에 딱 붙게 하려고 헤더의 실제 렌더링 높이를 재서 그 값을 sticky 위치로 씁니다.
+  // 숫자를 고정해두면(예: top-40) 헤더 높이가 조금만 바뀌어도(제목 줄바꿈 등) 여백이
+  // 벌어지거나 겹치는 문제가 생겨서, ResizeObserver로 항상 실제 높이에 맞춥니다.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    // ResizeObserver의 entry.contentRect는 패딩을 뺀 content-box 크기라, 헤더에 준
+    // pt-6/md:pb-2 패딩만큼 실제 보이는 높이보다 작게 나옵니다. 화면에 실제로 차지하는
+    // 높이(패딩 포함 border-box)를 그대로 써야 해서 getBoundingClientRect로 잽니다.
+    const update = () => setHeaderHeight(el.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // 트립이 늘어날수록, 예전처럼 트립 필터 없이 user_regions 테이블 전체(지역별
@@ -482,8 +501,8 @@ export default function Planner() {
 
   return (
     <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
-      <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pt-10 pb-4">
-        <div className="md:sticky md:top-0 md:z-10 md:bg-white md:pt-4 md:pb-2">
+      <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pb-4">
+        <div ref={headerRef} className="md:sticky md:top-0 md:z-10 md:bg-white pt-6 md:pb-2">
           <UserBadge
             canShare={canShareActiveTrip}
             shareLevel={activeTripShareLevel}
@@ -533,7 +552,7 @@ export default function Planner() {
         ) : (
           <>
             <div className="md:flex md:items-start md:gap-4">
-              <div className="md:flex-1 md:min-w-0 md:sticky md:top-40">
+              <div className="md:flex-1 md:min-w-0 md:sticky" style={{ top: headerHeight }}>
                 <MapView
                   regions={regions}
                   active={active}
