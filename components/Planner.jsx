@@ -482,7 +482,7 @@ export default function Planner() {
 
   return (
     <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
-      <div className="max-w-md mx-auto px-4 pt-10 pb-4">
+      <div className="max-w-md sm:max-w-2xl mx-auto px-4 pt-10 pb-4">
         <UserBadge
           canShare={canShareActiveTrip}
           shareLevel={activeTripShareLevel}
@@ -530,88 +530,93 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <MapView
-              regions={regions}
-              active={active}
-              zoomed={zoomed}
-              onSelect={selectRegion}
-              onZoomOut={onZoomOut}
-              focus={focus}
-              dayPins={dayPins}
-              showAllDayPins={showAllDayPins}
-              onToggleAllDayPins={onToggleAllDayPins}
-            />
-
-            <RegionChips
-              regions={regions}
-              active={active}
-              onSelect={selectRegion}
-              showMore={showMore}
-              onToggleMore={toggleMore}
-              moreCount={extraRegions.length}
-              baseCount={baseRegions.length}
-              canAddRegion={canEditTrip(activeTrip)}
-              onAddRegion={() => setShowAddForm(true)}
-              canReorder={canEditTrip(activeTrip)}
-              onReorder={reorderRegions}
-            />
-
-            {loadingRegions ? (
-              <div className="flex justify-center mt-8">
-                <Spinner size={22} />
-              </div>
-            ) : regions.length === 0 ? (
-              <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
-                이 여행에는 아직 지역이 없어요.
-                {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
-              </p>
-            ) : (
-              <>
-                <RegionHeader
-                  region={region}
-                  onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
-                  canEdit={canManageRegion(region)}
-                  onAddBudgetItem={(item) => addBudgetItem(region, item)}
-                  onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
-                  onSaveParticipants={(participants) => saveParticipants(region, participants)}
-                  memo={region.memo}
-                  onSaveMemo={(memo) => saveRegionMemo(region, memo)}
+            <div className="sm:flex sm:items-start sm:gap-4">
+              <div className="sm:flex-1 sm:min-w-0">
+                <MapView
+                  regions={regions}
+                  active={active}
+                  zoomed={zoomed}
+                  onSelect={selectRegion}
+                  onZoomOut={onZoomOut}
+                  focus={focus}
+                  dayPins={dayPins}
+                  showAllDayPins={showAllDayPins}
+                  onToggleAllDayPins={onToggleAllDayPins}
                 />
-                {region.flight && <FlightCard flight={region.flight} />}
-                <div className="flex gap-2 mb-3">
-                  <SpotsPanel
-                    spots={region.moreSpots}
-                    open={showSpots}
-                    onToggle={() => setShowSpots((v) => !v)}
-                    canEdit={canManageRegion(region)}
-                    onAddSpot={(name) => addSpot(region, name)}
-                    onDeleteSpot={(i) => deleteSpot(region, i)}
-                    onSetLocation={(i, point) => setSpotLocation(region, i, point)}
-                  />
-                  <FoodsPanel
-                    foods={region.foods}
-                    open={showFoods}
-                    onToggle={() => setShowFoods((v) => !v)}
-                    canEdit={canManageRegion(region)}
-                    onAddFood={(name) => addFood(region, name)}
-                    onDeleteFood={(i) => deleteFood(region, i)}
-                  />
-                </div>
-                {region.days?.length > 0 && (
+
+                <RegionChips
+                  regions={regions}
+                  active={active}
+                  onSelect={selectRegion}
+                  showMore={showMore}
+                  onToggleMore={toggleMore}
+                  moreCount={extraRegions.length}
+                  baseCount={baseRegions.length}
+                  canAddRegion={canEditTrip(activeTrip)}
+                  onAddRegion={() => setShowAddForm(true)}
+                  canReorder={canEditTrip(activeTrip)}
+                  onReorder={reorderRegions}
+                />
+
+                {loadingRegions ? (
+                  <div className="flex justify-center mt-8">
+                    <Spinner size={22} />
+                  </div>
+                ) : regions.length === 0 ? (
+                  <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
+                    이 여행에는 아직 지역이 없어요.
+                    {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
+                  </p>
+                ) : (
                   <>
-                    <ModeToggle mode={mode} onChange={setMode} />
-                    <DayCards
-                      days={region.days}
-                      mode={mode}
-                      regionId={region.id}
-                      regionName={region.kr}
-                      onDaysPinsChange={setDayPins}
+                    <RegionHeader
+                      region={region}
+                      onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
                       canEdit={canManageRegion(region)}
+                      onAddBudgetItem={(item) => addBudgetItem(region, item)}
+                      onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
+                      onSaveParticipants={(participants) => saveParticipants(region, participants)}
+                      memo={region.memo}
+                      onSaveMemo={(memo) => saveRegionMemo(region, memo)}
                     />
+                    {region.flight && <FlightCard flight={region.flight} />}
+                    <div className="flex gap-2 mb-3">
+                      <SpotsPanel
+                        spots={region.moreSpots}
+                        open={showSpots}
+                        onToggle={() => setShowSpots((v) => !v)}
+                        canEdit={canManageRegion(region)}
+                        onAddSpot={(name) => addSpot(region, name)}
+                        onDeleteSpot={(i) => deleteSpot(region, i)}
+                        onSetLocation={(i, point) => setSpotLocation(region, i, point)}
+                      />
+                      <FoodsPanel
+                        foods={region.foods}
+                        open={showFoods}
+                        onToggle={() => setShowFoods((v) => !v)}
+                        canEdit={canManageRegion(region)}
+                        onAddFood={(name) => addFood(region, name)}
+                        onDeleteFood={(i) => deleteFood(region, i)}
+                      />
+                    </div>
                   </>
                 )}
-              </>
-            )}
+              </div>
+
+              {!loadingRegions && regions.length > 0 && region.days?.length > 0 && (
+                <div className="sm:flex-1 sm:min-w-0">
+                  <ModeToggle mode={mode} onChange={setMode} />
+                  <DayCards
+                    days={region.days}
+                    mode={mode}
+                    regionId={region.id}
+                    regionName={region.kr}
+                    onDaysPinsChange={setDayPins}
+                    canEdit={canManageRegion(region)}
+                  />
+                </div>
+              )}
+            </div>
 
             {showAddForm && (
               <AddRegionForm
