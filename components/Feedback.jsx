@@ -82,7 +82,7 @@ export default function Feedback({ targetKey }) {
         <button
           onClick={() => vote(1)}
           aria-pressed={myVote === 1}
-          className="flex items-center gap-1 rounded-full px-2 py-0.5"
+          className="flex items-center gap-1 rounded-full px-1 py-0.5"
           style={{
             color: myVote === 1 ? "#FFFFFF" : "#5B7A90",
             background: myVote === 1 ? SKY : "transparent",
@@ -94,7 +94,7 @@ export default function Feedback({ targetKey }) {
         <button
           onClick={() => vote(-1)}
           aria-pressed={myVote === -1}
-          className="flex items-center gap-1 rounded-full px-2 py-0.5"
+          className="flex items-center gap-1 rounded-full px-1 py-0.5"
           style={{
             color: myVote === -1 ? "#FFFFFF" : "#5B7A90",
             background: myVote === -1 ? "#EF4444" : "transparent",
