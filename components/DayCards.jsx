@@ -723,11 +723,14 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
     return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)) };
   }
 
-  // edits/notes는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
+  // edits는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
   // drafts/newText 같은 타이핑용 로컬 상태가 바뀌어도(즉 편집 중 매 입력마다) 다시
-  // 계산하지 않습니다. notesByDay도 같이 묶어서, 메모 개수 배지 때문에 노트가 안 바뀐
-  // 카드까지 매번 새 배열을 받아 리렌더되는 일이 없게 합니다.
-  const { customDayIndices, visibleDays, dayPlans, notesByDay } = useMemo(() => {
+  // 계산하지 않습니다. notes는 일부러 이 메모의 의존성에서 뺐습니다 — 메모 개수 배지
+  // 때문에 notesByDay는 그 자체로 따로 계산하고, 여기 dayPlans/visibleDays(모든
+  // 카드의 props이자 메인 지도 핀의 원본)는 노트 하나 추가/삭제될 때마다 전부 새
+  // 참조가 되는 일이 없게 합니다. 안 그러면 무관한 노트 변경 때문에 모든 카드가
+  // memo를 건너뛰고 리렌더되고, 지도 핀도 내용은 그대론데 매번 다시 그려집니다.
+  const { customDayIndices, visibleDays, dayPlans } = useMemo(() => {
     const customDayIndices = [...new Set(edits.filter((e) => e.item_key === "__custom_day__").map((e) => e.day_index))];
     const allDayIndices = days.map((_, i) => i).concat(customDayIndices);
 
@@ -737,13 +740,15 @@ export default function DayCards({ days, mode, regionId, regionName, onLocateIte
       .sort((a, b) => a.order - b.order);
 
     const dayPlans = new Map(visibleDays.map(({ di }) => [di, planFor(di)]));
-    const notesByDay = new Map(
-      visibleDays.map(({ di }) => [di, notes.filter((n) => n.mode === mode && n.day_index === di)])
-    );
 
-    return { customDayIndices, visibleDays, dayPlans, notesByDay };
+    return { customDayIndices, visibleDays, dayPlans };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edits, days, mode, notes]);
+  }, [edits, days, mode]);
+
+  const notesByDay = useMemo(
+    () => new Map(visibleDays.map(({ di }) => [di, notes.filter((n) => n.mode === mode && n.day_index === di)])),
+    [visibleDays, notes, mode]
+  );
 
   // 메인 지도에는 특정 하루가 아니라 항상 1일차부터 마지막 날까지의 핀을 전부 보여줘야
   // 해서, 카드가 클릭될 때만 계산하던 방식 대신 표시 중인 일정이 바뀔 때마다(추가/삭제/
