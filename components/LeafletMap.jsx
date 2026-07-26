@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2, LayoutGrid } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
 
@@ -164,6 +164,16 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
               </Tooltip>
             )}
           </Marker>
+        )}
+
+        {/* 기본(날짜별 첫 일정만) 보기일 때만 1일차~n일차를 순서대로 잇는 선을 보여줍니다.
+            전체보기로 모든 항목이 다 나오면 선이 뒤엉켜 오히려 헷갈려서 이때는 숨깁니다. */}
+        {zoomed && activeRegion && !showAllDayPins && spreadDayPins.length > 1 && (
+          <Polyline
+            key={`day-route-${spreadDayPins.length}`}
+            positions={spreadDayPins.map((p) => [p.lat, p.lng])}
+            pathOptions={{ color: "#EF4444", weight: 3, opacity: 0.7, dashArray: "6 6" }}
+          />
         )}
 
         {zoomed &&

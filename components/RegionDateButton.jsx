@@ -70,7 +70,13 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setStartDate(value);
+                    // 종료일을 아직 안 골랐으면, 다음에 열 때 오늘이 아니라 이 날짜부터
+                    // 보이도록 시작일과 같은 값으로 미리 채워둡니다.
+                    if (!endDate) setEndDate(value);
+                  }}
                   className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
                   style={{ border: "1px solid #BAE6FD" }}
                 />
