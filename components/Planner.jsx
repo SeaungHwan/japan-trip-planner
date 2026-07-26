@@ -9,6 +9,7 @@ import Spinner from "@/components/Spinner";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
+import RegionDateButton from "@/components/RegionDateButton";
 import FlightCard from "@/components/FlightCard";
 import SpotsPanel from "@/components/SpotsPanel";
 import FoodsPanel from "@/components/FoodsPanel";
@@ -444,9 +445,18 @@ export default function Planner() {
         />
         <div className="mb-4 anim-fadeup">
           <div className="flex items-center justify-between">
-            <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
-              {activeTrip.subtitle || "TRIP"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
+                {activeTrip.subtitle || "TRIP"}
+              </p>
+              {region && (
+                <RegionDateButton
+                  region={region}
+                  canEdit={canManageRegion(region)}
+                  onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
+                />
+              )}
+            </div>
             <TripSwitcher
               trips={trips}
               activeTripId={activeTripId}
@@ -515,7 +525,6 @@ export default function Planner() {
                   region={region}
                   onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
                   canEdit={canManageRegion(region)}
-                  onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
                   onAddBudgetItem={(name, amount) => addBudgetItem(region, name, amount)}
                   onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
                 />
