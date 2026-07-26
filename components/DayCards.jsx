@@ -186,6 +186,52 @@ function MemoModal({ memo, onSave, onClose }) {
   );
 }
 
+// 편집 중인 일정 카드 안에서 항목 하나(입력창 행)를 드래그로 옮길 수 있게 하는 행.
+// 카드 자체의 드래그 재정렬과 같은 방식(@dnd-kit/sortable, 그립 아이콘에서만 시작)이며,
+// 편집 모드일 때만 이 컴포넌트가 쓰이고 그때는 카드 재정렬(reorderMode)이 꺼져 있어서
+// 바깥 DndContext(카드 순서용)와 겹치지 않습니다.
+function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLocationPicker, onOpenNotes, onDeleteItem, noteCount }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.key });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: transform ? CSS.Transform.toString(transform) : undefined,
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
+      className="flex items-center gap-1"
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="shrink-0 flex items-center justify-center"
+        style={{ width: 20, height: 20, touchAction: "none", cursor: isDragging ? "grabbing" : "grab" }}
+      >
+        <GripVertical size={13} color={isDragging ? SKY : "#94A9B8"} />
+      </span>
+      <input
+        value={drafts[item.key] ?? item.text}
+        onChange={(e) => setDrafts((d) => ({ ...d, [item.key]: e.target.value }))}
+        onBlur={() => onCommitDraft(di, item)}
+        onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+        className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
+        style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+      />
+      <button onClick={() => onOpenLocationPicker(di, item)} aria-label="위치 설정" className="shrink-0">
+        <MapPin size={13} color={item.lat != null ? SKY : "#94A9B8"} />
+      </button>
+      <button onClick={() => onOpenNotes(di, item)} aria-label="메모/사진" className="shrink-0">
+        <StickyNote size={13} color={noteCount > 0 ? SKY : "#94A9B8"} />
+      </button>
+      <button onClick={() => onDeleteItem(di, item)} aria-label="항목 삭제" className="shrink-0">
+        <Trash2 size={13} color="#94A9B8" />
+      </button>
+    </li>
+  );
+}
+
 // 손가락으로 잡아서 실시간으로 위젯이 따라오고, 카드 사이에 끼워 넣을 수 있는 드래그 재정렬.
 // framer-motion의 Reorder는 인접 카드와 하나씩만 순차 스왑하는 방식이라 카드 높이가
 // 제각각일 때(항목 개수가 다 다름) 놓은 지점보다 한 칸 더 밀리는 오버슈트가 있었습니다.
@@ -226,6 +272,7 @@ const DayCardItem = memo(function DayCardItem({
   onDeleteDay,
   onOpenNotes,
   onShowDetail,
+  onReorderItems,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: di,
@@ -233,6 +280,15 @@ const DayCardItem = memo(function DayCardItem({
   });
   const isLocatingHere = locatingItem?.dayIdx === di;
   const noteCountFor = (key) => dayNotes.filter((n) => n.item_key === key).length;
+  const itemSensors = useSensors(useSensor(PointerSensor));
+
+  function handleItemDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((it) => it.key === active.id);
+    const newIndex = items.findIndex((it) => it.key === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorderItems(di, items, oldIndex, newIndex);
+  }
 
   const transformStyle = transform ? CSS.Transform.toString(transform) : undefined;
 
@@ -308,29 +364,30 @@ const DayCardItem = memo(function DayCardItem({
               {stripDayLabel(title)}
             </div>
           )}
-          <ul className="mt-1.5 space-y-1" style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}>
-            {items.map((it) =>
-              isEditing ? (
-                <li key={it.key} className="flex items-center gap-1">
-                  <input
-                    value={drafts[it.key] ?? it.text}
-                    onChange={(e) => setDrafts((d) => ({ ...d, [it.key]: e.target.value }))}
-                    onBlur={() => onCommitDraft(di, it)}
-                    onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-                    className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
-                    style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-                  />
-                  <button onClick={() => onOpenLocationPicker(di, it)} aria-label="위치 설정" className="shrink-0">
-                    <MapPin size={13} color={it.lat != null ? SKY : "#94A9B8"} />
-                  </button>
-                  <button onClick={() => onOpenNotes(di, it)} aria-label="메모/사진" className="shrink-0">
-                    <StickyNote size={13} color={noteCountFor(it.key) > 0 ? SKY : "#94A9B8"} />
-                  </button>
-                  <button onClick={() => onDeleteItem(di, it)} aria-label="항목 삭제" className="shrink-0">
-                    <Trash2 size={13} color="#94A9B8" />
-                  </button>
-                </li>
-              ) : (
+          {isEditing ? (
+            <DndContext sensors={itemSensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
+              <SortableContext items={items.map((it) => it.key)} strategy={verticalListSortingStrategy}>
+                <ul className="mt-1.5 space-y-1" style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}>
+                  {items.map((it) => (
+                    <SortableItemRow
+                      key={it.key}
+                      di={di}
+                      item={it}
+                      drafts={drafts}
+                      setDrafts={setDrafts}
+                      onCommitDraft={onCommitDraft}
+                      onOpenLocationPicker={onOpenLocationPicker}
+                      onOpenNotes={onOpenNotes}
+                      onDeleteItem={onDeleteItem}
+                      noteCount={noteCountFor(it.key)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <ul className="mt-1.5 space-y-1" style={items.length >= 5 ? { maxHeight: 128, overflowY: "auto" } : undefined}>
+              {items.map((it) => (
                 <li key={it.key} className="flex items-center justify-between gap-1">
                   {it.lat != null ? (
                     <span className="text-[13px] flex items-center gap-1 min-w-0" style={{ color: "#5B7A90" }}>
@@ -354,9 +411,9 @@ const DayCardItem = memo(function DayCardItem({
                     </button>
                   )}
                 </li>
-              )
-            )}
-          </ul>
+              ))}
+            </ul>
+          )}
 
           {isEditing && isLocatingHere && (
             <div className="rounded-lg p-2 mt-1.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
@@ -798,6 +855,30 @@ export default function DayCards({ days, mode, regionId, regionName, memo, onSav
     [mode, regionId, upsert]
   );
 
+  // 카드 재정렬(handleReorder)과 같은 패턴: 낙관적으로 로컬 edits부터 갱신해서 놓은
+  // 자리에 바로 고정시키고, 그 다음 각 항목의 sort_order를 실제로 저장합니다. 항목은
+  // 기존 수정 기록이 없을 수도 있어서(base 항목을 한 번도 안 고쳤을 때) text/lat/lng를
+  // 항상 같이 넘겨야 첫 기록이 생기면서 텍스트나 위치가 비워지는 걸 막을 수 있습니다.
+  const reorderItems = useCallback(
+    async (dayIdx, currentItems, oldIndex, newIndex) => {
+      const newItems = arrayMove(currentItems, oldIndex, newIndex);
+      setEdits((prev) => {
+        const next = [...prev];
+        newItems.forEach((it, idx) => {
+          const i = next.findIndex((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === it.key);
+          if (i >= 0) {
+            next[i] = { ...next[i], sort_order: idx, text: it.text, lat: it.lat, lng: it.lng };
+          } else {
+            next.push({ region_id: regionId, mode, day_index: dayIdx, item_key: it.key, text: it.text, deleted: false, sort_order: idx, lat: it.lat, lng: it.lng });
+          }
+        });
+        return next;
+      });
+      await Promise.all(newItems.map((it, idx) => upsert(dayIdx, it.key, { text: it.text, sort_order: idx, lat: it.lat, lng: it.lng })));
+    },
+    [mode, regionId, upsert]
+  );
+
   // 위와 같은 이유로 onDragEnd 자체도 고정합니다 — 인라인 화살표 함수로 넘기면 매
   // 렌더마다 새 참조라 DndContext의 컨텍스트 값이 매번 바뀝니다.
   const onDragEnd = useCallback(
@@ -891,6 +972,7 @@ export default function DayCards({ days, mode, regionId, regionName, memo, onSav
                   onDeleteDay={deleteDay}
                   onOpenNotes={openNotes}
                   onShowDetail={showDetail}
+                  onReorderItems={reorderItems}
                 />
               );
             })}
