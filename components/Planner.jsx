@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
@@ -88,7 +88,6 @@ export default function Planner() {
   const [identity, setIdentity] = useState(null);
   const [isMaster, setIsMaster] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState(true);
-  const mapSectionRef = useRef(null);
 
   useEffect(() => {
     getIdentity().then(setIdentity);
@@ -434,15 +433,6 @@ export default function Planner() {
     setActive(0);
   }
 
-  // useCallback으로 고정합니다: DayCards가 일정 카드마다 이 함수를 그대로 props로
-  // 넘기는데, 여기가 매 렌더마다 새 함수면 DayCardItem을 memo로 감싼 의미가 없어져서
-  // (카드 수가 늘어도) 무관한 카드까지 계속 리렌더됩니다.
-  const locateItem = useCallback((point) => {
-    setFocus(point);
-    setZoomed(true);
-    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
   function toggleMore() {
     setShowMore((prev) => {
       const next = !prev;
@@ -452,7 +442,7 @@ export default function Planner() {
   }
 
   return (
-    <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
+    <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
       <div className="max-w-md mx-auto px-4 pt-10 pb-4">
         <UserBadge
           canShare={canShareActiveTrip}
@@ -501,19 +491,17 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <div ref={mapSectionRef}>
-              <MapView
-                regions={regions}
-                active={active}
-                zoomed={zoomed}
-                onSelect={selectRegion}
-                onZoomOut={onZoomOut}
-                focus={focus}
-                dayPins={dayPins}
-                showAllDayPins={showAllDayPins}
-                onToggleAllDayPins={onToggleAllDayPins}
-              />
-            </div>
+            <MapView
+              regions={regions}
+              active={active}
+              zoomed={zoomed}
+              onSelect={selectRegion}
+              onZoomOut={onZoomOut}
+              focus={focus}
+              dayPins={dayPins}
+              showAllDayPins={showAllDayPins}
+              onToggleAllDayPins={onToggleAllDayPins}
+            />
 
             <RegionChips
               regions={regions}
@@ -552,7 +540,6 @@ export default function Planner() {
                     spots={region.moreSpots}
                     open={showSpots}
                     onToggle={() => setShowSpots((v) => !v)}
-                    onLocateSpot={locateItem}
                     canEdit={canManageRegion(region)}
                     onAddSpot={(name) => addSpot(region, name)}
                     onDeleteSpot={(i) => deleteSpot(region, i)}

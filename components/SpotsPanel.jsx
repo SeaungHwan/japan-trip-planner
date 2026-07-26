@@ -12,10 +12,24 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   loading: () => <div className="rounded mb-2" style={{ height: 180, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
-export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdit, onAddSpot, onDeleteSpot, onSetLocation }) {
+// 일정 자세히보기 팝업과 같은 독립된 미니맵입니다. 예전에는 명소 이름을 누르면 메인
+// 지도가 그 지점으로 확대/이동했는데, 패널을 닫아야 지도가 보이는 데다 메인 지도
+// 상태(줌/포커스)를 명소 하나 보자고 계속 건드리게 되어서, 이 팝업 안에서만 움직이는
+// 자체 지도로 바꿨습니다.
+const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
+  ssr: false,
+  loading: () => <div className="rounded-lg mb-3" style={{ height: 160, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+});
+
+export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, onDeleteSpot, onSetLocation }) {
   const [newName, setNewName] = useState("");
   const [locatingIndex, setLocatingIndex] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
+  const [focusPoint, setFocusPoint] = useState(null);
+
+  const mapPoints = (spots || [])
+    .filter((s) => typeof s.lat === "number" && typeof s.lng === "number")
+    .map((s, i) => ({ lat: s.lat, lng: s.lng, name: s.name, num: i + 1 }));
 
   function submitAdd() {
     if (!newName.trim()) return;
@@ -51,6 +65,7 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
   function handleClose() {
     closeLocationPicker();
     setNewName("");
+    setFocusPoint(null);
     onToggle();
   }
 
@@ -74,6 +89,7 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
 
       {open && (
         <Modal icon={Star} title="주변 명소" onClose={handleClose}>
+          {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
           <div className="flex flex-wrap gap-2">
             {(spots || []).map((s, i) => {
               const hasLocation = typeof s.lat === "number" && typeof s.lng === "number";
@@ -91,7 +107,7 @@ export default function SpotsPanel({ spots, open, onToggle, onLocateSpot, canEdi
                   )}
                   {!canEdit && <MapPin size={11} color={pinColor} className="shrink-0" />}
                   {hasLocation ? (
-                    <button onClick={() => onLocateSpot?.({ lat: s.lat, lng: s.lng, name: s.name })}>{s.name}</button>
+                    <button onClick={() => setFocusPoint({ lat: s.lat, lng: s.lng })}>{s.name}</button>
                   ) : canEdit ? (
                     <button onClick={() => openLocationPicker(i)}>{s.name}</button>
                   ) : (

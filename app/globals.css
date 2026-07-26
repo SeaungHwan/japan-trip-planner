@@ -25,15 +25,33 @@ html {
   text-size-adjust: 100%;
 }
 
-/* 모바일 앱처럼 스크롤은 그대로 되지만 스크롤바는 보이지 않게 합니다. */
+/* 모바일 앱처럼 스크롤은 그대로 되지만 스크롤바는 보이지 않게 합니다. 삼성 인터넷 등
+   일부 모바일 브라우저는 문서(html/body) 자체의 스크롤바를 브라우저 차원에서 그려서
+   ::-webkit-scrollbar로 숨겨지지 않으므로, 문서 자체는 아예 스크롤되지 않게 막고
+   실제 스크롤은 .app-scroll(각 페이지 최상단 래퍼)이 담당하게 합니다. */
 html,
 body {
+  height: 100%;
+  overflow: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
+}
+
+.app-scroll {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.app-scroll::-webkit-scrollbar {
+  display: none;
+}
+.app-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .no-scrollbar::-webkit-scrollbar {

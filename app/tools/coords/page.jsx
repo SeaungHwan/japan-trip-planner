@@ -48,7 +48,7 @@ export default function CoordsPickerPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="app-scroll max-w-2xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-2">지도 좌표 피커</h1>
       <p className="text-sm mb-4 text-gray-600">
         이름을 입력하고 지도를 클릭하면 그 위치의 위경도가 기록됩니다. 이름을 비워두면 spot1, spot2...로 자동 채워집니다. 마커를 클릭하면 삭제되고, 표에서 값을 바로 수정할 수 있습니다.
