@@ -9,7 +9,7 @@ import Spinner from "@/components/Spinner";
 import MapView from "@/components/MapView";
 import RegionChips from "@/components/RegionChips";
 import RegionHeader from "@/components/RegionHeader";
-import RegionDateButton from "@/components/RegionDateButton";
+import RegionDateButton, { formatRange } from "@/components/RegionDateButton";
 import FlightCard from "@/components/FlightCard";
 import SpotsPanel from "@/components/SpotsPanel";
 import FoodsPanel from "@/components/FoodsPanel";
@@ -447,7 +447,7 @@ export default function Planner() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
-                {activeTrip.subtitle || "TRIP"}
+                {(region?.startDate && formatRange(region.startDate, region.endDate)) || activeTrip.subtitle || "TRIP"}
               </p>
               {region && (
                 <RegionDateButton

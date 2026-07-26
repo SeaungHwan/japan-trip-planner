@@ -11,7 +11,8 @@ function formatDate(iso) {
   return `${parseInt(m, 10)}.${parseInt(d, 10)}`;
 }
 
-function formatRange(startDate, endDate) {
+// Planner의 맨 위 날짜 표시도 지역 날짜가 있으면 그걸 우선해서 보여줘야 해서 같이 씁니다.
+export function formatRange(startDate, endDate) {
   if (!startDate) return "";
   if (!endDate) return formatDate(startDate);
   return `${formatDate(startDate)}—${formatDate(endDate)}`;
@@ -41,11 +42,6 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
     <>
       <button onClick={openDateModal} aria-label="지역 날짜 수정" className="flex items-center gap-1">
         <CalendarDays size={14} color="#94A9B8" />
-        {region.startDate && (
-          <span className="text-[11px]" style={{ color: "#94A9B8" }}>
-            {formatRange(region.startDate, region.endDate)}
-          </span>
-        )}
       </button>
 
       {dateModalOpen &&
