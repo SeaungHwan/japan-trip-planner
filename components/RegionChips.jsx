@@ -37,18 +37,18 @@ export default function RegionChips({ regions, active, onSelect, showMore, onTog
 
   return (
     <>
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
         {base.map((r, i) => (
           <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} />
         ))}
         {canAddRegion && (
           <button
             className="shrink-0 flex items-center justify-center rounded-full sticky right-0 ml-auto"
-            style={{ width: 20, height: 20, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
+            style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
             onClick={onAddRegion}
             aria-label="새 지역 추가"
           >
-            <Plus size={8} />
+            <Plus size={12} />
           </button>
         )}
       </div>
