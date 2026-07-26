@@ -67,7 +67,6 @@ function toRegion(row) {
     userId: row.user_id || null,
     startDate: row.start_date || null,
     endDate: row.end_date || null,
-    imageUrl: row.image_url || null,
   };
 }
 
@@ -201,6 +200,18 @@ export default function Planner() {
     setZoomed(true);
     setFocus(null);
     setShowAllDayPins(false);
+  }, []);
+
+  // LeafletMap을 React.memo로 감싸도, 이 핸들러들이 렌더마다 새로 만들어지는 인라인
+  // 화살표 함수면 props가 매번 다른 참조가 되어 memo가 무력화됩니다(예: 명소/음식
+  // 패널을 열고 닫을 때마다 지도 전체가 다시 계산·렌더링됨). useCallback으로 고정합니다.
+  const onZoomOut = useCallback(() => {
+    setZoomed(false);
+    setFocus(null);
+  }, []);
+
+  const onToggleAllDayPins = useCallback(() => {
+    setShowAllDayPins((v) => !v);
   }, []);
 
   function selectTrip(id) {
@@ -496,14 +507,11 @@ export default function Planner() {
                 active={active}
                 zoomed={zoomed}
                 onSelect={selectRegion}
-                onZoomOut={() => {
-                  setZoomed(false);
-                  setFocus(null);
-                }}
+                onZoomOut={onZoomOut}
                 focus={focus}
                 dayPins={dayPins}
                 showAllDayPins={showAllDayPins}
-                onToggleAllDayPins={() => setShowAllDayPins((v) => !v)}
+                onToggleAllDayPins={onToggleAllDayPins}
               />
             </div>
 

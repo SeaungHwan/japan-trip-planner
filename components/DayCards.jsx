@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -11,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
 import ImageSwiper from "@/components/ImageSwiper";
+import Modal from "@/components/Modal";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -80,9 +80,7 @@ const dayPhotosCache = new Map();
 // 지역 전체의 대표 이미지는 모든 날짜에 똑같이 나와서 "그 일정 데이터"라고 보기
 // 어려워 여기엔 쓰지 않습니다), 그리고 그 날 항목들을 카드보다 자세히(팝업 안에서만
 // 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는 메인 지도를 건드리지 않고
-// 이 팝업 안의 지도만 그 지점으로 이동시킵니다. day-card가 anim-fadeup 애니메이션을
-// 쓰는 조상이라 position:fixed가 깨지는 문제가 있어(다른 모달들과 동일한 이유)
-// createPortal로 document.body에 붙입니다.
+// 이 팝업 안의 지도만 그 지점으로 이동시킵니다.
 function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
   const [focusPoint, setFocusPoint] = useState(null);
   const [itemPhotos, setItemPhotos] = useState([]);
@@ -121,62 +119,41 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
 
   const images = [...notePhotos, ...itemPhotos];
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(15,42,61,0.5)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
-        style={{ background: "#FFFFFF" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-              {title}
-            </span>
-            <button onClick={onClose} aria-label="닫기">
-              <X size={18} color="#5B7A90" />
-            </button>
-          </div>
-          {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
-          {images.length > 0 && (
-            <div className="mb-3">
-              <ImageSwiper images={images} />
-            </div>
-          )}
-          <ul className="flex flex-col gap-2">
-            {items.map((it, i) => (
-              <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-                <span
-                  className="shrink-0 rounded-full flex items-center justify-center text-[11px]"
-                  style={{ width: 20, height: 20, background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-                >
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px]" style={{ color: "#0F2A3D" }}>
-                    {it.text}
-                  </p>
-                  {it.lat != null && (
-                    <button
-                      onClick={() => setFocusPoint({ lat: it.lat, lng: it.lng })}
-                      className="text-[11px] flex items-center gap-1 mt-0.5"
-                      style={{ color: SKY, fontWeight: 700 }}
-                    >
-                      <MapPin size={11} /> 지도에서 보기
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+  return (
+    <Modal title={title} onClose={onClose}>
+      {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
+      {images.length > 0 && (
+        <div className="mb-3">
+          <ImageSwiper images={images} />
         </div>
-      </div>
-    </div>,
-    document.body
+      )}
+      <ul className="flex flex-col gap-2">
+        {items.map((it, i) => (
+          <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+            <span
+              className="shrink-0 rounded-full flex items-center justify-center text-[11px]"
+              style={{ width: 20, height: 20, background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+            >
+              {i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px]" style={{ color: "#0F2A3D" }}>
+                {it.text}
+              </p>
+              {it.lat != null && (
+                <button
+                  onClick={() => setFocusPoint({ lat: it.lat, lng: it.lng })}
+                  className="text-[11px] flex items-center gap-1 mt-0.5"
+                  style={{ color: SKY, fontWeight: 700 }}
+                >
+                  <MapPin size={11} /> 지도에서 보기
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Modal>
   );
 }
 
@@ -185,48 +162,27 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
 function MemoModal({ memo, onSave, onClose }) {
   const [draft, setDraft] = useState(memo || "");
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(15,42,61,0.5)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
-        style={{ background: "#FFFFFF" }}
-        onClick={(e) => e.stopPropagation()}
+  return (
+    <Modal icon={FileText} title="메모장" onClose={onClose}>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="자유롭게 메모를 남겨보세요 (준비물, 체크리스트 등)"
+        rows={8}
+        className="w-full text-[13px] rounded-lg p-2.5"
+        style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
+      />
+      <button
+        onClick={() => {
+          onSave(draft);
+          onClose();
+        }}
+        className="w-full mt-2 rounded-lg py-2 text-[13px]"
+        style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
       >
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-              <FileText size={16} color={SKY} /> 메모장
-            </span>
-            <button onClick={onClose} aria-label="닫기">
-              <X size={18} color="#5B7A90" />
-            </button>
-          </div>
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="자유롭게 메모를 남겨보세요 (준비물, 체크리스트 등)"
-            rows={8}
-            className="w-full text-[13px] rounded-lg p-2.5"
-            style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
-          />
-          <button
-            onClick={() => {
-              onSave(draft);
-              onClose();
-            }}
-            className="w-full mt-2 rounded-lg py-2 text-[13px]"
-            style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-          >
-            저장
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
+        저장
+      </button>
+    </Modal>
   );
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useState } from "react";
 import { Wallet, Users, Plus, X, ArrowRight } from "lucide-react";
+import Modal from "@/components/Modal";
 
 const SKY = "#0EA5E9";
 
@@ -58,8 +58,10 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
   const [customAmounts, setCustomAmounts] = useState({});
 
   const total = (budget || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-  const balances = computeBalances(budget, list);
-  const transfers = computeTransfers(balances);
+  // budget/participants가 그대론데 입력 폼(이름/금액/직접입력 등)에 타이핑할 때마다
+  // 다시 계산되지 않도록 memo합니다. 항목 수가 늘어날수록 이 계산 비용도 커집니다.
+  const balances = useMemo(() => computeBalances(budget, list), [budget, list]);
+  const transfers = useMemo(() => computeTransfers(balances), [balances]);
 
   function addParticipant() {
     const trimmed = newParticipant.trim();
@@ -99,27 +101,8 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
 
   const customSum = splitWith.reduce((sum, p) => sum + (Number(customAmounts[p]) || 0), 0);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(15,42,61,0.5)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
-        style={{ background: "#FFFFFF" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-              <Wallet size={16} color={SKY} /> 정산
-            </span>
-            <button onClick={onClose} aria-label="닫기">
-              <X size={18} color="#5B7A90" />
-            </button>
-          </div>
-
+  return (
+    <Modal icon={Wallet} title="정산" onClose={onClose}>
           {/* 참가자 */}
           <div className="mb-3">
             <div className="flex items-center gap-1 mb-1.5 text-[12px]" style={{ color: "#5B7A90", fontWeight: 700 }}>
@@ -375,9 +358,6 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
               )}
             </div>
           )}
-        </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

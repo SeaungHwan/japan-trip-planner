@@ -1,0 +1,38 @@
+"use client";
+
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+
+const SKY = "#0EA5E9";
+
+// SpotsPanel/FoodsPanel/SettlementModal/DayDetailModal/MemoModal이 각자 따로 구현하던
+// "배경 오버레이 + 흰 카드 + 스크롤 영역 + 제목줄(아이콘+제목+닫기)" 뼈대를 하나로 모읍니다.
+// 배경 클릭 시 닫히고, 카드 클릭은 stopPropagation으로 막아 배경 클릭과 구분합니다.
+export default function Modal({ icon: Icon, title, onClose, children }) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,42,61,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        style={{ background: "#FFFFFF" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              {Icon && <Icon size={16} color={SKY} />} {title}
+            </span>
+            <button onClick={onClose} aria-label="닫기">
+              <X size={18} color="#5B7A90" />
+            </button>
+          </div>
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}

@@ -34,10 +34,15 @@ export default function Feedback({ targetKey }) {
     }
     load();
 
+    // day_item_notes/user_regions와 같은 이유로 필터를 안 겁니다: DELETE 이벤트는 기본
+    // REPLICA IDENTITY에서 target_key 없이 기본키만 실려오므로, target_key로 필터링하면
+    // 삭제 이벤트 자체가 조용히 무시됩니다. load()가 이미 targetKey로 좁혀서 다시
+    // 받아오므로, 다른 지역에서 일어난 변경으로 재조회가 한 번 더 일어나는 정도의
+    // 비용만 남고 결과 자체는 정확합니다.
     const channel = supabase
       .channel(`feedback:${targetKey}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "reactions", filter: `target_key=eq.${targetKey}` }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `target_key=eq.${targetKey}` }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, load)
       .subscribe();
 
     return () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2, LayoutGrid } from "lucide-react";
@@ -95,7 +95,11 @@ function spreadOverlappingPins(pins, zoom) {
   return spread;
 }
 
-export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPins, showAllDayPins, onToggleAllDayPins }) {
+// Planner가 명소/음식 패널 열기 같은, 지도와 무관한 상태가 바뀔 때마다 리렌더되는데,
+// props(regions/dayPins 등)가 실제로는 안 바뀐 경우 memo로 지도 재계산(겹침 방지,
+// 아이콘 재생성)을 건너뜁니다. 부모가 넘기는 핸들러도 useCallback으로 고정돼 있어야
+// 이 memo가 실제로 효과가 있습니다(Planner.jsx의 onZoomOut/onToggleAllDayPins 참고).
+function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPins, showAllDayPins, onToggleAllDayPins }) {
   const activeRegion = regions[active] || null;
   const [openSpot, setOpenSpot] = useState(null);
 
@@ -230,3 +234,5 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
     </div>
   );
 }
+
+export default memo(LeafletMap);

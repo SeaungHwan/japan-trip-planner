@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { UtensilsCrossed, ChevronRight, X, Plus } from "lucide-react";
+import Modal from "@/components/Modal";
 
 const SKY = "#0EA5E9";
 
@@ -40,65 +40,42 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
         </span>
       </button>
 
-      {open &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: "rgba(15,42,61,0.5)" }}
-            onClick={handleClose}
-          >
-            <div
-              className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
-              style={{ background: "#FFFFFF" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-                    <UtensilsCrossed size={16} color={SKY} /> 지역 음식
-                  </span>
-                  <button onClick={handleClose} aria-label="닫기">
-                    <X size={18} color="#5B7A90" />
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {(foods || []).map((name, i) => (
-                    <span
-                      key={i}
-                      className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
-                      style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-                    >
-                      <span>{name}</span>
-                      {canEdit && (
-                        <button onClick={() => onDeleteFood?.(i)} aria-label="음식 삭제" className="shrink-0">
-                          <X size={12} color="#94A9B8" />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-
+      {open && (
+        <Modal icon={UtensilsCrossed} title="지역 음식" onClose={handleClose}>
+          <div className="flex flex-wrap gap-2">
+            {(foods || []).map((name, i) => (
+              <span
+                key={i}
+                className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
+                style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+              >
+                <span>{name}</span>
                 {canEdit && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <input
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && submitAdd()}
-                      placeholder="새 음식 이름"
-                      className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
-                      style={{ border: "1px solid #BAE6FD" }}
-                    />
-                    <button onClick={submitAdd} aria-label="추가" className="shrink-0">
-                      <Plus size={16} color={SKY} />
-                    </button>
-                  </div>
+                  <button onClick={() => onDeleteFood?.(i)} aria-label="음식 삭제" className="shrink-0">
+                    <X size={12} color="#94A9B8" />
+                  </button>
                 )}
-              </div>
+              </span>
+            ))}
+          </div>
+
+          {canEdit && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitAdd()}
+                placeholder="새 음식 이름"
+                className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
+                style={{ border: "1px solid #BAE6FD" }}
+              />
+              <button onClick={submitAdd} aria-label="추가" className="shrink-0">
+                <Plus size={16} color={SKY} />
+              </button>
             </div>
-          </div>,
-          document.body
-        )}
+          )}
+        </Modal>
+      )}
     </>
   );
 }
