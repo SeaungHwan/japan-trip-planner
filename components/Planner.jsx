@@ -62,6 +62,7 @@ function toRegion(row) {
     foods: row.foods || [],
     memo: row.memo || "",
     budget: row.budget || [],
+    participants: row.participants || [],
     days: row.days || [],
     userId: row.user_id || null,
     startDate: row.start_date || null,
@@ -374,10 +375,9 @@ export default function Planner() {
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
   }
 
-  async function addBudgetItem(region, name, amount) {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const newBudget = [...(region.budget || []), { name: trimmed, amount: amount || 0 }];
+  async function addBudgetItem(region, item) {
+    if (!item.name?.trim()) return;
+    const newBudget = [...(region.budget || []), item];
     const { data, error } = await supabase.from("user_regions").update({ budget: newBudget }).eq("id", region.id).select().single();
     if (error) {
       alert("추가에 실패했어요: " + error.message);
@@ -391,6 +391,15 @@ export default function Planner() {
     const { data, error } = await supabase.from("user_regions").update({ budget: newBudget }).eq("id", region.id).select().single();
     if (error) {
       alert("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
+  }
+
+  async function saveParticipants(region, participants) {
+    const { data, error } = await supabase.from("user_regions").update({ participants }).eq("id", region.id).select().single();
+    if (error) {
+      alert("참가자 저장에 실패했어요: " + error.message);
       return;
     }
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
@@ -443,7 +452,7 @@ export default function Planner() {
           startDate={region?.startDate || activeTrip.start_date}
           endDate={region?.endDate || activeTrip.end_date}
         />
-        <div className="mb-4 anim-fadeup">
+        <div className="mb-2 anim-fadeup">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
@@ -525,8 +534,9 @@ export default function Planner() {
                   region={region}
                   onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
                   canEdit={canManageRegion(region)}
-                  onAddBudgetItem={(name, amount) => addBudgetItem(region, name, amount)}
+                  onAddBudgetItem={(item) => addBudgetItem(region, item)}
                   onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
+                  onSaveParticipants={(participants) => saveParticipants(region, participants)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
                 <div className="flex gap-2 mb-3">

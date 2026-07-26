@@ -87,9 +87,15 @@ alter table user_regions add column if not exists foods jsonb not null default '
 -- 특정 항목에 묶이지 않는 지역 전체용 자유 텍스트라 그냥 문자열 하나로 저장합니다.
 alter table user_regions add column if not exists memo text;
 
--- 총무 기능: 항공권/숙박/렌트카 등 비용 항목을 {name, amount} 형태로 자유롭게 추가합니다.
--- 카테고리를 고정하지 않고 이름 문자열 배열로 저장하는 foods와 같은 패턴입니다.
+-- 정산 기능: 항공권/숙박/렌트카 등 비용 항목을 자유롭게 추가합니다. 각 항목은
+-- {name, amount, payer, participants, splitMode, customSplits} 형태로, 누가 냈고
+-- 누구누구와 나누는지(전체 인원 균등분 또는 1인당 직접 입력)까지 담습니다.
+-- 컬럼 이름은 이전 "총무" 시절 그대로 두되(마이그레이션 부담 없이), UI 쪽 표기만 정산으로 바꿨습니다.
 alter table user_regions add column if not exists budget jsonb not null default '[]'::jsonb;
+
+-- 정산에 참여하는 인원 이름 목록(계정 연동 없이 이름 문자열만). 지역 단위로 관리해서
+-- foods/budget과 같은 패턴을 따릅니다.
+alter table user_regions add column if not exists participants jsonb not null default '[]'::jsonb;
 
 -- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 모든 지역은 반드시
 -- 특정 트립(trips.id)에 속해야 하므로 기본값 없이 앱이 항상 명시적으로 넣습니다.
