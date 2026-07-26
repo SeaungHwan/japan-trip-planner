@@ -1,4 +1,4 @@
-# 일본 소도시 여행 플래너
+# 여행 플래너
 
 Next.js(App Router) + Tailwind CSS + lucide-react로 만든 여행 플래너입니다.
 

@@ -2,7 +2,7 @@ import "./globals.css";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 
 export const metadata = {
-  title: "여행",
+  title: "여행 플래너",
   description: "여행 플래너 — 대중교통 · 렌트카 코스, 항공편 정보, 지도",
   icons: {
     icon: "/icon.png",
