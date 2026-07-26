@@ -15,7 +15,7 @@ const SKY = "#0EA5E9";
 // onClose를 호출해 부모가 언마운트하게 합니다. e.target === e.currentTarget으로
 // 안쪽 카드의 애니메이션이 버블링돼 오는 걸 걸러, 배경 자신의 애니메이션이 끝났을
 // 때만 반응합니다.
-export default function Modal({ icon: Icon, title, onClose, headerExtra, children }) {
+export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeight, children }) {
   const [closing, setClosing] = useState(false);
 
   function requestClose() {
@@ -35,7 +35,7 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, childre
     >
       <div
         className={`w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${closing ? "modal-card-out" : "modal-card-in"}`}
-        style={{ background: "#FFFFFF" }}
+        style={{ background: "#FFFFFF", minHeight }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">

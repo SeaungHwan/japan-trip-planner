@@ -49,6 +49,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
       icon={FileText}
       title="메모장"
       onClose={onClose}
+      minHeight={300}
       headerExtra={
         <button onClick={() => setAdding((v) => !v)} aria-label="메모 추가" className="shrink-0">
           <Plus size={18} color={adding ? SKY : "#5B7A90"} />
@@ -81,7 +82,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
           {items.map((text, i) => (
             <li
               key={i}
-              className="flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
               style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
             >
               <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{text}</span>
