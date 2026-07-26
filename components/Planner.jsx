@@ -533,6 +533,8 @@ export default function Planner() {
                   onAddBudgetItem={(item) => addBudgetItem(region, item)}
                   onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
                   onSaveParticipants={(participants) => saveParticipants(region, participants)}
+                  memo={region.memo}
+                  onSaveMemo={(memo) => saveRegionMemo(region, memo)}
                 />
                 {region.flight && <FlightCard flight={region.flight} />}
                 <div className="flex gap-2 mb-3">
@@ -562,8 +564,6 @@ export default function Planner() {
                       mode={mode}
                       regionId={region.id}
                       regionName={region.kr}
-                      memo={region.memo}
-                      onSaveMemo={(memo) => saveRegionMemo(region, memo)}
                       onDaysPinsChange={setDayPins}
                       canEdit={canManageRegion(region)}
                     />

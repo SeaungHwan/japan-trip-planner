@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Wallet } from "lucide-react";
+import { Trash2, Wallet, FileText } from "lucide-react";
 import { getIcon } from "@/data/icons";
 import Feedback from "@/components/Feedback";
 import SettlementModal from "@/components/SettlementModal";
+import MemoModal from "@/components/MemoModal";
 
 const SKY = "#0EA5E9";
 
-export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetItem, onDeleteBudgetItem, onSaveParticipants }) {
+export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetItem, onDeleteBudgetItem, onSaveParticipants, memo, onSaveMemo }) {
   const Icon = getIcon(region.icon);
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [memoOpen, setMemoOpen] = useState(false);
 
   return (
     <div className="mb-3 anim-fadeup" key={region.id}>
@@ -23,6 +25,11 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
           {region.jp}
         </span>
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          {canEdit && (
+            <button onClick={() => setMemoOpen(true)} aria-label="메모장" className="flex items-center gap-1">
+              <FileText size={14} color="#94A9B8" />
+            </button>
+          )}
           {canEdit && (
             <button onClick={() => setBudgetModalOpen(true)} aria-label="정산" className="flex items-center gap-1">
               <Wallet size={14} color="#94A9B8" />
@@ -53,6 +60,8 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
           onClose={() => setBudgetModalOpen(false)}
         />
       )}
+
+      {memoOpen && <MemoModal memo={memo} onSave={onSaveMemo} onClose={() => setMemoOpen(false)} />}
     </div>
   );
 }
