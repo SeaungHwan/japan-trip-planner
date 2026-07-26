@@ -1,6 +1,9 @@
 "use client";
 
 import { memo } from "react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { getIcon } from "@/data/icons";
 
@@ -10,10 +13,24 @@ const SKY = "#0EA5E9";
 // 그래야 부모가 렌더링될 때마다 새 함수를 넘겨서 memo가 무력화되는 걸 막을 수 있습니다.
 // 폭을 이름 길이에 맡기지 않고 고정해서, 화면에 한 번에 3~4개만 보이고 나머지는
 // 옆으로 스크롤해야 보이게 합니다.
-const Chip = memo(function Chip({ r, isActive, index, onSelect }) {
+//
+// 별도의 "순서 바꾸기" 모드 버튼 없이, 칩을 꾹 누르고 있으면 바로 드래그로 순서를
+// 바꿀 수 있습니다(useSensor의 activationConstraint delay). 짧게 누르면(탭) 그냥
+// onSelect가 호출되고, 가로로 스와이프하면 원래대로 칩 줄이 스크롤됩니다 — delay가
+// 지나기 전에 손가락이 tolerance 이상 움직이면 드래그 자체가 취소되기 때문입니다.
+// 그래서 이 버튼에는 touch-action을 막지 않습니다(막으면 가로 스크롤이 안 됨).
+const Chip = memo(function Chip({ r, isActive, index, onSelect, canReorder }) {
   const Icon = getIcon(r.icon);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: r.id,
+    disabled: !canReorder,
+  });
+
   return (
     <button
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       className="chip-btn shrink-0 flex items-center justify-center gap-1.5 rounded-full px-2 text-sm"
       style={{
         width: 96,
@@ -22,6 +39,11 @@ const Chip = memo(function Chip({ r, isActive, index, onSelect }) {
         color: isActive ? "#FFFFFF" : "#0F2A3D",
         border: `1px solid ${isActive ? SKY : "#BAE6FD"}`,
         fontWeight: isActive ? 700 : 500,
+        transform: transform ? CSS.Transform.toString(transform) : undefined,
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+        zIndex: isDragging ? 10 : undefined,
+        position: "relative",
       }}
       onClick={() => onSelect(index)}
     >
@@ -31,27 +53,53 @@ const Chip = memo(function Chip({ r, isActive, index, onSelect }) {
   );
 });
 
-export default function RegionChips({ regions, active, onSelect, showMore, onToggleMore, moreCount, baseCount, canAddRegion, onAddRegion }) {
+export default function RegionChips({
+  regions,
+  active,
+  onSelect,
+  showMore,
+  onToggleMore,
+  moreCount,
+  baseCount,
+  canAddRegion,
+  onAddRegion,
+  canReorder,
+  onReorder,
+}) {
   const base = regions.slice(0, baseCount);
   const extra = regions.slice(baseCount);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 300, tolerance: 6 } }));
+
+  function handleDragEnd({ active: activeChip, over }) {
+    if (!over || activeChip.id === over.id) return;
+    const ids = base.map((r) => r.id);
+    const oldIndex = ids.indexOf(activeChip.id);
+    const newIndex = ids.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorder(oldIndex, newIndex);
+  }
 
   return (
     <>
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
-        {base.map((r, i) => (
-          <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} />
-        ))}
-        {canAddRegion && (
-          <button
-            className="shrink-0 flex items-center justify-center rounded-full sticky right-0 ml-auto"
-            style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
-            onClick={onAddRegion}
-            aria-label="새 지역 추가"
-          >
-            <Plus size={12} />
-          </button>
-        )}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
+            {base.map((r, i) => (
+              <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} canReorder={canReorder} />
+            ))}
+            {canAddRegion && (
+              <button
+                className="shrink-0 flex items-center justify-center rounded-full sticky right-0 ml-auto"
+                style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
+                onClick={onAddRegion}
+                aria-label="새 지역 추가"
+              >
+                <Plus size={12} />
+              </button>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
       {(moreCount > 0 || extra.length > 0) && (
         <div className="mb-5">
           {moreCount > 0 && (
@@ -74,7 +122,14 @@ export default function RegionChips({ regions, active, onSelect, showMore, onTog
           {extra.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {extra.map((r, j) => (
-                <Chip key={r.id} r={r} isActive={baseCount + j === active} index={baseCount + j} onSelect={onSelect} />
+                <Chip
+                  key={r.id}
+                  r={r}
+                  isActive={baseCount + j === active}
+                  index={baseCount + j}
+                  onSelect={onSelect}
+                  canReorder={false}
+                />
               ))}
             </div>
           )}

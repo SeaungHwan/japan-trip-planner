@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { arrayMove } from "@dnd-kit/sortable";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
@@ -45,6 +46,21 @@ const EMPTY_TRIP = {
 function readLastTripId() {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(LAST_TRIP_KEY) || null;
+}
+
+// sort_order가 없던(한 번도 순서를 안 바꾼) 지역은 지금까지처럼 created_at 순서를
+// 그대로 유지하고, sort_order가 있는 지역은 그 값 기준으로 앞에 옵니다. 두 종류가
+// 섞여 있으면(예: 순서를 바꾼 뒤 새 지역을 추가한 경우) sort_order가 있는 쪽이 항상
+// 앞에 오고, 없는 쪽끼리는 원래(created_at) 순서를 유지합니다.
+function sortRegionRows(rows) {
+  return [...rows].sort((a, b) => {
+    const aHas = a.sort_order != null;
+    const bHas = b.sort_order != null;
+    if (aHas && bHas) return a.sort_order - b.sort_order;
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return 0;
+  });
 }
 
 function toRegion(row) {
@@ -115,7 +131,7 @@ export default function Planner() {
         .eq("trip_id", activeTripId)
         .order("created_at", { ascending: true });
       if (active) {
-        setUserRegions((data || []).map(toRegion));
+        setUserRegions(sortRegionRows(data || []).map(toRegion));
         setLoadingRegions(false);
       }
     }
@@ -200,6 +216,29 @@ export default function Planner() {
     setFocus(null);
     setShowAllDayPins(false);
   }, []);
+
+  // 메인 칩 줄(baseRegions)에서만 순서를 바꿀 수 있습니다 — userRegions의 앞
+  // MAX_BASE_REGIONS개가 그대로 baseRegions라, 이 구간 안에서만 arrayMove하면 됩니다.
+  // 낙관적으로 화면부터 바꾸고, 그 순서(index)를 sort_order로 저장합니다. 드래그하던
+  // 지역이 활성 지역이었다면 순서가 바뀐 뒤에도 같은 지역이 계속 선택되도록 active를
+  // 그 지역의 새 위치로 다시 맞춥니다.
+  const reorderRegions = useCallback(
+    (oldIndex, newIndex) => {
+      const base = userRegions.slice(0, MAX_BASE_REGIONS);
+      const extra = userRegions.slice(MAX_BASE_REGIONS);
+      const newBase = arrayMove(base, oldIndex, newIndex);
+      const activeId = regions[active]?.id;
+
+      setUserRegions([...newBase, ...extra]);
+      if (activeId) {
+        const newActiveIndex = newBase.findIndex((r) => r.id === activeId);
+        if (newActiveIndex !== -1) setActive(newActiveIndex);
+      }
+
+      Promise.all(newBase.map((r, idx) => supabase.from("user_regions").update({ sort_order: idx }).eq("id", r.id)));
+    },
+    [userRegions, active, regions]
+  );
 
   // LeafletMap을 React.memo로 감싸도, 이 핸들러들이 렌더마다 새로 만들어지는 인라인
   // 화살표 함수면 props가 매번 다른 참조가 되어 memo가 무력화됩니다(예: 명소/음식
@@ -513,6 +552,8 @@ export default function Planner() {
               baseCount={baseRegions.length}
               canAddRegion={canEditTrip(activeTrip)}
               onAddRegion={() => setShowAddForm(true)}
+              canReorder={canEditTrip(activeTrip)}
+              onReorder={reorderRegions}
             />
 
             {loadingRegions ? (

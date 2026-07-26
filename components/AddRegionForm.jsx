@@ -33,6 +33,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 });
 
 export default function AddRegionForm({ onClose, onAdded, tripId }) {
+  const [closing, setClosing] = useState(false);
   const [kr, setKr] = useState("");
   const [extraPrompt, setExtraPrompt] = useState("");
   const [jp, setJp] = useState("");
@@ -49,6 +50,14 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [generating, setGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+
+  function requestClose() {
+    setClosing(true);
+  }
+
+  function handleBackdropAnimationEnd(e) {
+    if (closing && e.target === e.currentTarget) onClose();
+  }
 
   useEffect(() => {
     if (!generating) {
@@ -168,17 +177,24 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       return;
     }
     onAdded(data);
-    onClose();
+    requestClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(15,42,61,0.5)" }}>
-      <div className="w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col" style={{ background: "#FFFFFF" }}>
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
+      style={{ background: "rgba(15,42,61,0.5)" }}
+      onAnimationEnd={handleBackdropAnimationEnd}
+    >
+      <div
+        className={`w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col ${closing ? "modal-card-out" : "modal-card-in"}`}
+        style={{ background: "#FFFFFF" }}
+      >
         <div className="flex items-center justify-between p-4 pb-3 shrink-0">
           <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             새 지역 추가
           </span>
-          <button onClick={onClose}>
+          <button onClick={requestClose}>
             <X size={18} color="#5B7A90" />
           </button>
         </div>

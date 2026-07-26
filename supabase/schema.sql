@@ -97,6 +97,12 @@ alter table user_regions add column if not exists budget jsonb not null default 
 -- foods/budget과 같은 패턴을 따릅니다.
 alter table user_regions add column if not exists participants jsonb not null default '[]'::jsonb;
 
+-- 지역 칩을 꾹 눌러 드래그로 순서를 바꿀 수 있게 합니다. 값이 없으면(null) 지금까지처럼
+-- created_at 오름차순을 그대로 씁니다 — 한 번이라도 순서를 바꾸면 그때 보이던 지역
+-- 전체에 sort_order를 매겨서, 그 뒤로는 이 값이 우선하고 새로 추가되는 지역만 null로
+-- 남아 맨 뒤(생성 순서대로)에 붙습니다.
+alter table user_regions add column if not exists sort_order integer;
+
 -- 여러 개의 독립적인 여행을 만들고 전환할 수 있게 합니다(팀 전체 공유). 모든 지역은 반드시
 -- 특정 트립(trips.id)에 속해야 하므로 기본값 없이 앱이 항상 명시적으로 넣습니다.
 alter table user_regions add column if not exists trip_id text not null default 'japan-trip';
