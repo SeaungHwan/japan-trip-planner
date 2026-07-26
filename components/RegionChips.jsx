@@ -9,6 +9,13 @@ import { getIcon } from "@/data/icons";
 
 const SKY = "#0EA5E9";
 
+// 칩 줄은 가로로만 스크롤/재정렬되는 목록이라, 세로로 손가락이 흔들리는 것까지 그대로
+// 따라가면 칩이 줄 밖으로 떠서 내려가는 것처럼 보입니다. y를 0으로 고정해 드래그가
+// 가로 방향으로만 움직이게 합니다.
+function restrictToHorizontalAxis({ transform }) {
+  return { ...transform, y: 0 };
+}
+
 // index/onSelect(안정된 참조)를 그대로 받아 클릭 핸들러를 내부에서 만듭니다.
 // 그래야 부모가 렌더링될 때마다 새 함수를 넘겨서 memo가 무력화되는 걸 막을 수 있습니다.
 // 폭을 이름 길이에 맡기지 않고 고정해서, 화면에 한 번에 3~4개만 보이고 나머지는
@@ -81,7 +88,12 @@ export default function RegionChips({
 
   return (
     <>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        modifiers={[restrictToHorizontalAxis]}
+      >
         <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
           <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
             {base.map((r, i) => (
