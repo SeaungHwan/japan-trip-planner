@@ -198,21 +198,23 @@ export default function LeafletMap({ regions, active, zoomed, onSelect, onZoomOu
 
       {zoomed && (
         <button
-          className="zoom-btn absolute top-2 right-2 z-[1000] rounded-full px-3 py-1.5 text-xs flex items-center gap-1"
-          style={{ background: "#FFFFFF", color: "#0F2A3D", border: "1px solid #BAE6FD", fontWeight: 700 }}
+          className="zoom-btn absolute top-2 right-2 z-[1000] rounded-full flex items-center justify-center"
+          style={{ width: 32, height: 32, background: "#FFFFFF", color: "#0F2A3D", border: "1px solid #BAE6FD" }}
           onClick={onZoomOut}
+          aria-label="전체 지도"
         >
-          <Minimize2 size={12} /> 전체 지도
+          <Minimize2 size={15} />
         </button>
       )}
 
       {zoomed && activeRegion && validDayPins.length > 0 && (
         <button
-          className="zoom-btn absolute top-11 right-2 z-[1000] rounded-full px-3 py-1.5 text-xs flex items-center gap-1"
-          style={{ background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : "#0F2A3D", border: "1px solid #BAE6FD", fontWeight: 700 }}
+          className="zoom-btn absolute top-[46px] right-2 z-[1000] rounded-full flex items-center justify-center"
+          style={{ width: 32, height: 32, background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : "#0F2A3D", border: "1px solid #BAE6FD" }}
           onClick={onToggleAllDayPins}
+          aria-label="전체보기"
         >
-          <LayoutGrid size={12} /> 전체보기
+          <LayoutGrid size={15} />
         </button>
       )}
     </div>

@@ -116,16 +116,6 @@ body::-webkit-scrollbar {
   animation: fadeUp 0.35s ease both;
 }
 
-.spots-panel {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-}
-.spots-panel.open {
-  max-height: 1000px;
-  overflow-y: auto;
-}
-
 .zoom-btn {
   animation: popIn 0.25s ease both;
 }
