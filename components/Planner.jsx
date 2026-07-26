@@ -531,7 +531,7 @@ export default function Planner() {
         ) : (
           <>
             <div className="md:flex md:items-start md:gap-4">
-              <div className="md:flex-1 md:min-w-0">
+              <div className="md:flex-1 md:min-w-0 md:sticky md:top-4">
                 <MapView
                   regions={regions}
                   active={active}
@@ -579,7 +579,6 @@ export default function Planner() {
                       memo={region.memo}
                       onSaveMemo={(memo) => saveRegionMemo(region, memo)}
                     />
-                    {region.flight && <FlightCard flight={region.flight} />}
                     <div className="flex gap-2 mb-3">
                       <SpotsPanel
                         spots={region.moreSpots}
@@ -603,17 +602,22 @@ export default function Planner() {
                 )}
               </div>
 
-              {!loadingRegions && regions.length > 0 && region.days?.length > 0 && (
+              {!loadingRegions && regions.length > 0 && (region.flight || region.days?.length > 0) && (
                 <div className="md:flex-1 md:min-w-0">
-                  <ModeToggle mode={mode} onChange={setMode} />
-                  <DayCards
-                    days={region.days}
-                    mode={mode}
-                    regionId={region.id}
-                    regionName={region.kr}
-                    onDaysPinsChange={setDayPins}
-                    canEdit={canManageRegion(region)}
-                  />
+                  {region.flight && <FlightCard flight={region.flight} />}
+                  {region.days?.length > 0 && (
+                    <>
+                      <ModeToggle mode={mode} onChange={setMode} />
+                      <DayCards
+                        days={region.days}
+                        mode={mode}
+                        regionId={region.id}
+                        regionName={region.kr}
+                        onDaysPinsChange={setDayPins}
+                        canEdit={canManageRegion(region)}
+                      />
+                    </>
+                  )}
                 </div>
               )}
             </div>
