@@ -145,6 +145,10 @@ begin
   end if;
 end $$;
 
+-- 댓글도 마찬가지로 실제 계정을 남겨야 "내가 쓴 댓글만 지우기"를 검증할 수 있습니다.
+-- user_id가 null인 이전 댓글(작성자 없음)은 본인 삭제 대상이 아니게 됩니다.
+alter table comments add column if not exists user_id uuid references auth.users(id) on delete set null;
+
 -- 일정(DayCards) 항목을 트리플처럼 자유롭게 추가/수정/삭제하기 위한 테이블.
 -- 원본 항목은 base:{index} 키로, 새로 추가한 항목은 custom:{uuid} 키로 구분해
 -- 원본 데이터(user_regions.days)는 건드리지 않고 위에 덧씌웁니다(add/edit/delete 모두 upsert 한 건).
@@ -260,6 +264,9 @@ drop policy if exists "comments_select" on comments;
 create policy "comments_select" on comments for select using (is_allowed_user());
 drop policy if exists "comments_insert" on comments;
 create policy "comments_insert" on comments for insert with check (is_allowed_user());
+-- 자기가 쓴 댓글만 지울 수 있습니다(작성자 없는 이전 댓글은 아무도 못 지움).
+drop policy if exists "comments_delete" on comments;
+create policy "comments_delete" on comments for delete using (auth.uid() = user_id);
 
 drop policy if exists "reactions_select" on reactions;
 create policy "reactions_select" on reactions for select using (is_allowed_user());

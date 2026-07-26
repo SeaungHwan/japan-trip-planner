@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 
@@ -63,8 +63,12 @@ export default function Feedback({ targetKey }) {
 
   async function submitComment() {
     if (!identity || !text.trim()) return;
-    await supabase.from("comments").insert({ target_key: targetKey, nickname: identity.nickname, body: text.trim() });
+    await supabase.from("comments").insert({ target_key: targetKey, user_id: identity.id, nickname: identity.nickname, body: text.trim() });
     setText("");
+  }
+
+  async function deleteComment(id) {
+    await supabase.from("comments").delete().eq("id", id);
   }
 
   return (
@@ -103,9 +107,18 @@ export default function Feedback({ targetKey }) {
         <div className="rounded-lg p-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
           <div className="no-auto-phrase flex flex-col gap-1 mb-2 max-h-40 overflow-y-auto">
             {comments.map((c) => (
-              <div key={c.id} className="text-[12px]">
-                <span style={{ fontWeight: 700, color: "#0F2A3D" }}>{c.nickname}</span>{" "}
-                <span style={{ color: "#5B7A90" }}>{c.body}</span>
+              <div key={c.id} className="flex items-start gap-1.5 text-[12px]">
+                <span className="shrink-0" style={{ fontWeight: 700, color: "#0F2A3D" }}>
+                  {c.nickname}
+                </span>
+                <span className="flex-1 min-w-0" style={{ color: "#5B7A90" }}>
+                  {c.body}
+                </span>
+                {c.user_id === identity?.id && (
+                  <button onClick={() => deleteComment(c.id)} aria-label="댓글 삭제" className="shrink-0">
+                    <X size={12} color="#94A9B8" />
+                  </button>
+                )}
               </div>
             ))}
             {comments.length === 0 && (
