@@ -25,9 +25,17 @@ function FitOrFocus({ points, focus }) {
     if (focus) {
       map.flyTo([focus.lat, focus.lng], 15, { duration: 0.5 });
     } else if (points.length > 1) {
-      map.fitBounds(points.map((p) => [p.lat, p.lng]), { padding: [30, 30] });
+      // 이 지도를 담은 모달을 fitBounds의 줌 전환 애니메이션이 끝나기 전에 닫으면,
+      // 리플렛이 CSS transitionend 콜백에서 이미 언마운트로 사라진 지도 팬(pane)을
+      // 참조해 "Cannot read properties of undefined (reading '_leaflet_pos')" 에러가
+      // 났습니다. 애초에 애니메이션 없이 즉시 맞추면 이 문제가 안 생깁니다(팝업 안
+      // 작은 지도라 애니메이션이 없어도 눈에 띄는 차이는 없습니다). map.stop()으로
+      // 언마운트 시점에 취소하는 방법도 시도했지만, 그 cleanup 자체가 리플렛이 지도
+      // 팬을 이미 정리한 뒤에 실행돼 같은 종류의 에러를 냈습니다 — 언마운트 정리는
+      // react-leaflet의 MapContainer가 이미 담당하므로 여기서 손대지 않습니다.
+      map.fitBounds(points.map((p) => [p.lat, p.lng]), { padding: [30, 30], animate: false });
     } else if (points.length === 1) {
-      map.setView([points[0].lat, points[0].lng], 14);
+      map.setView([points[0].lat, points[0].lng], 14, { animate: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.lat, focus?.lng, points.length]);

@@ -253,13 +253,20 @@ const DayCardItem = memo(function DayCardItem({
   const noteCountFor = (key) => dayNotes.filter((n) => n.item_key === key).length;
   const itemSensors = useSensors(useSensor(PointerSensor));
 
-  function handleItemDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return;
-    const oldIndex = items.findIndex((it) => it.key === active.id);
-    const newIndex = items.findIndex((it) => it.key === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    onReorderItems(di, items, oldIndex, newIndex);
-  }
+  // 카드 재정렬(DayCards의 onDragEnd)과 같은 이유로 고정합니다: 이 카드가 활성 편집
+  // 카드일 때는 타이핑 한 글자마다 리렌더되는데, 인라인 함수면 그때마다 새 참조가 되어
+  // 안쪽 DndContext의 컨텍스트 값이 매번 바뀝니다(items 참조 자체는 편집 중엔 그대로라
+  // useCallback으로 묶으면 실제로 안정적입니다).
+  const handleItemDragEnd = useCallback(
+    ({ active, over }) => {
+      if (!over || active.id === over.id) return;
+      const oldIndex = items.findIndex((it) => it.key === active.id);
+      const newIndex = items.findIndex((it) => it.key === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      onReorderItems(di, items, oldIndex, newIndex);
+    },
+    [items, di, onReorderItems]
+  );
 
   const transformStyle = transform ? CSS.Transform.toString(transform) : undefined;
 

@@ -103,14 +103,6 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
             )
           }
         >
-          {/* 추가 폼으로 전환될 때도 지도(DayDetailMap)는 계속 마운트된 채로 CSS로만
-              숨깁니다. 조건부 렌더링으로 완전히 언마운트하면, fitBounds/flyTo 애니메이션이
-              끝나기 전에 리플렛 인스턴스가 파괴되면서 애니메이션 종료 콜백이 이미 사라진
-              지도 팬(pane)을 참조해 "Cannot read properties of undefined (reading
-              '_leaflet_pos')" 에러가 났습니다. */}
-          <div className={adding ? "hidden" : undefined}>
-            {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
-          </div>
           {adding ? (
             <div className="flex flex-col gap-2">
               <input
@@ -134,6 +126,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
             </div>
           ) : (
             <>
+              {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
               <div className="flex flex-wrap gap-2">
                 {(spots || []).map((s, i) => {
                   const hasLocation = typeof s.lat === "number" && typeof s.lng === "number";
