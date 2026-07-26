@@ -88,30 +88,37 @@ export default function RegionChips({
 
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToHorizontalAxis]}
-      >
-        <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 mt-4 -mx-4 px-4 chip-row">
-            {base.map((r, i) => (
-              <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} canReorder={canReorder} />
-            ))}
-            {canAddRegion && (
-              <button
-                className="shrink-0 flex items-center justify-center rounded-full sticky right-0 ml-auto"
-                style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
-                onClick={onAddRegion}
-                aria-label="새 지역 추가"
-              >
-                <Plus size={12} />
-              </button>
-            )}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {/* 명소 4~5개부터는 칩 줄이 넘쳐서, 이전처럼 "+ 추가" 버튼을 같은 가로 스크롤
+          영역 안에 sticky로 두면(overflow-x-auto인 flex 컨테이너 안의 sticky는 브라우저마다
+          붕 뜨거나 칩에 가려지는 문제가 있었습니다) 버튼이 칩에 가려 뚫고 지나가 버렸습니다.
+          칩 목록만 자체 스크롤 영역으로 따로 빼고, 추가 버튼은 그 바깥의 고정 형제
+          엘리먼트로 둬서 항상 스크롤 영역 오른쪽에 그대로 보이게 합니다. */}
+      <div className="flex items-center gap-2 mb-2 mt-4">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToHorizontalAxis]}
+        >
+          <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 flex-1 min-w-0 chip-row">
+              {base.map((r, i) => (
+                <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} canReorder={canReorder} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+        {canAddRegion && (
+          <button
+            className="shrink-0 flex items-center justify-center rounded-full"
+            style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
+            onClick={onAddRegion}
+            aria-label="새 지역 추가"
+          >
+            <Plus size={12} />
+          </button>
+        )}
+      </div>
       {(moreCount > 0 || extra.length > 0) && (
         <div className="mb-5">
           {moreCount > 0 && (

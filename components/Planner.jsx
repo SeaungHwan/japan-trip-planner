@@ -482,7 +482,7 @@ export default function Planner() {
 
   return (
     <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
-      <div className="max-w-md sm:max-w-2xl mx-auto px-4 pt-10 pb-4">
+      <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pt-10 pb-4">
         <UserBadge
           canShare={canShareActiveTrip}
           shareLevel={activeTripShareLevel}
@@ -530,8 +530,8 @@ export default function Planner() {
           </p>
         ) : (
           <>
-            <div className="sm:flex sm:items-start sm:gap-4">
-              <div className="sm:flex-1 sm:min-w-0">
+            <div className="md:flex md:items-start md:gap-4">
+              <div className="md:flex-1 md:min-w-0">
                 <MapView
                   regions={regions}
                   active={active}
@@ -604,7 +604,7 @@ export default function Planner() {
               </div>
 
               {!loadingRegions && regions.length > 0 && region.days?.length > 0 && (
-                <div className="sm:flex-1 sm:min-w-0">
+                <div className="md:flex-1 md:min-w-0">
                   <ModeToggle mode={mode} onChange={setMode} />
                   <DayCards
                     days={region.days}
