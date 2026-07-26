@@ -20,6 +20,29 @@ function parseMemoItems(memo) {
   return memo.split("\n").map((s) => s.trim()).filter(Boolean);
 }
 
+// "https://att-japan.net/ko/ibaraki/" 처럼 명확한 http(s) URL만 링크로 바꿉니다.
+// 애매한 형태(프로토콜 없는 "example.com" 등)는 일부러 무시합니다.
+const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+
+function linkifyMemo(text) {
+  return text.split(URL_PATTERN).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline"
+        style={{ color: SKY }}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 // 특정 일정 항목이 아니라 지역 전체에 자유롭게 남기는 메모장(준비물, 체크리스트 등).
 // 명소/음식 패널과 같은 목록 형태라 추가/삭제할 때마다 바로 저장됩니다.
 export default function MemoModal({ memo, onSave, onClose }) {
@@ -85,7 +108,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
               className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
               style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
             >
-              <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{text}</span>
+              <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{linkifyMemo(text)}</span>
               <button onClick={() => deleteItem(i)} aria-label="메모 삭제" className="shrink-0">
                 <X size={13} color="#94A9B8" />
               </button>
