@@ -22,6 +22,7 @@ export function formatRange(startDate, endDate) {
 // RegionHeader가 아니라 Planner에서 그 날짜 텍스트 옆에 직접 렌더링합니다.
 export default function RegionDateButton({ region, canEdit, onSaveDates }) {
   const [dateModalOpen, setDateModalOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -30,12 +31,21 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
   function openDateModal() {
     setStartDate(region.startDate || "");
     setEndDate(region.endDate || "");
+    setClosing(false);
     setDateModalOpen(true);
+  }
+
+  function requestCloseModal() {
+    setClosing(true);
+  }
+
+  function handleBackdropAnimationEnd(e) {
+    if (closing && e.target === e.currentTarget) setDateModalOpen(false);
   }
 
   function submitDates() {
     onSaveDates(startDate || null, endDate || null);
-    setDateModalOpen(false);
+    requestCloseModal();
   }
 
   return (
@@ -47,15 +57,16 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
       {dateModalOpen &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
             style={{ background: "rgba(15,42,61,0.5)" }}
+            onAnimationEnd={handleBackdropAnimationEnd}
           >
-            <div className="w-full max-w-sm rounded-2xl p-4" style={{ background: "#FFFFFF" }}>
+            <div className={`w-full max-w-sm rounded-2xl p-4 ${closing ? "modal-card-out" : "modal-card-in"}`} style={{ background: "#FFFFFF" }}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
                   {region.kr} 날짜
                 </span>
-                <button onClick={() => setDateModalOpen(false)}>
+                <button onClick={requestCloseModal}>
                   <X size={18} color="#5B7A90" />
                 </button>
               </div>

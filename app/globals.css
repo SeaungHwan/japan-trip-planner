@@ -69,6 +69,57 @@ body::-webkit-scrollbar {
   animation: fadeUp 0.45s ease both;
 }
 
+/* 모달 팝업 공용 페이드인/페이드아웃(Modal.jsx). 배경은 투명도만, 카드는 살짝
+   확대+이동까지 같이 줘서 그냥 사라지는 것보다 자연스럽게 느껴지게 합니다. */
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes modalBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modalCardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes modalCardOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+.modal-backdrop-in {
+  animation: modalBackdropIn 0.18s ease both;
+}
+.modal-backdrop-out {
+  animation: modalBackdropOut 0.16s ease both;
+}
+.modal-card-in {
+  animation: modalCardIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.modal-card-out {
+  animation: modalCardOut 0.16s ease both;
+}
+
 @keyframes popIn {
   0% {
     opacity: 0;

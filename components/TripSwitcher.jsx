@@ -20,14 +20,26 @@ function formatRange(startDate, endDate) {
 
 export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, canDelete, onDelete }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [editingId, setEditingId] = useState(undefined); // undefined = create-new mode is hidden, null = creating new, id = editing that trip
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  function openSwitcher() {
+    setClosing(false);
+    setOpen(true);
+  }
+
   function close() {
-    setOpen(false);
-    setEditingId(undefined);
+    setClosing(true);
+  }
+
+  function handleBackdropAnimationEnd(e) {
+    if (closing && e.target === e.currentTarget) {
+      setOpen(false);
+      setEditingId(undefined);
+    }
   }
 
   function startCreate() {
@@ -53,7 +65,7 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={openSwitcher}
         className="text-xs flex items-center gap-1"
         style={{ color: "#5B7A90", fontWeight: 700 }}
       >
@@ -61,8 +73,12 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
       </button>
 
       {open && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(15,42,61,0.5)" }}>
-          <div className="w-full max-w-sm rounded-2xl p-4 max-h-[80vh] overflow-y-auto" style={{ background: "#FFFFFF" }}>
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
+          style={{ background: "rgba(15,42,61,0.5)" }}
+          onAnimationEnd={handleBackdropAnimationEnd}
+        >
+          <div className={`w-full max-w-sm rounded-2xl p-4 max-h-[80vh] overflow-y-auto ${closing ? "modal-card-out" : "modal-card-in"}`} style={{ background: "#FFFFFF" }}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
                 여행 목록

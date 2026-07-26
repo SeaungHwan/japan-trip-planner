@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -8,15 +9,32 @@ const SKY = "#0EA5E9";
 // SpotsPanel/FoodsPanel/SettlementModal/DayDetailModal/MemoModal이 각자 따로 구현하던
 // "배경 오버레이 + 흰 카드 + 스크롤 영역 + 제목줄(아이콘+제목+닫기)" 뼈대를 하나로 모읍니다.
 // 배경 클릭 시 닫히고, 카드 클릭은 stopPropagation으로 막아 배경 클릭과 구분합니다.
+//
+// 닫을 때 바로 언마운트하면 페이드아웃이 재생될 시간이 없어서, 먼저 closing 상태로
+// 페이드아웃 애니메이션만 틀고, 그 애니메이션이 끝난 뒤(onAnimationEnd)에야 실제
+// onClose를 호출해 부모가 언마운트하게 합니다. e.target === e.currentTarget으로
+// 안쪽 카드의 애니메이션이 버블링돼 오는 걸 걸러, 배경 자신의 애니메이션이 끝났을
+// 때만 반응합니다.
 export default function Modal({ icon: Icon, title, onClose, children }) {
+  const [closing, setClosing] = useState(false);
+
+  function requestClose() {
+    setClosing(true);
+  }
+
+  function handleBackdropAnimationEnd(e) {
+    if (closing && e.target === e.currentTarget) onClose();
+  }
+
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
       style={{ background: "rgba(15,42,61,0.5)" }}
-      onClick={onClose}
+      onClick={requestClose}
+      onAnimationEnd={handleBackdropAnimationEnd}
     >
       <div
-        className="w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        className={`w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${closing ? "modal-card-out" : "modal-card-in"}`}
         style={{ background: "#FFFFFF" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -25,7 +43,7 @@ export default function Modal({ icon: Icon, title, onClose, children }) {
             <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
               {Icon && <Icon size={16} color={SKY} />} {title}
             </span>
-            <button onClick={onClose} aria-label="닫기">
+            <button onClick={requestClose} aria-label="닫기">
               <X size={18} color="#5B7A90" />
             </button>
           </div>
