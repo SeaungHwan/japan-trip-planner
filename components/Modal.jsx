@@ -38,20 +38,18 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
         style={{ background: "#FFFFFF", minHeight }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
-              {Icon && <Icon size={16} color={SKY} />} {title}
-            </span>
-            <span className="flex items-center gap-2">
-              {headerExtra}
-              <button onClick={requestClose} aria-label="닫기">
-                <X size={18} color="#5B7A90" />
-              </button>
-            </span>
-          </div>
-          {children}
+        <div className="flex items-center justify-between p-4 pb-3 shrink-0">
+          <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+            {Icon && <Icon size={16} color={SKY} />} {title}
+          </span>
+          <span className="flex items-center gap-2">
+            {headerExtra}
+            <button onClick={requestClose} aria-label="닫기">
+              <X size={18} color="#5B7A90" />
+            </button>
+          </span>
         </div>
+        <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">{children}</div>
       </div>
     </div>,
     document.body
