@@ -157,31 +157,69 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
   );
 }
 
+// memo는 DB에 여전히 문자열 하나로 저장되지만(스키마 변경 없이), 화면에서는 줄바꿈
+// 기준으로 쪼갠 목록으로 보여주고 편집합니다. 항목은 한 줄짜리 인풋으로만 추가하므로
+// "\n"이 항목 내용에 섞일 일은 없습니다.
+function parseMemoItems(memo) {
+  return (memo || "").split("\n").map((s) => s.trim()).filter(Boolean);
+}
+
 // 특정 일정 항목이 아니라 지역 전체에 자유롭게 남기는 메모장(준비물, 체크리스트 등).
-// 저장 전까지는 로컬 draft로만 들고 있다가 "저장"을 눌러야 실제로 반영됩니다.
+// 명소/음식 패널과 같은 목록 형태로 바꿔서, 추가/삭제할 때마다 바로 저장됩니다.
 function MemoModal({ memo, onSave, onClose }) {
-  const [draft, setDraft] = useState(memo || "");
+  const [items, setItems] = useState(() => parseMemoItems(memo));
+  const [newText, setNewText] = useState("");
+
+  function persist(nextItems) {
+    setItems(nextItems);
+    onSave(nextItems.join("\n"));
+  }
+
+  function addItem() {
+    const text = newText.trim();
+    if (!text) return;
+    persist([...items, text]);
+    setNewText("");
+  }
+
+  function deleteItem(i) {
+    persist(items.filter((_, idx) => idx !== i));
+  }
 
   return (
     <Modal icon={FileText} title="메모장" onClose={onClose}>
-      <textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        placeholder="자유롭게 메모를 남겨보세요 (준비물, 체크리스트 등)"
-        rows={8}
-        className="w-full text-[13px] rounded-lg p-2.5"
-        style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
-      />
-      <button
-        onClick={() => {
-          onSave(draft);
-          onClose();
-        }}
-        className="w-full mt-2 rounded-lg py-2 text-[13px]"
-        style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
-      >
-        저장
-      </button>
+      <ul className="flex flex-col gap-1.5 mb-2">
+        {items.map((text, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
+            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
+          >
+            <span className="no-auto-phrase flex-1 min-w-0">{text}</span>
+            <button onClick={() => deleteItem(i)} aria-label="메모 삭제" className="shrink-0">
+              <X size={13} color="#94A9B8" />
+            </button>
+          </li>
+        ))}
+        {items.length === 0 && (
+          <li className="text-[12px] text-center py-2" style={{ color: "#94A9B8" }}>
+            아직 메모가 없어요
+          </li>
+        )}
+      </ul>
+      <div className="flex items-center gap-1.5">
+        <input
+          value={newText}
+          onChange={(e) => setNewText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addItem()}
+          placeholder="새 메모 (준비물, 체크리스트 등)"
+          className="flex-1 min-w-0 text-[13px] rounded px-2 py-1.5"
+          style={{ border: "1px solid #BAE6FD" }}
+        />
+        <button onClick={addItem} aria-label="추가" className="shrink-0">
+          <Plus size={16} color={SKY} />
+        </button>
+      </div>
     </Modal>
   );
 }
