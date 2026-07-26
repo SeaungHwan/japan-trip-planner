@@ -442,7 +442,7 @@ export default function Planner() {
 
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
-      <div className="max-w-md mx-auto px-4 pt-10 pb-16">
+      <div className="max-w-md mx-auto px-4 pt-10 pb-4">
         <UserBadge
           canShare={canShareActiveTrip}
           shareLevel={activeTripShareLevel}
@@ -569,7 +569,6 @@ export default function Planner() {
                       regionName={region.kr}
                       memo={region.memo}
                       onSaveMemo={(memo) => saveRegionMemo(region, memo)}
-                      onLocateItem={locateItem}
                       onDaysPinsChange={setDayPins}
                       canEdit={canManageRegion(region)}
                     />

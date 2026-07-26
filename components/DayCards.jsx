@@ -268,7 +268,6 @@ const DayCardItem = memo(function DayCardItem({
   onCloseLocationPicker,
   onToggleEdit,
   onDeleteDay,
-  onLocateItem,
   onOpenNotes,
   onShowDetail,
 }) {
@@ -378,16 +377,9 @@ const DayCardItem = memo(function DayCardItem({
               ) : (
                 <li key={it.key} className="flex items-center justify-between gap-1">
                   {it.lat != null ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onLocateItem?.({ lat: it.lat, lng: it.lng, name: it.text });
-                      }}
-                      className="text-[13px] flex items-center gap-1 text-left min-w-0"
-                      style={{ color: "#5B7A90" }}
-                    >
+                    <span className="text-[13px] flex items-center gap-1 min-w-0" style={{ color: "#5B7A90" }}>
                       <MapPin size={11} color={SKY} className="shrink-0" /> <span className="truncate">{it.text}</span>
-                    </button>
+                    </span>
                   ) : (
                     <span className="text-[13px] min-w-0 truncate" style={{ color: "#5B7A90" }}>
                       &middot; {it.text}
@@ -475,7 +467,7 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionName, memo, onSaveMemo, onLocateItem, onDaysPinsChange, canEdit = false }) {
+export default function DayCards({ days, mode, regionId, regionName, memo, onSaveMemo, onDaysPinsChange, canEdit = false }) {
   const [edits, setEdits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
@@ -941,7 +933,6 @@ export default function DayCards({ days, mode, regionId, regionName, memo, onSav
                   onCloseLocationPicker={closeLocationPicker}
                   onToggleEdit={toggleEditDay}
                   onDeleteDay={deleteDay}
-                  onLocateItem={onLocateItem}
                   onOpenNotes={openNotes}
                   onShowDetail={showDetail}
                 />
