@@ -73,7 +73,7 @@ export default function Feedback({ targetKey }) {
 
   return (
     <div className="flex flex-col gap-1.5 mt-1.5">
-      <div className="flex items-center gap-3 text-[12px]">
+      <div className="flex items-center justify-end gap-1 text-[12px]">
         <button
           onClick={() => vote(1)}
           aria-pressed={myVote === 1}

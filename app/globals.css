@@ -8,9 +8,12 @@ body {
   word-break: auto-phrase;
 }
 
-/* 댓글은 사용자가 자유롭게 쓴 글이라 구문 단위 줄바꿈이 오히려 어색해서 기본 줄바꿈으로 되돌립니다. */
+/* 댓글은 사용자가 자유롭게 쓴 글이라 구문 단위 줄바꿈이 오히려 어색해서 기본 줄바꿈으로 되돌립니다.
+   다만 공백 없는 긴 텍스트(예: 링크)까지 안 끊으면 옆으로 넘쳐서 가로 스크롤이 생기므로,
+   정말 끊을 수밖에 없을 때만 단어 중간에서 줄바꿈되게 overflow-wrap을 같이 둡니다. */
 .no-auto-phrase {
   word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 /* 모바일 브라우저(특히 WebKit)의 자동 폰트 부스팅(text autosizing)을 끕니다. 이 기능은
