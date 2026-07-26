@@ -42,7 +42,7 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
           <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             {Icon && <Icon size={16} color={SKY} />} {title}
           </span>
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-1">
             {headerExtra}
             <button onClick={requestClose} aria-label="닫기">
               <X size={18} color="#5B7A90" />

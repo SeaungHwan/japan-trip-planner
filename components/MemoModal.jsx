@@ -82,7 +82,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
       icon={FileText}
       title="메모장"
       onClose={onClose}
-      minHeight={300}
+      minHeight={'50vh'}
       headerExtra={
         <button onClick={() => setAdding((v) => !v)} aria-label="메모 추가" className="shrink-0">
           <Plus size={18} color={adding ? SKY : "#5B7A90"} />
