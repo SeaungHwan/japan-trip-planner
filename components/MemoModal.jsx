@@ -32,11 +32,12 @@ export default function MemoModal({ memo, onSave, onClose }) {
     onSave(JSON.stringify(nextItems));
   }
 
-  function addItem() {
+  function saveNewItem() {
     const text = draft.trim();
     if (!text) return;
     persist([...items, text]);
     setDraft("");
+    setAdding(false);
   }
 
   function deleteItem(i) {
@@ -54,40 +55,47 @@ export default function MemoModal({ memo, onSave, onClose }) {
         </button>
       }
     >
-      <ul className="flex flex-col gap-1.5 mb-2" style={items.length >= 5 ? { maxHeight: 200, overflowY: "auto" } : undefined}>
-        {items.map((text, i) => (
-          <li
-            key={i}
-            className="flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
-            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
-          >
-            <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{text}</span>
-            <button onClick={() => deleteItem(i)} aria-label="메모 삭제" className="shrink-0">
-              <X size={13} color="#94A9B8" />
-            </button>
-          </li>
-        ))}
-        {items.length === 0 && (
-          <li className="text-[12px] text-center py-2" style={{ color: "#94A9B8" }}>
-            아직 메모가 없어요
-          </li>
-        )}
-      </ul>
-      {adding && (
-        <div className="flex items-start gap-1.5">
+      {adding ? (
+        <div className="flex flex-col gap-2">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="새 메모 (준비물, 체크리스트 등) — 엔터로 줄바꿈"
-            rows={2}
+            rows={6}
             autoFocus
-            className="flex-1 min-w-0 text-[13px] rounded px-2 py-1.5"
+            className="w-full text-[13px] rounded-lg p-2.5"
             style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
           />
-          <button onClick={addItem} aria-label="추가" className="shrink-0 mt-1.5">
-            <Plus size={16} color={SKY} />
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={saveNewItem}
+              className="text-[12px] rounded-lg px-3 py-1.5"
+              style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+            >
+              저장
+            </button>
+          </div>
         </div>
+      ) : (
+        <ul className="flex flex-col gap-1.5" style={items.length >= 5 ? { maxHeight: 200, overflowY: "auto" } : undefined}>
+          {items.map((text, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
+              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D" }}
+            >
+              <span className="no-auto-phrase whitespace-pre-wrap flex-1 min-w-0">{text}</span>
+              <button onClick={() => deleteItem(i)} aria-label="메모 삭제" className="shrink-0">
+                <X size={13} color="#94A9B8" />
+              </button>
+            </li>
+          ))}
+          {items.length === 0 && (
+            <li className="text-[12px] text-center py-2" style={{ color: "#94A9B8" }}>
+              아직 메모가 없어요
+            </li>
+          )}
+        </ul>
       )}
     </Modal>
   );

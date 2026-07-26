@@ -10,15 +10,18 @@ const SKY = "#0EA5E9";
 // 훨씬 단순한 버전입니다(지도 연동 없음).
 export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, onDeleteFood }) {
   const [newName, setNewName] = useState("");
+  const [adding, setAdding] = useState(false);
 
-  function submitAdd() {
+  function saveNewFood() {
     if (!newName.trim()) return;
     onAddFood?.(newName);
     setNewName("");
+    setAdding(false);
   }
 
   function handleClose() {
     setNewName("");
+    setAdding(false);
     onToggle();
   }
 
@@ -41,37 +44,55 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
       </button>
 
       {open && (
-        <Modal icon={UtensilsCrossed} title="지역 음식" onClose={handleClose}>
-          <div className="flex flex-wrap gap-2">
-            {(foods || []).map((name, i) => (
-              <span
-                key={i}
-                className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
-                style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-              >
-                <span>{name}</span>
-                {canEdit && (
-                  <button onClick={() => onDeleteFood?.(i)} aria-label="음식 삭제" className="shrink-0">
-                    <X size={12} color="#94A9B8" />
-                  </button>
-                )}
-              </span>
-            ))}
-          </div>
-
-          {canEdit && (
-            <div className="flex items-center gap-1.5 mt-2">
+        <Modal
+          icon={UtensilsCrossed}
+          title="지역 음식"
+          onClose={handleClose}
+          headerExtra={
+            canEdit && (
+              <button onClick={() => setAdding((v) => !v)} aria-label="음식 추가" className="shrink-0">
+                <Plus size={18} color={adding ? SKY : "#5B7A90"} />
+              </button>
+            )
+          }
+        >
+          {adding ? (
+            <div className="flex flex-col gap-2">
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitAdd()}
+                onKeyDown={(e) => e.key === "Enter" && saveNewFood()}
                 placeholder="새 음식 이름"
-                className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
+                autoFocus
+                className="w-full text-[13px] rounded-lg px-2.5 py-2"
                 style={{ border: "1px solid #BAE6FD" }}
               />
-              <button onClick={submitAdd} aria-label="추가" className="shrink-0">
-                <Plus size={16} color={SKY} />
-              </button>
+              <div className="flex justify-end">
+                <button
+                  onClick={saveNewFood}
+                  className="text-[12px] rounded-lg px-3 py-1.5"
+                  style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(foods || []).map((name, i) => (
+                <span
+                  key={i}
+                  className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
+                  style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                >
+                  <span>{name}</span>
+                  {canEdit && (
+                    <button onClick={() => onDeleteFood?.(i)} aria-label="음식 삭제" className="shrink-0">
+                      <X size={12} color="#94A9B8" />
+                    </button>
+                  )}
+                </span>
+              ))}
             </div>
           )}
         </Modal>

@@ -26,15 +26,17 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
   const [locatingIndex, setLocatingIndex] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
   const [focusPoint, setFocusPoint] = useState(null);
+  const [adding, setAdding] = useState(false);
 
   const mapPoints = (spots || [])
     .filter((s) => typeof s.lat === "number" && typeof s.lng === "number")
     .map((s, i) => ({ lat: s.lat, lng: s.lng, name: s.name, num: i + 1 }));
 
-  function submitAdd() {
+  function saveNewSpot() {
     if (!newName.trim()) return;
     onAddSpot?.(newName);
     setNewName("");
+    setAdding(false);
   }
 
   function openLocationPicker(i) {
@@ -66,6 +68,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
     closeLocationPicker();
     setNewName("");
     setFocusPoint(null);
+    setAdding(false);
     onToggle();
   }
 
@@ -88,84 +91,111 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
       </button>
 
       {open && (
-        <Modal icon={Star} title="주변 명소" onClose={handleClose}>
-          {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
-          <div className="flex flex-wrap gap-2">
-            {(spots || []).map((s, i) => {
-              const hasLocation = typeof s.lat === "number" && typeof s.lng === "number";
-              const pinColor = hasLocation ? "#F59E0B" : "#94A9B8";
-              return (
-                <span
-                  key={i}
-                  className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
-                  style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
-                >
-                  {canEdit && (
-                    <button onClick={() => openLocationPicker(i)} aria-label="위치 설정" className="shrink-0">
-                      <MapPin size={11} color={pinColor} />
-                    </button>
-                  )}
-                  {!canEdit && <MapPin size={11} color={pinColor} className="shrink-0" />}
-                  {hasLocation ? (
-                    <button onClick={() => setFocusPoint({ lat: s.lat, lng: s.lng })}>{s.name}</button>
-                  ) : canEdit ? (
-                    <button onClick={() => openLocationPicker(i)}>{s.name}</button>
-                  ) : (
-                    <span>{s.name}</span>
-                  )}
-                  {canEdit && (
-                    <button onClick={() => onDeleteSpot?.(i)} aria-label="명소 삭제" className="shrink-0">
-                      <X size={12} color="#94A9B8" />
-                    </button>
-                  )}
-                </span>
-              );
-            })}
+        <Modal
+          icon={Star}
+          title="주변 명소"
+          onClose={handleClose}
+          headerExtra={
+            canEdit && (
+              <button onClick={() => setAdding((v) => !v)} aria-label="명소 추가" className="shrink-0">
+                <Plus size={18} color={adding ? SKY : "#5B7A90"} />
+              </button>
+            )
+          }
+        >
+          {/* 추가 폼으로 전환될 때도 지도(DayDetailMap)는 계속 마운트된 채로 CSS로만
+              숨깁니다. 조건부 렌더링으로 완전히 언마운트하면, fitBounds/flyTo 애니메이션이
+              끝나기 전에 리플렛 인스턴스가 파괴되면서 애니메이션 종료 콜백이 이미 사라진
+              지도 팬(pane)을 참조해 "Cannot read properties of undefined (reading
+              '_leaflet_pos')" 에러가 났습니다. */}
+          <div className={adding ? "hidden" : undefined}>
+            {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
           </div>
-
-          {canEdit && locatingSpot && (
-            <div className="rounded-lg p-2 mt-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[12px]" style={{ color: "#5B7A90" }}>
-                  &quot;{locatingSpot.name}&quot; 위치 지정
-                </span>
-                <button onClick={closeLocationPicker} aria-label="닫기">
-                  <X size={14} color="#94A9B8" />
-                </button>
-              </div>
-              <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
-              <div className="flex items-center gap-3 mt-1.5">
-                <button
-                  onClick={confirmLocation}
-                  disabled={!pendingPoint}
-                  className="text-[12px]"
-                  style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
-                >
-                  위치 저장
-                </button>
-                {typeof locatingSpot.lat === "number" && (
-                  <button onClick={clearLocation} className="text-[12px]" style={{ color: "#EF4444", fontWeight: 700 }}>
-                    위치 삭제
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {canEdit && (
-            <div className="flex items-center gap-1.5 mt-2">
+          {adding ? (
+            <div className="flex flex-col gap-2">
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitAdd()}
+                onKeyDown={(e) => e.key === "Enter" && saveNewSpot()}
                 placeholder="새 명소 이름"
-                className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
+                autoFocus
+                className="w-full text-[13px] rounded-lg px-2.5 py-2"
                 style={{ border: "1px solid #BAE6FD" }}
               />
-              <button onClick={submitAdd} aria-label="추가" className="shrink-0">
-                <Plus size={16} color={SKY} />
-              </button>
+              <div className="flex justify-end">
+                <button
+                  onClick={saveNewSpot}
+                  className="text-[12px] rounded-lg px-3 py-1.5"
+                  style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                >
+                  저장
+                </button>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {(spots || []).map((s, i) => {
+                  const hasLocation = typeof s.lat === "number" && typeof s.lng === "number";
+                  const pinColor = hasLocation ? "#F59E0B" : "#94A9B8";
+                  return (
+                    <span
+                      key={i}
+                      className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
+                      style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                    >
+                      {canEdit && (
+                        <button onClick={() => openLocationPicker(i)} aria-label="위치 설정" className="shrink-0">
+                          <MapPin size={11} color={pinColor} />
+                        </button>
+                      )}
+                      {!canEdit && <MapPin size={11} color={pinColor} className="shrink-0" />}
+                      {hasLocation ? (
+                        <button onClick={() => setFocusPoint({ lat: s.lat, lng: s.lng })}>{s.name}</button>
+                      ) : canEdit ? (
+                        <button onClick={() => openLocationPicker(i)}>{s.name}</button>
+                      ) : (
+                        <span>{s.name}</span>
+                      )}
+                      {canEdit && (
+                        <button onClick={() => onDeleteSpot?.(i)} aria-label="명소 삭제" className="shrink-0">
+                          <X size={12} color="#94A9B8" />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {canEdit && locatingSpot && (
+                <div className="rounded-lg p-2 mt-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+                      &quot;{locatingSpot.name}&quot; 위치 지정
+                    </span>
+                    <button onClick={closeLocationPicker} aria-label="닫기">
+                      <X size={14} color="#94A9B8" />
+                    </button>
+                  </div>
+                  <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <button
+                      onClick={confirmLocation}
+                      disabled={!pendingPoint}
+                      className="text-[12px]"
+                      style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
+                    >
+                      위치 저장
+                    </button>
+                    {typeof locatingSpot.lat === "number" && (
+                      <button onClick={clearLocation} className="text-[12px]" style={{ color: "#EF4444", fontWeight: 700 }}>
+                        위치 삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Modal>
       )}
