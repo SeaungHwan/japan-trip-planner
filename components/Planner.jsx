@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity, checkIsMaster } from "@/lib/auth";
 import UserBadge from "@/components/UserBadge";
@@ -464,17 +463,9 @@ export default function Planner() {
               onToggleMore={toggleMore}
               moreCount={extraRegions.length}
               baseCount={baseRegions.length}
+              canAddRegion={canEditTrip(activeTrip)}
+              onAddRegion={() => setShowAddForm(true)}
             />
-
-            {canEditTrip(activeTrip) && (
-              <button
-                className="text-xs mb-5 px-3 py-1.5 rounded-full flex items-center gap-1"
-                style={{ color: "#0EA5E9", fontWeight: 700, border: "1px dashed #BAE6FD", background: "#F8FCFF" }}
-                onClick={() => setShowAddForm(true)}
-              >
-                <Plus size={13} /> 새 지역 추가
-              </button>
-            )}
 
             {loadingRegions ? (
               <div className="flex justify-center mt-8">
