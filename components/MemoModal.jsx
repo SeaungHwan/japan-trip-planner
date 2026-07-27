@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, ChevronLeft, Trash2 } from "lucide-react";
+import { FileText, Plus, ChevronLeft, Trash2, Pencil } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-import { SKY, DANGER } from "@/lib/theme";
+import { DANGER } from "@/lib/theme";
 
 // memo는 DB에 여전히 문자열 하나로 저장되지만(스키마 변경 없이), 화면에서는 항목
 // 목록으로 보여주고 편집합니다. 항목 하나가 여러 줄일 수 있어서(입력창에서 엔터로
@@ -42,7 +42,7 @@ function linkifyMemo(text) {
 export default function MemoModal({ memo, onSave, onClose }) {
   const [items, setItems] = useState(() => parseMemoItems(memo));
   const [draft, setDraft] = useState("");
-  // "list" | "add" | "detail" 세 화면 중 하나만 보입니다.
+  // "list" | "add" | "detail" | "edit" 네 화면 중 하나만 보입니다.
   const [screen, setScreen] = useState("list");
   const [detailIndex, setDetailIndex] = useState(null);
 
@@ -51,12 +51,28 @@ export default function MemoModal({ memo, onSave, onClose }) {
     onSave(JSON.stringify(nextItems));
   }
 
-  function saveNewItem() {
+  function startAdd() {
+    setDraft("");
+    setScreen("add");
+  }
+
+  function startEdit() {
+    setDraft(items[detailIndex] ?? "");
+    setScreen("edit");
+  }
+
+  function saveDraft() {
     const text = draft.trim();
     if (!text) return;
-    persist([...items, text]);
+    if (screen === "edit") {
+      const next = items.slice();
+      next[detailIndex] = text;
+      persist(next);
+    } else {
+      persist([...items, text]);
+    }
     setDraft("");
-    setScreen("list");
+    setScreen(screen === "edit" ? "detail" : "list");
   }
 
   function deleteItem(i) {
@@ -70,6 +86,10 @@ export default function MemoModal({ memo, onSave, onClose }) {
     setScreen("detail");
   }
 
+  function goBack() {
+    setScreen(screen === "edit" ? "detail" : "list");
+  }
+
   return (
     <Modal
       icon={FileText}
@@ -79,24 +99,29 @@ export default function MemoModal({ memo, onSave, onClose }) {
       headerExtra={
         <>
           {screen !== "list" && (
-            <IconButton onClick={() => setScreen("list")} ariaLabel="목록으로">
+            <IconButton onClick={goBack} ariaLabel="목록으로">
               <ChevronLeft size={16} color="#5B7A90" />
             </IconButton>
           )}
           {screen === "detail" && (
-            <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
-              <Trash2 size={15} color={DANGER} />
-            </IconButton>
+            <>
+              <IconButton onClick={startEdit} ariaLabel="메모 편집">
+                <Pencil size={14} color="#5B7A90" />
+              </IconButton>
+              <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
+                <Trash2 size={15} color={DANGER} />
+              </IconButton>
+            </>
           )}
-          {screen !== "detail" && (
-            <button onClick={() => setScreen("add")} aria-label="메모 추가" className="shrink-0">
-              <Plus size={18} color={screen === "add" ? SKY : "#5B7A90"} />
-            </button>
+          {screen === "list" && (
+            <IconButton onClick={startAdd} ariaLabel="메모 추가">
+              <Plus size={18} color="#5B7A90" />
+            </IconButton>
           )}
         </>
       }
     >
-      {screen === "add" ? (
+      {screen === "add" || screen === "edit" ? (
         <div className="flex flex-col gap-2 h-full">
           <textarea
             value={draft}
@@ -106,7 +131,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
             className="w-full flex-1 text-[14px] rounded-lg p-3 border border-sky-border text-ink resize-none outline-none"
           />
           <div className="flex justify-end">
-            <button onClick={saveNewItem} className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold">
+            <button onClick={saveDraft} className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold">
               저장
             </button>
           </div>
