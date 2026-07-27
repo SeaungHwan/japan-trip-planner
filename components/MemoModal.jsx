@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Trash2, Pencil } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
 
@@ -130,17 +130,19 @@ export default function MemoModal({ memo, onSave, onClose }) {
           <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border flex-1 min-h-0 overflow-y-auto">
             {linkifyMemo(items[detailIndex] ?? "")}
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex justify-end gap-2 shrink-0">
             <button
               onClick={startEdit}
-              className="flex-1 text-[13px] rounded-lg px-3 py-2 border border-sky-border text-ink font-bold"
+              className="flex items-center gap-1 text-[12px] rounded-lg px-2.5 py-1.5 border border-sky-border text-ink font-bold"
             >
+              <Pencil size={13} />
               편집
             </button>
             <button
               onClick={() => deleteItem(detailIndex)}
-              className="flex-1 text-[13px] rounded-lg px-3 py-2 border border-danger text-danger font-bold"
+              className="flex items-center gap-1 text-[12px] rounded-lg px-2.5 py-1.5 border border-danger text-danger font-bold"
             >
+              <Trash2 size={13} />
               삭제
             </button>
           </div>
