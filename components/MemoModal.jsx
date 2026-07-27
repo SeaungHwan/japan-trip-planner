@@ -70,10 +70,6 @@ export default function MemoModal({ memo, onSave, onClose }) {
     setScreen("detail");
   }
 
-  function toggleAdd() {
-    setScreen((s) => (s === "add" ? "list" : "add"));
-  }
-
   return (
     <Modal
       icon={FileText}
@@ -81,11 +77,24 @@ export default function MemoModal({ memo, onSave, onClose }) {
       onClose={onClose}
       minHeight={"50vh"}
       headerExtra={
-        screen !== "detail" && (
-          <button onClick={toggleAdd} aria-label="메모 추가" className="shrink-0">
+        <>
+          {screen !== "list" && (
+            <button
+              onClick={() => setScreen("list")}
+              className="flex items-center gap-1 text-[12px] text-muted font-bold shrink-0"
+            >
+              <ChevronLeft size={14} /> 목록으로
+            </button>
+          )}
+          {screen === "detail" && (
+            <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
+              <Trash2 size={15} color={DANGER} />
+            </IconButton>
+          )}
+          <button onClick={() => setScreen("add")} aria-label="메모 추가" className="shrink-0">
             <Plus size={18} color={screen === "add" ? SKY : "#5B7A90"} />
           </button>
-        )
+        </>
       }
     >
       {screen === "add" ? (
@@ -95,7 +104,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="새 메모를 적어보세요 — 엔터로 줄바꿈"
             autoFocus
-            className="w-full flex-1 text-[14px] rounded-lg p-3 border border-sky-border text-ink resize-none outline-none focus:border-sky focus:ring-1 focus:ring-sky"
+            className="w-full flex-1 text-[14px] rounded-lg p-3 border border-sky-border text-ink resize-none outline-none"
           />
           <div className="flex justify-end">
             <button onClick={saveNewItem} className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold">
@@ -104,18 +113,8 @@ export default function MemoModal({ memo, onSave, onClose }) {
           </div>
         </div>
       ) : screen === "detail" ? (
-        <div className="flex flex-col gap-3 h-full">
-          <div className="flex items-center justify-between">
-            <button onClick={() => setScreen("list")} className="flex items-center gap-1 text-[12px] text-muted font-bold">
-              <ChevronLeft size={15} /> 목록으로
-            </button>
-            <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
-              <Trash2 size={15} color={DANGER} />
-            </IconButton>
-          </div>
-          <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border flex-1 overflow-y-auto">
-            {linkifyMemo(items[detailIndex] ?? "")}
-          </div>
+        <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border h-full overflow-y-auto">
+          {linkifyMemo(items[detailIndex] ?? "")}
         </div>
       ) : (
         <ul className="flex flex-col gap-1.5 h-full overflow-y-auto">
