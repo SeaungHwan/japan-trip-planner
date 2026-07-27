@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, ChevronLeft, Trash2, Pencil } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Trash2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-import { DANGER } from "@/lib/theme";
 
 // memo는 DB에 여전히 문자열 하나로 저장되지만(스키마 변경 없이), 화면에서는 항목
 // 목록으로 보여주고 편집합니다. 항목 하나가 여러 줄일 수 있어서(입력창에서 엔터로
@@ -100,18 +99,8 @@ export default function MemoModal({ memo, onSave, onClose }) {
         <>
           {screen !== "list" && (
             <IconButton onClick={goBack} ariaLabel="목록으로">
-              <ChevronLeft size={16} color="#5B7A90" />
+              <ArrowLeft size={16} color="#5B7A90" />
             </IconButton>
-          )}
-          {screen === "detail" && (
-            <>
-              <IconButton onClick={startEdit} ariaLabel="메모 편집">
-                <Pencil size={14} color="#5B7A90" />
-              </IconButton>
-              <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
-                <Trash2 size={15} color={DANGER} />
-              </IconButton>
-            </>
           )}
           {screen === "list" && (
             <IconButton onClick={startAdd} ariaLabel="메모 추가">
@@ -137,8 +126,24 @@ export default function MemoModal({ memo, onSave, onClose }) {
           </div>
         </div>
       ) : screen === "detail" ? (
-        <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border h-full overflow-y-auto">
-          {linkifyMemo(items[detailIndex] ?? "")}
+        <div className="flex flex-col gap-2 h-full">
+          <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border flex-1 min-h-0 overflow-y-auto">
+            {linkifyMemo(items[detailIndex] ?? "")}
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={startEdit}
+              className="flex-1 text-[13px] rounded-lg px-3 py-2 border border-sky-border text-ink font-bold"
+            >
+              편집
+            </button>
+            <button
+              onClick={() => deleteItem(detailIndex)}
+              className="flex-1 text-[13px] rounded-lg px-3 py-2 border border-danger text-danger font-bold"
+            >
+              삭제
+            </button>
+          </div>
         </div>
       ) : (
         <ul className="flex flex-col gap-1.5 h-full overflow-y-auto">
