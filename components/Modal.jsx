@@ -34,7 +34,12 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
     >
       <div
         className={`w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
-        style={{ minHeight }}
+        // minHeight만 주면 카드 자체는 그 높이만큼 늘어나지만, 크롬은 min-height만으로는
+        // 이 카드를 "정해진 높이"로 안 쳐서, 내용물(children) 쪽에서 h-full로 바닥까지
+        // 채우려 해도 퍼센트 높이가 안 먹힙니다(명시적 height가 있어야 자식의 h-full이
+        // 그 값을 기준으로 계산됨). minHeight를 쓰는 곳(MemoModal)은 애초에 카드가 항상
+        // 그 높이를 유지하길 원하므로 height도 같이 줍니다.
+        style={{ minHeight, height: minHeight }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 pb-3 shrink-0">

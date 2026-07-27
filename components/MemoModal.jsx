@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, X, ChevronLeft, Trash2 } from "lucide-react";
+import { FileText, Plus, ChevronLeft, Trash2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
 import { SKY, DANGER } from "@/lib/theme";
@@ -35,18 +35,6 @@ function linkifyMemo(text) {
     )
   );
 }
-
-// 노트 줄 간격(28px)에 맞춰 가로선을 반복해서 그리고, 왼쪽에 실제 노트처럼 얇은
-// 여백선을 둡니다. 새 메모를 적는 칸과 전체보기 화면 둘 다 같은 "종이" 느낌을
-// 쓰도록 스타일을 공유합니다.
-const NOTEBOOK_LINE_HEIGHT = 28;
-const notebookPaperStyle = {
-  backgroundColor: "#FFFDF6",
-  backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent ${NOTEBOOK_LINE_HEIGHT - 1}px, #E7DFCB ${NOTEBOOK_LINE_HEIGHT - 1}px, #E7DFCB ${NOTEBOOK_LINE_HEIGHT}px)`,
-  backgroundPositionY: "2px",
-  lineHeight: `${NOTEBOOK_LINE_HEIGHT}px`,
-  borderLeft: "3px solid #F3B7B7",
-};
 
 // 특정 일정 항목이 아니라 지역 전체에 자유롭게 남기는 메모장(준비물, 체크리스트 등).
 // 목록에서는 항목마다 한 줄만 보이고, 항목을 누르면 그 메모의 전체 내용만 노트
@@ -101,15 +89,13 @@ export default function MemoModal({ memo, onSave, onClose }) {
       }
     >
       {screen === "add" ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 h-full">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="새 메모를 적어보세요 — 엔터로 줄바꿈"
-            rows={8}
             autoFocus
-            className="w-full text-[14px] rounded-lg p-3 pl-5 text-ink resize-y shadow-sm"
-            style={notebookPaperStyle}
+            className="w-full flex-1 text-[14px] rounded-lg p-3 border border-sky-border text-ink resize-none outline-none focus:border-sky focus:ring-1 focus:ring-sky"
           />
           <div className="flex justify-end">
             <button onClick={saveNewItem} className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold">
@@ -118,7 +104,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
           </div>
         </div>
       ) : screen === "detail" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 h-full">
           <div className="flex items-center justify-between">
             <button onClick={() => setScreen("list")} className="flex items-center gap-1 text-[12px] text-muted font-bold">
               <ChevronLeft size={15} /> 목록으로
@@ -127,15 +113,12 @@ export default function MemoModal({ memo, onSave, onClose }) {
               <Trash2 size={15} color={DANGER} />
             </IconButton>
           </div>
-          <div
-            className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 pl-5 shadow-sm min-h-[160px]"
-            style={notebookPaperStyle}
-          >
+          <div className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 border border-slate-border flex-1 overflow-y-auto">
             {linkifyMemo(items[detailIndex] ?? "")}
           </div>
         </div>
       ) : (
-        <ul className="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto">
+        <ul className="flex flex-col gap-1.5 h-full overflow-y-auto">
           {items.map((text, i) => (
             <li
               key={i}
@@ -155,7 +138,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
                 }}
                 ariaLabel="메모 삭제"
               >
-                <X size={13} color="#94A9B8" />
+                <Trash2 size={13} color="#94A9B8" />
               </IconButton>
             </li>
           ))}
