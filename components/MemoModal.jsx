@@ -79,21 +79,20 @@ export default function MemoModal({ memo, onSave, onClose }) {
       headerExtra={
         <>
           {screen !== "list" && (
-            <button
-              onClick={() => setScreen("list")}
-              className="flex items-center gap-1 text-[12px] text-muted font-bold shrink-0"
-            >
-              <ChevronLeft size={14} /> 목록으로
-            </button>
+            <IconButton onClick={() => setScreen("list")} ariaLabel="목록으로">
+              <ChevronLeft size={16} color="#5B7A90" />
+            </IconButton>
           )}
           {screen === "detail" && (
             <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
               <Trash2 size={15} color={DANGER} />
             </IconButton>
           )}
-          <button onClick={() => setScreen("add")} aria-label="메모 추가" className="shrink-0">
-            <Plus size={18} color={screen === "add" ? SKY : "#5B7A90"} />
-          </button>
+          {screen !== "detail" && (
+            <button onClick={() => setScreen("add")} aria-label="메모 추가" className="shrink-0">
+              <Plus size={18} color={screen === "add" ? SKY : "#5B7A90"} />
+            </button>
+          )}
         </>
       }
     >
