@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, X } from "lucide-react";
+import { FileText, Plus, X, ChevronLeft, Trash2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-import { SKY } from "@/lib/theme";
+import { SKY, DANGER } from "@/lib/theme";
 
 // memo는 DB에 여전히 문자열 하나로 저장되지만(스키마 변경 없이), 화면에서는 항목
 // 목록으로 보여주고 편집합니다. 항목 하나가 여러 줄일 수 있어서(입력창에서 엔터로
@@ -27,13 +27,7 @@ const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
 function linkifyMemo(text) {
   return text.split(URL_PATTERN).map((part, i) =>
     /^https?:\/\//.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline text-sky"
-      >
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline text-sky">
         {part}
       </a>
     ) : (
@@ -42,22 +36,27 @@ function linkifyMemo(text) {
   );
 }
 
+// 노트 줄 간격(28px)에 맞춰 가로선을 반복해서 그리고, 왼쪽에 실제 노트처럼 얇은
+// 여백선을 둡니다. 새 메모를 적는 칸과 전체보기 화면 둘 다 같은 "종이" 느낌을
+// 쓰도록 스타일을 공유합니다.
+const NOTEBOOK_LINE_HEIGHT = 28;
+const notebookPaperStyle = {
+  backgroundColor: "#FFFDF6",
+  backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent ${NOTEBOOK_LINE_HEIGHT - 1}px, #E7DFCB ${NOTEBOOK_LINE_HEIGHT - 1}px, #E7DFCB ${NOTEBOOK_LINE_HEIGHT}px)`,
+  backgroundPositionY: "2px",
+  lineHeight: `${NOTEBOOK_LINE_HEIGHT}px`,
+  borderLeft: "3px solid #F3B7B7",
+};
+
 // 특정 일정 항목이 아니라 지역 전체에 자유롭게 남기는 메모장(준비물, 체크리스트 등).
-// 명소/음식 패널과 같은 목록 형태라 추가/삭제할 때마다 바로 저장됩니다.
+// 목록에서는 항목마다 한 줄만 보이고, 항목을 누르면 그 메모의 전체 내용만 노트
+// 페이지처럼 펼쳐서 보여줍니다(목록 전체가 같이 늘어나는 아코디언 방식이 아님).
 export default function MemoModal({ memo, onSave, onClose }) {
   const [items, setItems] = useState(() => parseMemoItems(memo));
   const [draft, setDraft] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [expanded, setExpanded] = useState(() => new Set());
-
-  function toggleExpand(i) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
-  }
+  // "list" | "add" | "detail" 세 화면 중 하나만 보입니다.
+  const [screen, setScreen] = useState("list");
+  const [detailIndex, setDetailIndex] = useState(null);
 
   function persist(nextItems) {
     setItems(nextItems);
@@ -69,11 +68,22 @@ export default function MemoModal({ memo, onSave, onClose }) {
     if (!text) return;
     persist([...items, text]);
     setDraft("");
-    setAdding(false);
+    setScreen("list");
   }
 
   function deleteItem(i) {
     persist(items.filter((_, idx) => idx !== i));
+    setScreen("list");
+    setDetailIndex(null);
+  }
+
+  function openDetail(i) {
+    setDetailIndex(i);
+    setScreen("detail");
+  }
+
+  function toggleAdd() {
+    setScreen((s) => (s === "add" ? "list" : "add"));
   }
 
   return (
@@ -81,69 +91,75 @@ export default function MemoModal({ memo, onSave, onClose }) {
       icon={FileText}
       title="메모장"
       onClose={onClose}
-      minHeight={'50vh'}
+      minHeight={"50vh"}
       headerExtra={
-        <button onClick={() => setAdding((v) => !v)} aria-label="메모 추가" className="shrink-0">
-          <Plus size={18} color={adding ? SKY : "#5B7A90"} />
-        </button>
+        screen !== "detail" && (
+          <button onClick={toggleAdd} aria-label="메모 추가" className="shrink-0">
+            <Plus size={18} color={screen === "add" ? SKY : "#5B7A90"} />
+          </button>
+        )
       }
     >
-      {adding ? (
+      {screen === "add" ? (
         <div className="flex flex-col gap-2">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="새 메모 (준비물, 체크리스트 등) — 엔터로 줄바꿈"
-            rows={6}
+            placeholder="새 메모를 적어보세요 — 엔터로 줄바꿈"
+            rows={8}
             autoFocus
-            className="w-full text-[13px] rounded-lg p-2.5 border border-sky-border text-ink resize-y"
+            className="w-full text-[14px] rounded-lg p-3 pl-5 text-ink resize-y shadow-sm"
+            style={notebookPaperStyle}
           />
           <div className="flex justify-end">
-            <button
-              onClick={saveNewItem}
-              className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold"
-            >
+            <button onClick={saveNewItem} className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold">
               저장
             </button>
           </div>
         </div>
+      ) : screen === "detail" ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setScreen("list")} className="flex items-center gap-1 text-[12px] text-muted font-bold">
+              <ChevronLeft size={15} /> 목록으로
+            </button>
+            <IconButton onClick={() => deleteItem(detailIndex)} ariaLabel="메모 삭제">
+              <Trash2 size={15} color={DANGER} />
+            </IconButton>
+          </div>
+          <div
+            className="no-auto-phrase whitespace-pre-wrap text-[14px] text-ink rounded-lg p-3 pl-5 shadow-sm min-h-[160px]"
+            style={notebookPaperStyle}
+          >
+            {linkifyMemo(items[detailIndex] ?? "")}
+          </div>
+        </div>
       ) : (
         <ul className="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto">
-          {items.map((text, i) => {
-            const isExpanded = expanded.has(i);
-            return (
-              <li
-                key={i}
-                onClick={() => toggleExpand(i)}
-                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] bg-slate-bg border border-slate-border text-ink cursor-pointer"
+          {items.map((text, i) => (
+            <li
+              key={i}
+              onClick={() => openDetail(i)}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] bg-slate-bg border border-slate-border text-ink cursor-pointer"
+            >
+              <span
+                className="no-auto-phrase flex-1 min-w-0"
+                style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
               >
-                <span
-                  className="no-auto-phrase flex-1 min-w-0"
-                  style={
-                    isExpanded
-                      ? { whiteSpace: "pre-wrap" }
-                      : { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }
-                  }
-                >
-                  {linkifyMemo(text)}
-                </span>
-                <IconButton
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteItem(i);
-                  }}
-                  ariaLabel="메모 삭제"
-                >
-                  <X size={13} color="#94A9B8" />
-                </IconButton>
-              </li>
-            );
-          })}
-          {items.length === 0 && (
-            <li className="text-[12px] text-center py-2 text-faint">
-              아직 메모가 없어요
+                {linkifyMemo(text)}
+              </span>
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteItem(i);
+                }}
+                ariaLabel="메모 삭제"
+              >
+                <X size={13} color="#94A9B8" />
+              </IconButton>
             </li>
-          )}
+          ))}
+          {items.length === 0 && <li className="text-[12px] text-center py-2 text-faint">아직 메모가 없어요</li>}
         </ul>
       )}
     </Modal>
