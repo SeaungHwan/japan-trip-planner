@@ -72,7 +72,7 @@ export default function DayDetailMap({ points, focus }) {
         )}
         {points.map((p) => (
           <Marker key={p.num} position={[p.lat, p.lng]} icon={numberIcon(p.num)}>
-            <Tooltip direction="top" offset={[0, -10]} className="spot-tooltip">
+            <Tooltip permanent direction="top" offset={[0, -10]} className="spot-tooltip">
               {p.name}
             </Tooltip>
           </Marker>
