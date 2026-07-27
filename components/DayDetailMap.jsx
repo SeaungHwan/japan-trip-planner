@@ -1,10 +1,11 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap } from "react-leaflet";
 import MapZoomControl from "@/components/MapZoomControl";
+import ZoomWatcher, { badgeScale } from "@/components/ZoomWatcher";
 import { SKY } from "@/lib/theme";
 
 function numberIcon(n) {
@@ -45,6 +46,9 @@ function FitOrFocus({ points, focus }) {
 // 맞도록 points에 미리 매겨서 넘겨받습니다(좌표 없는 항목은 걸러진 뒤라 번호가
 // 건너뛸 수 있음).
 export default function DayDetailMap({ points, focus }) {
+  const [currentZoom, setCurrentZoom] = useState(13);
+  const scaleClass = badgeScale(currentZoom);
+
   if (points.length === 0) return null;
   const center = [points[0].lat, points[0].lng];
 
@@ -64,6 +68,7 @@ export default function DayDetailMap({ points, focus }) {
         <AttributionControl position="bottomright" prefix={false} />
         <MapZoomControl />
         <FitOrFocus points={points} focus={focus} />
+        <ZoomWatcher onZoom={setCurrentZoom} />
         {points.length > 1 && (
           <Polyline
             positions={points.map((p) => [p.lat, p.lng])}
@@ -71,8 +76,8 @@ export default function DayDetailMap({ points, focus }) {
           />
         )}
         {points.map((p) => (
-          <Marker key={p.num} position={[p.lat, p.lng]} icon={numberIcon(p.num)}>
-            <Tooltip permanent direction="top" offset={[0, -10]} className="spot-tooltip">
+          <Marker key={`${p.num}-${scaleClass}`} position={[p.lat, p.lng]} icon={numberIcon(p.num)}>
+            <Tooltip permanent direction="top" offset={[0, -10]} className={`spot-tooltip ${scaleClass}`}>
               {p.name}
             </Tooltip>
           </Marker>

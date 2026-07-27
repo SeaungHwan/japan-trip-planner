@@ -3,9 +3,10 @@
 import "leaflet/dist/leaflet.css";
 import { memo, useEffect, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap } from "react-leaflet";
 import { Minimize2, LayoutGrid } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
+import ZoomWatcher, { badgeScale } from "@/components/ZoomWatcher";
 import { SKY, INK } from "@/lib/theme";
 
 const JAPAN_CENTER = [37.5, 137.5];
@@ -40,18 +41,6 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
-function ZoomWatcher({ onZoom }) {
-  const map = useMap();
-  useMapEvents({ zoom: () => onZoom(map.getZoom()), zoomend: () => onZoom(map.getZoom()) });
-  return null;
-}
-
-function badgeScale(zoom) {
-  if (zoom <= 6) return "badge-xs";
-  if (zoom <= 9) return "badge-sm";
-  if (zoom <= 13) return "badge-md";
-  return "badge-lg";
-}
 
 // 기본값은 하루에 첫 번째 위치 있는 일정만 보여줍니다(전체보기를 눌러야 그 날의 나머지도 다 나옴).
 function firstPinPerDay(pins) {
