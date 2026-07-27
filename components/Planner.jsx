@@ -224,7 +224,14 @@ export default function Planner() {
       extraRegions: userRegions.slice(MAX_BASE_REGIONS),
     };
   }, [userRegions]);
-  const regions = showMore ? baseRegions.concat(extraRegions) : baseRegions;
+  // .concat()이 매 렌더마다 새 배열을 만들면 이 배열을 그대로 받는 memo(LeafletMap)의
+  // 얕은 비교가 깨져서, "더보기"가 펼쳐진 동안은 지도와 무관한 상태가 바뀔 때마다
+  // (명소 패널 열기, 일정 편집 등) 지도 전체가 다시 계산됩니다. baseRegions/extraRegions가
+  // 실제로 바뀔 때만 새 배열을 만들도록 메모이즈합니다.
+  const regions = useMemo(
+    () => (showMore ? baseRegions.concat(extraRegions) : baseRegions),
+    [showMore, baseRegions, extraRegions]
+  );
   const region = regions[active];
 
   const selectRegion = useCallback((i) => {

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Wallet, Users, Plus, X, ArrowRight } from "lucide-react";
 import Modal from "@/components/Modal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -117,9 +118,9 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                 >
                   {p}
                   {canEdit && (
-                    <button onClick={() => removeParticipant(p)} aria-label={`${p} 삭제`}>
+                    <IconButton onClick={() => removeParticipant(p)} ariaLabel={`${p} 삭제`}>
                       <X size={10} color="#94A9B8" />
-                    </button>
+                    </IconButton>
                   )}
                 </span>
               ))}
@@ -169,9 +170,9 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                     {won(b.amount)}
                   </span>
                   {canEdit && (
-                    <button onClick={() => onDeleteItem(i)} aria-label="항목 삭제">
+                    <IconButton onClick={() => onDeleteItem(i)} ariaLabel="항목 삭제">
                       <X size={12} color="#94A9B8" />
-                    </button>
+                    </IconButton>
                   )}
                 </span>
               </li>

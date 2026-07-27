@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Trash2, ImagePlus } from "lucide-react";
 import { compressImage } from "@/lib/imageOptimize";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -55,9 +56,9 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
           <span className="text-[13px] flex-1 min-w-0 truncate" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             {itemText}
           </span>
-          <button onClick={onClose} className="shrink-0 ml-2" aria-label="닫기">
+          <IconButton onClick={onClose} className="ml-2" ariaLabel="닫기">
             <X size={18} color="#5B7A90" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="flex flex-col gap-2 mb-3">
@@ -80,9 +81,9 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
                   )}
                 </div>
                 {canEdit && (
-                  <button onClick={() => onDelete(n.id)} aria-label="삭제" className="shrink-0">
+                  <IconButton onClick={() => onDelete(n.id)} ariaLabel="삭제">
                     <Trash2 size={13} color="#94A9B8" />
-                  </button>
+                  </IconButton>
                 )}
               </div>
             </div>

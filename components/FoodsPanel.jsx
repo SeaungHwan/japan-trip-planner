@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UtensilsCrossed, ChevronRight, X, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -87,9 +88,9 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
                 >
                   <span>{name}</span>
                   {canEdit && (
-                    <button onClick={() => onDeleteFood?.(i)} aria-label="음식 삭제" className="shrink-0">
+                    <IconButton onClick={() => onDeleteFood?.(i)} ariaLabel="음식 삭제">
                       <X size={12} color="#94A9B8" />
-                    </button>
+                    </IconButton>
                   )}
                 </span>
               ))}

@@ -50,7 +50,7 @@ export default function DayDetailMap({ points, focus }) {
   const center = [points[0].lat, points[0].lng];
 
   return (
-    <div className="rounded-lg overflow-hidden mb-3 relative" style={{ height: 160, border: "1px solid #BAE6FD" }}>
+    <div className="rounded-lg overflow-hidden mb-3 relative" style={{ height: 260, border: "1px solid #BAE6FD" }}>
       <MapContainer
         center={center}
         zoom={13}

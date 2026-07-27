@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -120,9 +121,9 @@ export default function Feedback({ targetKey }) {
                   {c.body}
                 </span>
                 {c.user_id === identity?.id && (
-                  <button onClick={() => deleteComment(c.id)} aria-label="댓글 삭제" className="shrink-0">
+                  <IconButton onClick={() => deleteComment(c.id)} ariaLabel="댓글 삭제">
                     <X size={12} color="#94A9B8" />
-                  </button>
+                  </IconButton>
                 )}
               </div>
             ))}

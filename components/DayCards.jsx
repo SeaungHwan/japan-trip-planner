@@ -11,6 +11,7 @@ import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
 import ImageSwiper from "@/components/ImageSwiper";
 import Modal from "@/components/Modal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
@@ -23,12 +24,12 @@ const EMPTY_NOTES = [];
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 180, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
   ssr: false,
-  loading: () => <div className="rounded-lg mb-3" style={{ height: 160, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded-lg mb-3" style={{ height: 260, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 // "1Day" 배지가 이미 순번을 보여주므로, 제목에 남아있는 "1일차"/"1일차:" 같은
@@ -190,15 +191,15 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
         className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
         style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
       />
-      <button onClick={() => onOpenLocationPicker(di, item)} aria-label="위치 설정" className="shrink-0">
+      <IconButton onClick={() => onOpenLocationPicker(di, item)} ariaLabel="위치 설정">
         <MapPin size={13} color={item.lat != null ? SKY : "#94A9B8"} />
-      </button>
-      <button onClick={() => onOpenNotes(di, item)} aria-label="메모/사진" className="shrink-0">
+      </IconButton>
+      <IconButton onClick={() => onOpenNotes(di, item)} ariaLabel="메모/사진">
         <StickyNote size={13} color={noteCount > 0 ? SKY : "#94A9B8"} />
-      </button>
-      <button onClick={() => onDeleteItem(di, item)} aria-label="항목 삭제" className="shrink-0">
+      </IconButton>
+      <IconButton onClick={() => onDeleteItem(di, item)} ariaLabel="항목 삭제">
         <Trash2 size={13} color="#94A9B8" />
-      </button>
+      </IconButton>
     </li>
   );
 }
@@ -377,16 +378,15 @@ const DayCardItem = memo(function DayCardItem({
                     </span>
                   )}
                   {dayEditMode && (
-                    <button
+                    <IconButton
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenNotes(di, it);
                       }}
-                      aria-label="메모/사진"
-                      className="shrink-0"
+                      ariaLabel="메모/사진"
                     >
                       <StickyNote size={12} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
-                    </button>
+                    </IconButton>
                   )}
                 </li>
               ))}
@@ -399,9 +399,9 @@ const DayCardItem = memo(function DayCardItem({
                 <span className="text-[12px]" style={{ color: "#5B7A90" }}>
                   &quot;{locatingItem.item.text}&quot; 위치 지정
                 </span>
-                <button onClick={onCloseLocationPicker} aria-label="닫기">
+                <IconButton onClick={onCloseLocationPicker} ariaLabel="닫기">
                   <X size={14} color="#94A9B8" />
-                </button>
+                </IconButton>
               </div>
               <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
               <div className="flex items-center gap-3 mt-1.5">
@@ -432,9 +432,9 @@ const DayCardItem = memo(function DayCardItem({
                 className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
                 style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
               />
-              <button onClick={() => onAddItem(di, items)} aria-label="추가" className="shrink-0">
+              <IconButton onClick={() => onAddItem(di, items)} ariaLabel="추가">
                 <Plus size={13} color={SKY} />
-              </button>
+              </IconButton>
             </div>
           )}
         </div>

@@ -4,12 +4,13 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Star, ChevronRight, MapPin, X, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 180, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 // 일정 자세히보기 팝업과 같은 독립된 미니맵입니다. 예전에는 명소 이름을 누르면 메인
@@ -18,7 +19,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 // 자체 지도로 바꿨습니다.
 const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
   ssr: false,
-  loading: () => <div className="rounded-lg mb-3" style={{ height: 160, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded-lg mb-3" style={{ height: 260, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, onDeleteSpot, onSetLocation }) {
@@ -151,9 +152,9 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                         <span>{s.name}</span>
                       )}
                       {canEdit && (
-                        <button onClick={() => onDeleteSpot?.(i)} aria-label="명소 삭제" className="shrink-0">
+                        <IconButton onClick={() => onDeleteSpot?.(i)} ariaLabel="명소 삭제">
                           <X size={12} color="#94A9B8" />
-                        </button>
+                        </IconButton>
                       )}
                     </span>
                   );
@@ -166,9 +167,9 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                     <span className="text-[12px]" style={{ color: "#5B7A90" }}>
                       &quot;{locatingSpot.name}&quot; 위치 지정
                     </span>
-                    <button onClick={closeLocationPicker} aria-label="닫기">
+                    <IconButton onClick={closeLocationPicker} ariaLabel="닫기">
                       <X size={14} color="#94A9B8" />
-                    </button>
+                    </IconButton>
                   </div>
                   <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
                   <div className="flex items-center gap-3 mt-1.5">

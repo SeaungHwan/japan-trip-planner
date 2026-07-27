@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -44,9 +45,9 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
           </span>
           <span className="flex items-center gap-1">
             {headerExtra}
-            <button onClick={requestClose} aria-label="닫기">
+            <IconButton onClick={requestClose} ariaLabel="닫기">
               <X size={18} color="#5B7A90" />
-            </button>
+            </IconButton>
           </span>
         </div>
         <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">{children}</div>

@@ -212,7 +212,7 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
 
       {zoomed && (
         <button
-          className="zoom-btn absolute top-2 right-2 z-[1000] rounded-full flex items-center justify-center"
+          className="zoom-btn absolute top-2 left-2 z-[1000] rounded-full flex items-center justify-center"
           style={{ width: 32, height: 32, background: "#FFFFFF", color: "#0F2A3D", border: "1px solid #BAE6FD" }}
           onClick={onZoomOut}
           aria-label="전체 지도"
@@ -223,7 +223,7 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
 
       {zoomed && activeRegion && validDayPins.length > 0 && (
         <button
-          className="zoom-btn absolute top-[46px] right-2 z-[1000] rounded-full flex items-center justify-center"
+          className="zoom-btn absolute top-[46px] left-2 z-[1000] rounded-full flex items-center justify-center"
           style={{ width: 32, height: 32, background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : "#0F2A3D", border: "1px solid #BAE6FD" }}
           onClick={onToggleAllDayPins}
           aria-label="전체보기"

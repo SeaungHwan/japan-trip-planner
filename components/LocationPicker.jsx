@@ -84,7 +84,7 @@ export default function LocationPicker({ point, onPick }) {
           {error}
         </p>
       )}
-      <div className="rounded overflow-hidden" style={{ height: 220, border: "1px solid #BAE6FD" }}>
+      <div className="rounded overflow-hidden" style={{ height: 320, border: "1px solid #BAE6FD" }}>
         <MapContainer
           center={point ? [point.lat, point.lng] : JAPAN_CENTER}
           zoom={point ? 10 : 5}

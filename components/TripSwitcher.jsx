@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Plus, Pencil, Trash2, X } from "lucide-react";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -86,9 +87,9 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
               <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
                 여행 목록
               </span>
-              <button onClick={close}>
+              <IconButton onClick={close} ariaLabel="닫기">
                 <X size={18} color="#5B7A90" />
-              </button>
+              </IconButton>
             </div>
 
             <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
@@ -120,13 +121,13 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                           </span>
                         )}
                       </button>
-                      <button onClick={() => startEdit(t)} aria-label="여행 정보 수정" className="shrink-0 p-1.5">
+                      <IconButton onClick={() => startEdit(t)} ariaLabel="여행 정보 수정">
                         <Pencil size={14} color={iconColor} />
-                      </button>
+                      </IconButton>
                       {canDelete?.(t) && (
-                        <button onClick={() => onDelete(t)} aria-label="여행 삭제" className="shrink-0 p-1.5">
+                        <IconButton onClick={() => onDelete(t)} ariaLabel="여행 삭제">
                           <Trash2 size={14} color={iconColor} />
-                        </button>
+                        </IconButton>
                       )}
                     </div>
                   );

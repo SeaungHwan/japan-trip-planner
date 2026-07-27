@@ -6,6 +6,7 @@ import { getIcon } from "@/data/icons";
 import Feedback from "@/components/Feedback";
 import SettlementModal from "@/components/SettlementModal";
 import MemoModal from "@/components/MemoModal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -26,19 +27,19 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
         </span>
         <div className="ml-auto flex items-center gap-2 shrink-0">
           {canEdit && (
-            <button onClick={() => setMemoOpen(true)} aria-label="메모장" className="flex items-center gap-1">
+            <IconButton onClick={() => setMemoOpen(true)} ariaLabel="메모장">
               <FileText size={14} color="#94A9B8" />
-            </button>
+            </IconButton>
           )}
           {canEdit && (
-            <button onClick={() => setBudgetModalOpen(true)} aria-label="정산" className="flex items-center gap-1">
+            <IconButton onClick={() => setBudgetModalOpen(true)} ariaLabel="정산">
               <Wallet size={14} color="#94A9B8" />
-            </button>
+            </IconButton>
           )}
           {onDelete && (
-            <button onClick={onDelete} aria-label="지역 삭제" className="shrink-0">
+            <IconButton onClick={onDelete} ariaLabel="지역 삭제">
               <Trash2 size={15} color="#94A9B8" />
-            </button>
+            </IconButton>
           )}
         </div>
       </div>

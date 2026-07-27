@@ -12,7 +12,7 @@ export default function MapZoomControl() {
   const map = useMap();
   return (
     <div
-      className="absolute top-2 left-2 z-[1000] flex flex-col rounded-lg overflow-hidden"
+      className="absolute top-2 right-2 z-[1000] flex flex-col rounded-lg overflow-hidden"
       style={{ border: "1px solid #BAE6FD", background: "#FFFFFF", boxShadow: "0 1px 3px rgba(0,0,0,.15)" }}
     >
       <button

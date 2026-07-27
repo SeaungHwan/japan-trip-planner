@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FileText, Plus, X } from "lucide-react";
 import Modal from "@/components/Modal";
+import IconButton from "@/components/IconButton";
 
 const SKY = "#0EA5E9";
 
@@ -131,16 +132,15 @@ export default function MemoModal({ memo, onSave, onClose }) {
                 >
                   {linkifyMemo(text)}
                 </span>
-                <button
+                <IconButton
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteItem(i);
                   }}
-                  aria-label="메모 삭제"
-                  className="shrink-0"
+                  ariaLabel="메모 삭제"
                 >
                   <X size={13} color="#94A9B8" />
-                </button>
+                </IconButton>
               </li>
             );
           })}

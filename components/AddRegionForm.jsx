@@ -6,6 +6,7 @@ import { X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import { compressImage } from "@/lib/imageOptimize";
+import IconButton from "@/components/IconButton";
 
 function base64ToFile(base64, mimeType, name) {
   const byteChars = atob(base64);
@@ -29,7 +30,7 @@ const LOADING_MESSAGES = [
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 220, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
 });
 
 export default function AddRegionForm({ onClose, onAdded, tripId }) {
@@ -194,9 +195,9 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
             새 지역 추가
           </span>
-          <button onClick={requestClose}>
+          <IconButton onClick={requestClose} ariaLabel="닫기">
             <X size={18} color="#5B7A90" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="px-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">

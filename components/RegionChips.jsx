@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
@@ -75,7 +75,17 @@ export default function RegionChips({
 }) {
   const base = regions.slice(0, baseCount);
   const extra = regions.slice(baseCount);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 300, tolerance: 6 } }));
+  // PointerSensor 하나로는 안드로이드(삼성 기본 브라우저/크롬)에서 delay가 끝나기 전에
+  // 브라우저 자체의 네이티브 가로 스크롤 제스처가 먼저 손 제스처를 가져가 버려서 드래그가
+  // 아예 시작되지 않는 문제가 있었습니다(데스크톱 마우스에서는 재현되지 않아 놓치기 쉬움).
+  // TouchSensor는 preventDefault를 걸 수 있는 non-passive 터치 리스너로 delay/tolerance를
+  // 직접 판정해서, 같은 "꾹 누르면 드래그·짧게 스와이프하면 스크롤" 동작을 터치에서도
+  // 안정적으로 재현합니다. 마우스/터치가 같은 포인터 이벤트로 겹쳐 잡히지 않도록
+  // PointerSensor 대신 MouseSensor+TouchSensor 조합을 씁니다.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { delay: 300, tolerance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 6 } })
+  );
 
   function handleDragEnd({ active: activeChip, over }) {
     if (!over || activeChip.id === over.id) return;
@@ -101,7 +111,7 @@ export default function RegionChips({
           modifiers={[restrictToHorizontalAxis]}
         >
           <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 flex-1 min-w-0 chip-row">
+            <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 flex-1 min-w-0 chip-row">
               {base.map((r, i) => (
                 <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} canReorder={canReorder} />
               ))}
