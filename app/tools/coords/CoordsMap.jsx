@@ -24,8 +24,8 @@ function ClickHandler({ onPick }) {
 
 export default function CoordsMap({ points, onPick, onDelete }) {
   return (
-    <div className="mb-4" style={{ height: 480 }}>
-      <MapContainer center={JAPAN_CENTER} zoom={5} style={{ height: "100%", width: "100%" }} attributionControl={false}>
+    <div className="mb-4 h-[480px]">
+      <MapContainer center={JAPAN_CENTER} zoom={5} className="h-full w-full" attributionControl={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

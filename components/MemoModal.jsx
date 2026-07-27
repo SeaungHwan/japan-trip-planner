@@ -4,8 +4,7 @@ import { useState } from "react";
 import { FileText, Plus, X } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY } from "@/lib/theme";
 
 // memo는 DB에 여전히 문자열 하나로 저장되지만(스키마 변경 없이), 화면에서는 항목
 // 목록으로 보여주고 편집합니다. 항목 하나가 여러 줄일 수 있어서(입력창에서 엔터로
@@ -33,8 +32,7 @@ function linkifyMemo(text) {
         href={part}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline"
-        style={{ color: SKY }}
+        className="underline text-sky"
       >
         {part}
       </a>
@@ -98,29 +96,26 @@ export default function MemoModal({ memo, onSave, onClose }) {
             placeholder="새 메모 (준비물, 체크리스트 등) — 엔터로 줄바꿈"
             rows={6}
             autoFocus
-            className="w-full text-[13px] rounded-lg p-2.5"
-            style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", resize: "vertical" }}
+            className="w-full text-[13px] rounded-lg p-2.5 border border-sky-border text-ink resize-y"
           />
           <div className="flex justify-end">
             <button
               onClick={saveNewItem}
-              className="text-[12px] rounded-lg px-3 py-1.5"
-              style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+              className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold"
             >
               저장
             </button>
           </div>
         </div>
       ) : (
-        <ul className="flex flex-col gap-1.5" style={{ maxHeight: 400, overflowY: "auto" }}>
+        <ul className="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto">
           {items.map((text, i) => {
             const isExpanded = expanded.has(i);
             return (
               <li
                 key={i}
                 onClick={() => toggleExpand(i)}
-                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px]"
-                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#0F2A3D", cursor: "pointer" }}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] bg-slate-bg border border-slate-border text-ink cursor-pointer"
               >
                 <span
                   className="no-auto-phrase flex-1 min-w-0"
@@ -145,7 +140,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
             );
           })}
           {items.length === 0 && (
-            <li className="text-[12px] text-center py-2" style={{ color: "#94A9B8" }}>
+            <li className="text-[12px] text-center py-2 text-faint">
               아직 메모가 없어요
             </li>
           )}

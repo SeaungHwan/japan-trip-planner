@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 
 const CoordsMap = dynamic(() => import("./CoordsMap"), {
   ssr: false,
-  loading: () => <div className="mb-4" style={{ height: 480, background: "#F0F9FF" }} />,
+  loading: () => <div className="mb-4 h-[480px] bg-sky-bg" />,
 });
 
 const STORAGE_KEY = "coords-picker-points";

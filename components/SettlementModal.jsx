@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import { Wallet, Users, Plus, X, ArrowRight } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY, SKY_BORDER, MUTED, FAINT, INK, DANGER } from "@/lib/theme";
 
 function won(n) {
   return `${Math.round(n || 0).toLocaleString()}원`;
@@ -106,15 +105,14 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
     <Modal icon={Wallet} title="정산" onClose={onClose}>
           {/* 참가자 */}
           <div className="mb-3">
-            <div className="flex items-center gap-1 mb-1.5 text-[12px]" style={{ color: "#5B7A90", fontWeight: 700 }}>
+            <div className="flex items-center gap-1 mb-1.5 text-[12px] text-muted font-bold">
               <Users size={12} /> 참가자
             </div>
             <div className="flex flex-wrap gap-1.5 mb-1.5">
               {list.map((p) => (
                 <span
                   key={p}
-                  className="text-[12px] pl-2 pr-1 py-1 rounded-full flex items-center gap-1"
-                  style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                  className="text-[12px] pl-2 pr-1 py-1 rounded-full flex items-center gap-1 bg-sky-bg border border-sky-border text-ink"
                 >
                   {p}
                   {canEdit && (
@@ -125,7 +123,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                 </span>
               ))}
               {list.length === 0 && (
-                <span className="text-[11px]" style={{ color: "#94A9B8" }}>
+                <span className="text-[11px] text-faint">
                   참가자를 추가하면 항목별로 나눠 낼 수 있어요
                 </span>
               )}
@@ -137,8 +135,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   onChange={(e) => setNewParticipant(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addParticipant()}
                   placeholder="이름 (예: 철수)"
-                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
-                  style={{ border: "1px solid #BAE6FD" }}
+                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
                 <button onClick={addParticipant} aria-label="참가자 추가" className="shrink-0">
                   <Plus size={16} color={SKY} />
@@ -152,21 +149,20 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
             {(budget || []).map((b, i) => (
               <li
                 key={i}
-                className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5"
-                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}
+                className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-slate-bg border border-slate-border"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] truncate" style={{ color: "#0F2A3D" }}>
+                  <div className="text-[13px] truncate text-ink">
                     {b.name}
                   </div>
-                  <div className="text-[11px] truncate" style={{ color: "#94A9B8" }}>
+                  <div className="text-[11px] truncate text-faint">
                     {b.payer ? `${b.payer} 냄 · ` : ""}
                     {(b.participants || []).join(", ")}
                     {b.splitMode === "custom" ? " (직접입력)" : " 균등"}
                   </div>
                 </div>
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-[13px]" style={{ color: "#5B7A90", fontWeight: 700 }}>
+                  <span className="text-[13px] text-muted font-bold">
                     {won(b.amount)}
                   </span>
                   {canEdit && (
@@ -178,51 +174,49 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
               </li>
             ))}
             {(budget || []).length === 0 && (
-              <li className="text-[12px]" style={{ color: "#94A9B8" }}>
+              <li className="text-[12px] text-faint">
                 아직 등록된 비용이 없어요
               </li>
             )}
           </ul>
 
           <div className="flex items-center justify-between px-1 mb-3">
-            <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+            <span className="text-[12px] text-muted">
               합계
             </span>
-            <span className="text-[14px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+            <span className="text-[14px] text-ink font-bold">
               {won(total)}
             </span>
           </div>
 
           {/* 새 비용 추가 */}
           {canEdit && list.length > 0 && (
-            <div className="rounded-lg p-2.5 mb-3" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+            <div className="rounded-lg p-2.5 mb-3 bg-slate-bg border border-slate-border">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="항목 (예: 항공권)"
-                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
-                  style={{ border: "1px solid #BAE6FD" }}
+                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   type="number"
                   placeholder="금액"
-                  className="w-20 shrink-0 text-[12px] rounded px-2 py-1.5"
-                  style={{ border: "1px solid #BAE6FD" }}
+                  className="w-20 shrink-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
               </div>
 
               <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="text-[11px] shrink-0" style={{ color: "#5B7A90" }}>
+                <span className="text-[11px] shrink-0 text-muted">
                   낸 사람
                 </span>
                 <select
                   value={payer}
                   onChange={(e) => setPayer(e.target.value)}
-                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5"
-                  style={{ border: "1px solid #BAE6FD", color: payer ? "#0F2A3D" : "#94A9B8" }}
+                  className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
+                  style={{ color: payer ? INK : FAINT }}
                 >
                   <option value="">선택 안 함</option>
                   {list.map((p) => (
@@ -234,7 +228,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
               </div>
 
               <div className="mb-1.5">
-                <span className="text-[11px]" style={{ color: "#5B7A90" }}>
+                <span className="text-[11px] text-muted">
                   나눌 사람
                 </span>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -247,8 +241,8 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                         className="text-[11px] px-2 py-1 rounded-full"
                         style={{
                           background: on ? SKY : "#FFFFFF",
-                          color: on ? "#FFFFFF" : "#5B7A90",
-                          border: `1px solid ${on ? SKY : "#BAE6FD"}`,
+                          color: on ? "#FFFFFF" : MUTED,
+                          border: `1px solid ${on ? SKY : SKY_BORDER}`,
                           fontWeight: on ? 700 : 500,
                         }}
                       >
@@ -262,24 +256,22 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
               <div className="flex items-center gap-1.5 mb-1.5">
                 <button
                   onClick={() => setSplitMode("equal")}
-                  className="flex-1 text-[11px] rounded py-1"
+                  className="flex-1 text-[11px] rounded py-1 font-bold"
                   style={{
                     background: splitMode === "equal" ? SKY : "#FFFFFF",
-                    color: splitMode === "equal" ? "#FFFFFF" : "#5B7A90",
-                    border: `1px solid ${splitMode === "equal" ? SKY : "#BAE6FD"}`,
-                    fontWeight: 700,
+                    color: splitMode === "equal" ? "#FFFFFF" : MUTED,
+                    border: `1px solid ${splitMode === "equal" ? SKY : SKY_BORDER}`,
                   }}
                 >
                   균등하게 ({splitWith.length || 0}등분)
                 </button>
                 <button
                   onClick={() => setSplitMode("custom")}
-                  className="flex-1 text-[11px] rounded py-1"
+                  className="flex-1 text-[11px] rounded py-1 font-bold"
                   style={{
                     background: splitMode === "custom" ? SKY : "#FFFFFF",
-                    color: splitMode === "custom" ? "#FFFFFF" : "#5B7A90",
-                    border: `1px solid ${splitMode === "custom" ? SKY : "#BAE6FD"}`,
-                    fontWeight: 700,
+                    color: splitMode === "custom" ? "#FFFFFF" : MUTED,
+                    border: `1px solid ${splitMode === "custom" ? SKY : SKY_BORDER}`,
                   }}
                 >
                   직접 입력
@@ -290,7 +282,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                 <div className="flex flex-col gap-1 mb-1.5">
                   {splitWith.map((p) => (
                     <div key={p} className="flex items-center gap-1.5">
-                      <span className="text-[11px] w-12 shrink-0 truncate" style={{ color: "#5B7A90" }}>
+                      <span className="text-[11px] w-12 shrink-0 truncate text-muted">
                         {p}
                       </span>
                       <input
@@ -298,12 +290,11 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                         onChange={(e) => setCustomAmounts((prev) => ({ ...prev, [p]: e.target.value }))}
                         type="number"
                         placeholder="금액"
-                        className="flex-1 min-w-0 text-[12px] rounded px-2 py-1"
-                        style={{ border: "1px solid #BAE6FD" }}
+                        className="flex-1 min-w-0 text-[12px] rounded px-2 py-1 border border-sky-border"
                       />
                     </div>
                   ))}
-                  <div className="text-[11px] text-right" style={{ color: customSum === Number(amount) ? "#5B7A90" : "#EF4444" }}>
+                  <div className="text-[11px] text-right" style={{ color: customSum === Number(amount) ? MUTED : DANGER }}>
                     입력 합계 {won(customSum)} / 총액 {won(Number(amount) || 0)}
                   </div>
                 </div>
@@ -311,8 +302,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
 
               <button
                 onClick={submitAdd}
-                className="w-full rounded-lg py-1.5 text-[12px] flex items-center justify-center gap-1"
-                style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                className="w-full rounded-lg py-1.5 text-[12px] flex items-center justify-center gap-1 bg-sky text-white font-bold"
               >
                 <Plus size={13} /> 추가
               </button>
@@ -322,14 +312,14 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
           {/* 정산 요약 */}
           {list.length > 0 && (
             <div>
-              <div className="text-[12px] mb-1.5" style={{ color: "#5B7A90", fontWeight: 700 }}>
+              <div className="text-[12px] mb-1.5 text-muted font-bold">
                 정산 요약
               </div>
               <ul className="flex flex-col gap-1 mb-2">
                 {balances.map((b) => (
                   <li key={b.name} className="flex items-center justify-between text-[12px]">
-                    <span style={{ color: "#0F2A3D" }}>{b.name}</span>
-                    <span style={{ color: b.balance >= 0 ? "#0EA5E9" : "#EF4444", fontWeight: 700 }}>
+                    <span className="text-ink">{b.name}</span>
+                    <span className="font-bold" style={{ color: b.balance >= 0 ? SKY : DANGER }}>
                       {b.balance >= 0 ? `+${won(b.balance)} 받음` : `${won(b.balance)} 냄`}
                     </span>
                   </li>
@@ -340,11 +330,10 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   {transfers.map((t, i) => (
                     <li
                       key={i}
-                      className="flex items-center gap-1.5 text-[12px] rounded-lg px-2.5 py-1.5"
-                      style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                      className="flex items-center gap-1.5 text-[12px] rounded-lg px-2.5 py-1.5 bg-sky-bg border border-sky-border text-ink"
                     >
                       {t.from} <ArrowRight size={12} color="#94A9B8" /> {t.to}
-                      <span className="ml-auto" style={{ fontWeight: 700 }}>
+                      <span className="ml-auto font-bold">
                         {won(t.amount)}
                       </span>
                     </li>
@@ -352,7 +341,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                 </ul>
               ) : (
                 (budget || []).length > 0 && (
-                  <p className="text-[11px]" style={{ color: "#94A9B8" }}>
+                  <p className="text-[11px] text-faint">
                     이미 정산이 맞아요
                   </p>
                 )

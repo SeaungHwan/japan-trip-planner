@@ -73,8 +73,7 @@ export default function AuthGate({ children }) {
       <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4" style={{ background: SKY_GRADIENT }}>
         {/* 여행 느낌을 주는 배경 장식: 점선 항로. interaction/레이아웃에는 관여하지 않습니다. */}
         <svg
-          className="absolute inset-0 w-full h-full"
-          style={{ opacity: 0.4 }}
+          className="absolute inset-0 w-full h-full opacity-40"
           viewBox="0 0 400 800"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -83,37 +82,36 @@ export default function AuthGate({ children }) {
         </svg>
 
         <div
-          className="w-full max-w-xs rounded-3xl p-7 text-center anim-popin relative"
-          style={{ background: "rgba(255,255,255,0.92)", boxShadow: "0 20px 45px rgba(15,42,61,0.18)" }}
+          className="w-full max-w-xs rounded-3xl p-7 text-center anim-popin relative shadow-[0_20px_45px_rgba(15,42,61,0.18)]"
+          style={{ background: "rgba(255,255,255,0.92)" }}
         >
           <div
-            className="mx-auto mb-4 flex items-center justify-center rounded-full"
-            style={{ width: 56, height: 56, background: "linear-gradient(135deg, #0EA5E9, #38BDF8)" }}
+            className="mx-auto mb-4 flex items-center justify-center rounded-full w-[56px] h-[56px]"
+            style={{ background: "linear-gradient(135deg, #0EA5E9, #38BDF8)" }}
           >
             <Plane size={24} color="#FFFFFF" />
           </div>
-          <p className="text-lg mb-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+          <p className="text-lg mb-1 serif text-ink font-bold">
             여행 플래너
           </p>
-          <p className="text-[12px] mb-6" style={{ color: "#94A9B8" }}>
+          <p className="text-[12px] mb-6 text-faint">
             일정을 함께 계획하고 공유해보세요
           </p>
           <button
             onClick={signIn}
-            className="w-full text-sm rounded-xl py-2.5 flex items-center justify-center gap-2"
-            style={{ background: "#FFFFFF", color: "#3C4043", fontWeight: 600, border: "1px solid #DADCE0" }}
+            className="w-full text-sm rounded-xl py-2.5 flex items-center justify-center gap-2 bg-white font-semibold"
+            style={{ color: "#3C4043", border: "1px solid #DADCE0" }}
           >
             <GoogleIcon /> Google로 계속하기
           </button>
           <button
             onClick={signInAsDifferentAccount}
-            className="w-full text-[12px] mt-3"
-            style={{ color: "#94A9B8", fontWeight: 700 }}
+            className="w-full text-[12px] mt-3 text-faint font-bold"
           >
             다른 계정으로 로그인
           </button>
           {error && (
-            <p className="text-[12px] mt-3" style={{ color: "#EF4444" }}>
+            <p className="text-[12px] mt-3 text-danger">
               {error}
             </p>
           )}

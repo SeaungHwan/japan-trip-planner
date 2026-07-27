@@ -4,8 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY } from "@/lib/theme";
 
 // SpotsPanel/FoodsPanel/SettlementModal/DayDetailModal/MemoModal이 각자 따로 구현하던
 // "배경 오버레이 + 흰 카드 + 스크롤 영역 + 제목줄(아이콘+제목+닫기)" 뼈대를 하나로 모읍니다.
@@ -29,18 +28,17 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
-      style={{ background: "rgba(15,42,61,0.5)" }}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,42,61,0.5)] ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
       onClick={requestClose}
       onAnimationEnd={handleBackdropAnimationEnd}
     >
       <div
-        className={`w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${closing ? "modal-card-out" : "modal-card-in"}`}
-        style={{ background: "#FFFFFF", minHeight }}
+        className={`w-full max-w-sm rounded-2xl max-h-[85vh] flex flex-col overflow-hidden bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
+        style={{ minHeight }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 pb-3 shrink-0">
-          <span className="text-[15px] flex items-center gap-1.5" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+          <span className="text-[15px] flex items-center gap-1.5 text-ink font-bold">
             {Icon && <Icon size={16} color={SKY} />} {title}
           </span>
           <span className="flex items-center gap-1">

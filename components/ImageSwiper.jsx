@@ -10,12 +10,12 @@ export default function ImageSwiper({ images, height = 100 }) {
   const tileWidth = hasMore ? "29%" : "calc((100% - 16px) / 3)";
 
   return (
-    <div className="flex gap-2 overflow-x-auto no-scrollbar" style={{ scrollSnapType: "x proximity" }}>
+    <div className="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-proximity">
       {images.map((img, i) => (
-        <div key={i} className="shrink-0" style={{ width: tileWidth, scrollSnapAlign: "start" }}>
-          <img src={img.url} alt="" className="rounded-lg w-full" style={{ height, objectFit: "cover" }} />
+        <div key={i} className="shrink-0 snap-start" style={{ width: tileWidth }}>
+          <img src={img.url} alt="" className="rounded-lg w-full object-cover" style={{ height }} />
           {img.name && (
-            <p className="text-[11px] text-center mt-1 truncate" style={{ color: "#5B7A90" }}>
+            <p className="text-[11px] text-center mt-1 truncate text-muted">
               {img.name}
             </p>
           )}

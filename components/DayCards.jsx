@@ -12,8 +12,8 @@ import DayItemNotesModal from "@/components/DayItemNotesModal";
 import ImageSwiper from "@/components/ImageSwiper";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
+import { SKY, SKY_BORDER } from "@/lib/theme";
 
-const SKY = "#0EA5E9";
 const CUSTOM_DAY_BASE = 100000;
 
 // 편집/위치지정 중이 아닌 카드에는 항상 이 고정 참조를 넘겨서, 다른 카드에서 타이핑해도
@@ -24,12 +24,12 @@ const EMPTY_NOTES = [];
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2 h-[320px] bg-sky-bg border border-sky-border" />,
 });
 
 const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
   ssr: false,
-  loading: () => <div className="rounded-lg mb-3" style={{ height: 260, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded-lg mb-3 h-[260px] bg-sky-bg border border-sky-border" />,
 });
 
 // "1Day" 배지가 이미 순번을 보여주므로, 제목에 남아있는 "1일차"/"1일차:" 같은
@@ -130,22 +130,20 @@ function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
       )}
       <ul className="flex flex-col gap-2">
         {items.map((it, i) => (
-          <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+          <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5 bg-slate-bg border border-slate-border">
             <span
-              className="shrink-0 rounded-full flex items-center justify-center text-[11px]"
-              style={{ width: 20, height: 20, background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+              className="shrink-0 rounded-full flex items-center justify-center text-[11px] w-[20px] h-[20px] bg-sky text-white font-bold"
             >
               {i + 1}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px]" style={{ color: "#0F2A3D" }}>
+              <p className="text-[13px] text-ink">
                 {it.text}
               </p>
               {it.lat != null && (
                 <button
                   onClick={() => setFocusPoint({ lat: it.lat, lng: it.lng })}
-                  className="text-[11px] flex items-center gap-1 mt-0.5"
-                  style={{ color: SKY, fontWeight: 700 }}
+                  className="text-[11px] flex items-center gap-1 mt-0.5 text-sky font-bold"
                 >
                   <MapPin size={11} /> 지도에서 보기
                 </button>
@@ -178,8 +176,8 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
       <span
         {...attributes}
         {...listeners}
-        className="shrink-0 flex items-center justify-center"
-        style={{ width: 20, height: 20, touchAction: "none", cursor: isDragging ? "grabbing" : "grab" }}
+        className="shrink-0 flex items-center justify-center w-[20px] h-[20px] touch-none"
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
         <GripVertical size={13} color={isDragging ? SKY : "#94A9B8"} />
       </span>
@@ -188,8 +186,7 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
         onChange={(e) => setDrafts((d) => ({ ...d, [item.key]: e.target.value }))}
         onBlur={() => onCommitDraft(di, item)}
         onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-        className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
-        style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+        className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
       />
       <IconButton onClick={() => onOpenLocationPicker(di, item)} ariaLabel="위치 설정">
         <MapPin size={13} color={item.lat != null ? SKY : "#94A9B8"} />
@@ -293,13 +290,11 @@ const DayCardItem = memo(function DayCardItem({
       onAnimationEnd={(e) => {
         if (e.animationName === "fadeUp") e.currentTarget.style.animation = "none";
       }}
-      className="day-card rounded-xl p-4"
+      className="day-card rounded-xl p-4 bg-white relative"
       style={{
         animationDelay: `${displayIdx * 0.05}s`,
-        background: "#FFFFFF",
-        border: isDragging ? "1px solid #0EA5E9" : "1px solid #BAE6FD",
+        border: isDragging ? `1px solid ${SKY}` : `1px solid ${SKY_BORDER}`,
         cursor: !isEditing ? "pointer" : undefined,
-        position: "relative",
         transform: isDragging ? `${transformStyle || ""} scale(1.03)`.trim() : transformStyle,
         // 드래그 중인 카드 자신은 트랜지션을 꺼야 손가락 움직임을 프레임마다 그대로 따라옵니다.
         // transition을 계속 걸어두면 매 포인터 이동마다 새 transform이 트랜지션과 경합해
@@ -315,15 +310,14 @@ const DayCardItem = memo(function DayCardItem({
           <span
             {...attributes}
             {...listeners}
-            className="shrink-0 flex items-center justify-center -ml-2 -mt-1"
-            style={{ width: 32, height: 32, touchAction: "none", cursor: isDragging ? "grabbing" : "grab" }}
+            className="shrink-0 flex items-center justify-center -ml-2 -mt-1 w-[32px] h-[32px] touch-none"
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
           >
             <GripVertical size={16} color={isDragging ? SKY : "#94A9B8"} />
           </span>
         )}
         <span
-          className="text-xs shrink-0 mt-0.5 rounded-full h-6 px-2 flex items-center justify-center"
-          style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+          className="text-xs shrink-0 mt-0.5 rounded-full h-6 px-2 flex items-center justify-center bg-sky text-white font-bold"
         >
           {displayIdx + 1}Day
         </span>
@@ -335,11 +329,10 @@ const DayCardItem = memo(function DayCardItem({
               onBlur={() => onCommitDraft(di, { key: "__title__", text: title, sortOrder: 0 })}
               onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
               autoFocus
-              className="w-full text-[15px] rounded px-1.5 py-0.5"
-              style={{ border: "1px solid #BAE6FD", color: "#0F2A3D", fontWeight: 700 }}
+              className="w-full text-[15px] rounded px-1.5 py-0.5 border border-sky-border text-ink font-bold"
             />
           ) : (
-            <div className="text-[15px]" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+            <div className="text-[15px] text-ink font-bold">
               {stripDayLabel(title)}
             </div>
           )}
@@ -369,11 +362,11 @@ const DayCardItem = memo(function DayCardItem({
               {items.map((it) => (
                 <li key={it.key} className="flex items-center justify-between gap-1">
                   {it.lat != null ? (
-                    <span className="text-[13px] flex items-center gap-1 min-w-0" style={{ color: "#5B7A90" }}>
+                    <span className="text-[13px] flex items-center gap-1 min-w-0 text-muted">
                       <MapPin size={11} color={SKY} className="shrink-0" /> <span className="truncate">{it.text}</span>
                     </span>
                   ) : (
-                    <span className="text-[13px] min-w-0 truncate" style={{ color: "#5B7A90" }}>
+                    <span className="text-[13px] min-w-0 truncate text-muted">
                       &middot; {it.text}
                     </span>
                   )}
@@ -394,9 +387,9 @@ const DayCardItem = memo(function DayCardItem({
           )}
 
           {isEditing && isLocatingHere && (
-            <div className="rounded-lg p-2 mt-1.5" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+            <div className="rounded-lg p-2 mt-1.5 bg-slate-bg border border-slate-border">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+                <span className="text-[12px] text-muted">
                   &quot;{locatingItem.item.text}&quot; 위치 지정
                 </span>
                 <IconButton onClick={onCloseLocationPicker} ariaLabel="닫기">
@@ -408,13 +401,13 @@ const DayCardItem = memo(function DayCardItem({
                 <button
                   onClick={onConfirmLocation}
                   disabled={!pendingPoint}
-                  className="text-[12px]"
-                  style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
+                  className="text-[12px] text-sky font-bold"
+                  style={{ opacity: pendingPoint ? 1 : 0.5 }}
                 >
                   위치 저장
                 </button>
                 {locatingItem.item.lat != null && (
-                  <button onClick={() => onClearLocation(di, locatingItem.item)} className="text-[12px]" style={{ color: "#EF4444", fontWeight: 700 }}>
+                  <button onClick={() => onClearLocation(di, locatingItem.item)} className="text-[12px] text-danger font-bold">
                     위치 삭제
                   </button>
                 )}
@@ -429,8 +422,7 @@ const DayCardItem = memo(function DayCardItem({
                 onChange={(e) => setNewText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && onAddItem(di, items)}
                 placeholder="새 항목"
-                className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5"
-                style={{ border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
               />
               <IconButton onClick={() => onAddItem(di, items)} ariaLabel="추가">
                 <Plus size={13} color={SKY} />
@@ -443,8 +435,7 @@ const DayCardItem = memo(function DayCardItem({
       {dayEditMode && (
         <div className="flex items-center justify-end gap-3 mt-3">
           <button
-            className="text-[12px] flex items-center gap-1"
-            style={{ color: "#94A9B8", fontWeight: 700 }}
+            className="text-[12px] flex items-center gap-1 text-faint font-bold"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteDay(di);
@@ -891,15 +882,15 @@ export default function DayCards({ days, mode, regionId, regionName, onDaysPinsC
     <div className="flex flex-col gap-3">
       {canEdit && (
         <div className="flex items-center justify-end gap-3 -mb-1">
-          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={addDay}>
+          <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={addDay}>
             <Plus size={13} /> 일정
           </button>
           {visibleDays.length > 1 && (
-            <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleReorderMode}>
+            <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={toggleReorderMode}>
               <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서"}
             </button>
           )}
-          <button className="text-[12px] flex items-center gap-1" style={{ color: SKY, fontWeight: 700 }} onClick={toggleDayEditMode}>
+          <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={toggleDayEditMode}>
             <Pencil size={13} /> {dayEditMode ? "완료" : "편집"}
           </button>
         </div>

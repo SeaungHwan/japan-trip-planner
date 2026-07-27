@@ -6,8 +6,8 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap, useMapEvents } from "react-leaflet";
 import { Minimize2, LayoutGrid } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
+import { SKY, INK } from "@/lib/theme";
 
-const SKY = "#0EA5E9";
 const JAPAN_CENTER = [37.5, 137.5];
 const JAPAN_ZOOM = 5;
 const REGION_ZOOM = 12;
@@ -124,11 +124,11 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
   const spreadDayPins = spreadOverlappingPins(shownDayPins, currentZoom);
 
   return (
-    <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden" style={{ height: 340, border: "1px solid #BAE6FD" }}>
+    <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden h-[340px] border border-sky-border">
       <MapContainer
         center={center}
         zoom={zoom}
-        style={{ height: "100%", width: "100%" }}
+        className="h-full w-full"
         attributionControl={false}
         zoomControl={false}
       >
@@ -212,8 +212,7 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
 
       {zoomed && (
         <button
-          className="zoom-btn absolute top-2 left-2 z-[1000] rounded-full flex items-center justify-center"
-          style={{ width: 32, height: 32, background: "#FFFFFF", color: "#0F2A3D", border: "1px solid #BAE6FD" }}
+          className="zoom-btn absolute top-2 left-2 z-[1000] rounded-full flex items-center justify-center w-[32px] h-[32px] bg-white text-ink border border-sky-border"
           onClick={onZoomOut}
           aria-label="전체 지도"
         >
@@ -223,8 +222,8 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
 
       {zoomed && activeRegion && validDayPins.length > 0 && (
         <button
-          className="zoom-btn absolute top-[46px] left-2 z-[1000] rounded-full flex items-center justify-center"
-          style={{ width: 32, height: 32, background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : "#0F2A3D", border: "1px solid #BAE6FD" }}
+          className="zoom-btn absolute top-[46px] left-2 z-[1000] rounded-full flex items-center justify-center w-[32px] h-[32px] border border-sky-border"
+          style={{ background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : INK }}
           onClick={onToggleAllDayPins}
           aria-label="전체보기"
         >

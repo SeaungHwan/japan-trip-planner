@@ -5,12 +5,11 @@ import dynamic from "next/dynamic";
 import { Star, ChevronRight, MapPin, X, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY } from "@/lib/theme";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2 h-[320px] bg-sky-bg border border-sky-border" />,
 });
 
 // 일정 자세히보기 팝업과 같은 독립된 미니맵입니다. 예전에는 명소 이름을 누르면 메인
@@ -19,7 +18,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 // 자체 지도로 바꿨습니다.
 const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
   ssr: false,
-  loading: () => <div className="rounded-lg mb-3" style={{ height: 260, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded-lg mb-3 h-[260px] bg-sky-bg border border-sky-border" />,
 });
 
 export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, onDeleteSpot, onSetLocation }) {
@@ -76,15 +75,14 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
   return (
     <>
       <button
-        className="flex-1 min-w-0 rounded-lg flex items-center justify-between px-2.5 py-1.5"
-        style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}
+        className="flex-1 min-w-0 rounded-lg flex items-center justify-between px-2.5 py-1.5 bg-sky-bg border border-sky-border"
         onClick={onToggle}
       >
-        <span className="flex items-center gap-1 text-[12px] min-w-0" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+        <span className="flex items-center gap-1 text-[12px] min-w-0 text-ink font-bold">
           <Star size={12} color="#0EA5E9" className="shrink-0" /> <span className="truncate">주변 명소</span>
         </span>
         <span className="flex items-center gap-0.5 shrink-0">
-          <span className="text-[11px]" style={{ color: "#94A9B8" }}>
+          <span className="text-[11px] text-faint">
             {(spots || []).length}
           </span>
           <ChevronRight size={13} color="#5B7A90" />
@@ -112,14 +110,12 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                 onKeyDown={(e) => e.key === "Enter" && saveNewSpot()}
                 placeholder="새 명소 이름"
                 autoFocus
-                className="w-full text-[13px] rounded-lg px-2.5 py-2"
-                style={{ border: "1px solid #BAE6FD" }}
+                className="w-full text-[13px] rounded-lg px-2.5 py-2 border border-sky-border"
               />
               <div className="flex justify-end">
                 <button
                   onClick={saveNewSpot}
-                  className="text-[12px] rounded-lg px-3 py-1.5"
-                  style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                  className="text-[12px] rounded-lg px-3 py-1.5 bg-sky text-white font-bold"
                 >
                   저장
                 </button>
@@ -135,8 +131,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                   return (
                     <span
                       key={i}
-                      className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1"
-                      style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0F2A3D" }}
+                      className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1 bg-sky-bg border border-sky-border text-ink"
                     >
                       {canEdit && (
                         <button onClick={() => openLocationPicker(i)} aria-label="위치 설정" className="shrink-0">
@@ -162,9 +157,9 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
               </div>
 
               {canEdit && locatingSpot && (
-                <div className="rounded-lg p-2 mt-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                <div className="rounded-lg p-2 mt-2 bg-slate-bg border border-slate-border">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12px]" style={{ color: "#5B7A90" }}>
+                    <span className="text-[12px] text-muted">
                       &quot;{locatingSpot.name}&quot; 위치 지정
                     </span>
                     <IconButton onClick={closeLocationPicker} ariaLabel="닫기">
@@ -176,13 +171,13 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                     <button
                       onClick={confirmLocation}
                       disabled={!pendingPoint}
-                      className="text-[12px]"
-                      style={{ color: SKY, fontWeight: 700, opacity: pendingPoint ? 1 : 0.5 }}
+                      className="text-[12px] text-sky font-bold"
+                      style={{ opacity: pendingPoint ? 1 : 0.5 }}
                     >
                       위치 저장
                     </button>
                     {typeof locatingSpot.lat === "number" && (
-                      <button onClick={clearLocation} className="text-[12px]" style={{ color: "#EF4444", fontWeight: 700 }}>
+                      <button onClick={clearLocation} className="text-[12px] text-danger font-bold">
                         위치 삭제
                       </button>
                     )}

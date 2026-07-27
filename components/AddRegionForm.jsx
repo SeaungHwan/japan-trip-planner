@@ -15,8 +15,6 @@ function base64ToFile(base64, mimeType, name) {
   return new File([bytes], name, { type: mimeType });
 }
 
-const SKY = "#0EA5E9";
-
 // AI 생성이 텍스트+사진+음식까지 합쳐 15~25초 걸릴 수 있어서, 그냥 "생성 중..."만
 // 띄우면 멈춘 것처럼 보입니다. 실제 진행 단계와 정확히 맞물리진 않지만, 실제로 하고
 // 있는 작업 순서를 반영한 문구를 돌아가며 보여줘서 계속 진행 중이라는 걸 알립니다.
@@ -30,7 +28,7 @@ const LOADING_MESSAGES = [
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
-  loading: () => <div className="rounded mb-2" style={{ height: 320, background: "#F0F9FF", border: "1px solid #BAE6FD" }} />,
+  loading: () => <div className="rounded mb-2 h-[320px] bg-sky-bg border border-sky-border" />,
 });
 
 export default function AddRegionForm({ onClose, onAdded, tripId }) {
@@ -183,16 +181,14 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
-      style={{ background: "rgba(15,42,61,0.5)" }}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,42,61,0.5)] ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
       onAnimationEnd={handleBackdropAnimationEnd}
     >
       <div
-        className={`w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col ${closing ? "modal-card-out" : "modal-card-in"}`}
-        style={{ background: "#FFFFFF" }}
+        className={`w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
       >
         <div className="flex items-center justify-between p-4 pb-3 shrink-0">
-          <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+          <span className="text-base text-ink font-bold">
             새 지역 추가
           </span>
           <IconButton onClick={requestClose} ariaLabel="닫기">
@@ -201,18 +197,17 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         </div>
 
         <div className="px-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             지역 이름 (필수)
           </label>
           <input
             value={kr}
             onChange={(e) => setKr(e.target.value)}
             placeholder="예: 벳푸"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             AI에게 추가 요청사항 (선택)
           </label>
           <textarea
@@ -220,19 +215,17 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             onChange={(e) => setExtraPrompt(e.target.value)}
             placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
             rows={2}
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
 
           {generating ? (
             <div
-              className="w-full rounded-lg mb-3 p-3 flex flex-col items-center gap-2"
-              style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}
+              className="w-full rounded-lg mb-3 p-3 flex flex-col items-center gap-2 bg-sky-bg border border-sky-border"
             >
-              <div className="ai-loading-icon" style={{ color: SKY }}>
+              <div className="ai-loading-icon text-sky">
                 <Sparkles size={22} />
               </div>
-              <p key={loadingMsgIndex} className="ai-loading-text text-[12px]" style={{ color: SKY, fontWeight: 700 }}>
+              <p key={loadingMsgIndex} className="ai-loading-text text-[12px] text-sky font-bold">
                 {LOADING_MESSAGES[loadingMsgIndex]}
               </p>
               <div className="ai-loading-bar-track">
@@ -242,14 +235,13 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           ) : (
             <button
               onClick={generateWithAI}
-              className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1"
-              style={{ background: "#F0F9FF", color: SKY, fontWeight: 700, border: "1px solid #BAE6FD" }}
+              className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1 bg-sky-bg text-sky font-bold border border-sky-border"
             >
               <Sparkles size={13} /> AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성
             </button>
           )}
           {days?.length > 0 && (
-            <p className="text-[12px] mb-2" style={{ color: SKY }}>
+            <p className="text-[12px] mb-2 text-sky">
               {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
             </p>
           )}
@@ -257,78 +249,72 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             <img
               src={imageUrl}
               alt="지역 대표 이미지 미리보기"
-              className="w-full rounded-lg mb-2"
-              style={{ maxHeight: 160, objectFit: "cover" }}
+              className="w-full rounded-lg mb-2 max-h-[160px] object-cover"
             />
           )}
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             일본어 이름 (선택)
           </label>
           <input
             value={jp}
             onChange={(e) => setJp(e.target.value)}
             placeholder="예: 別府"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
           </label>
           <LocationPicker point={point} onPick={setPoint} />
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             가볼만한 곳 (선택, 쉼표로 구분)
           </label>
           <input
             value={spotsText}
             onChange={(e) => setSpotsText(e.target.value)}
             placeholder="예: 벳푸 지옥온천, 유노하나 마을"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
           {aiSpots?.length > 0 && (
-            <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+            <p className="text-[11px] mb-2 text-faint">
               이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
             </p>
           )}
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             지역 음식 (선택, 쉼표로 구분)
           </label>
           <input
             value={foodsText}
             onChange={(e) => setFoodsText(e.target.value)}
             placeholder="예: 벚꽃새우 덮밥, 우나기 파이"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             항공편 정보 (선택)
           </label>
           <input
             value={flightIncheon}
             onChange={(e) => setFlightIncheon(e.target.value)}
             placeholder="인천 출발 — 예: 대한항공 주3회 (약 2시간)"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
           <input
             value={flightCheongju}
             onChange={(e) => setFlightCheongju(e.target.value)}
             placeholder="청주 출발 — 예: 정기 직항 없음"
-            className="w-full text-sm rounded px-2 py-1.5 mb-1"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-1 border border-sky-border"
           />
           {(flightIncheon || flightCheongju) && (
-            <p className="text-[11px] mb-2" style={{ color: "#94A9B8" }}>
+            <p className="text-[11px] mb-2 text-faint">
               AI가 생성한 대략적인 정보예요. 예약 전 항공사 홈페이지에서 꼭 재확인해주세요.
             </p>
           )}
 
-          <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+          <label className="block text-[12px] mb-1 text-muted">
             자유 메모 (선택)
           </label>
           <textarea
@@ -336,14 +322,13 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             onChange={(e) => setNote(e.target.value)}
             placeholder="이 지역을 추천하는 이유, 참고할 점 등"
             rows={3}
-            className="w-full text-sm rounded px-2 py-1.5 mb-2"
-            style={{ border: "1px solid #BAE6FD" }}
+            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
         </div>
 
         <div className="p-4 pt-3 shrink-0">
           {error && (
-            <p className="text-[12px] mb-2" style={{ color: "#EF4444" }}>
+            <p className="text-[12px] mb-2 text-danger">
               {error}
             </p>
           )}
@@ -351,8 +336,8 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
           <button
             onClick={submit}
             disabled={saving}
-            className="w-full text-sm rounded-lg py-2"
-            style={{ background: SKY, color: "#FFFFFF", fontWeight: 700, opacity: saving ? 0.6 : 1 }}
+            className="w-full text-sm rounded-lg py-2 bg-sky text-white font-bold"
+            style={{ opacity: saving ? 0.6 : 1 }}
           >
             {saving ? "저장 중..." : "추가하기"}
           </button>

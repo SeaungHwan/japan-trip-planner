@@ -5,8 +5,7 @@ import { LogOut, Share2, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import WeatherBadge from "@/components/WeatherBadge";
-
-const SKY = "#0EA5E9";
+import { SKY, FAINT, SKY_BG } from "@/lib/theme";
 
 const LEVELS = [
   { value: "private", label: "비공개" },
@@ -28,15 +27,15 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
 
   return (
     <div className="flex items-center justify-between mb-3 text-xs">
-      <span style={{ color: "#5B7A90" }}>{identity.nickname}님</span>
+      <span className="text-muted">{identity.nickname}님</span>
       <div className="flex items-center gap-3">
         <WeatherBadge lat={weatherLat} lng={weatherLng} startDate={startDate} endDate={endDate} />
         {canShare && (
           <div className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex items-center gap-1"
-              style={{ color: shareLevel === "private" ? "#94A9B8" : SKY, fontWeight: 700 }}
+              className="flex items-center gap-1 font-bold"
+              style={{ color: shareLevel === "private" ? FAINT : SKY }}
             >
               <Share2 size={12} /> {current.label}
             </button>
@@ -44,8 +43,7 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-1 z-50 rounded-lg overflow-hidden"
-                  style={{ background: "#FFFFFF", border: "1px solid #BAE6FD", minWidth: 140 }}
+                  className="absolute right-0 top-full mt-1 z-50 rounded-lg overflow-hidden bg-white border border-sky-border min-w-[140px]"
                 >
                   {LEVELS.map((l) => (
                     <button
@@ -54,8 +52,8 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
                         onSetShareLevel(l.value);
                         setMenuOpen(false);
                       }}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-[12px]"
-                      style={{ color: "#0F2A3D", background: l.value === shareLevel ? "#F0F9FF" : "transparent" }}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-[12px] text-ink"
+                      style={{ background: l.value === shareLevel ? SKY_BG : "transparent" }}
                     >
                       {l.label}
                       {l.value === shareLevel && <Check size={12} color={SKY} />}
@@ -68,8 +66,7 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
         )}
         <button
           onClick={() => supabase.auth.signOut()}
-          className="flex items-center gap-1"
-          style={{ color: "#94A9B8", fontWeight: 700 }}
+          className="flex items-center gap-1 text-faint font-bold"
         >
           <LogOut size={12} /> 로그아웃
         </button>

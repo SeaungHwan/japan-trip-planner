@@ -507,7 +507,7 @@ export default function Planner() {
   }
 
   return (
-    <div className="app-scroll w-full" style={{ background: "#FFFFFF" }}>
+    <div className="app-scroll w-full bg-white">
       <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pb-4">
         <div ref={headerRef} className="md:sticky md:top-0 md:z-10 md:bg-white pt-6 md:pb-2">
           <UserBadge
@@ -522,7 +522,7 @@ export default function Planner() {
           <div className="mb-2 anim-fadeup">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "#0EA5E9" }}>
+                <p className="text-xs tracking-[0.3em] uppercase text-sky">
                   {(region?.startDate && formatRange(region.startDate, region.endDate)) || activeTrip.subtitle || "TRIP"}
                 </p>
                 {region && (
@@ -542,7 +542,7 @@ export default function Planner() {
                 onDelete={deleteTrip}
               />
             </div>
-            <h1 className="text-3xl mt-1 serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+            <h1 className="text-3xl mt-1 serif text-ink font-bold">
               {activeTrip.title}
             </h1>
           </div>
@@ -553,7 +553,7 @@ export default function Planner() {
             <Spinner size={22} />
           </div>
         ) : !activeTrip.id ? (
-          <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
+          <p className="text-[13px] text-center mt-8 text-faint">
             아직 여행이 없어요. 오른쪽 위 &quot;다른 여행&quot;에서 새 여행을 만들어보세요.
           </p>
         ) : (
@@ -591,7 +591,7 @@ export default function Planner() {
                     <Spinner size={22} />
                   </div>
                 ) : regions.length === 0 ? (
-                  <p className="text-[13px] text-center mt-8" style={{ color: "#94A9B8" }}>
+                  <p className="text-[13px] text-center mt-8 text-faint">
                     이 여행에는 아직 지역이 없어요.
                     {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
                   </p>

@@ -5,8 +5,7 @@ import { ThumbsUp, ThumbsDown, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY, MUTED, DANGER } from "@/lib/theme";
 
 export default function Feedback({ targetKey }) {
   const [reactions, setReactions] = useState([]);
@@ -85,7 +84,7 @@ export default function Feedback({ targetKey }) {
           aria-pressed={myVote === 1}
           className="flex items-center gap-1 rounded-full px-1 py-0.5"
           style={{
-            color: myVote === 1 ? "#FFFFFF" : "#5B7A90",
+            color: myVote === 1 ? "#FFFFFF" : MUTED,
             background: myVote === 1 ? SKY : "transparent",
             fontWeight: myVote === 1 ? 700 : 400,
           }}
@@ -97,27 +96,27 @@ export default function Feedback({ targetKey }) {
           aria-pressed={myVote === -1}
           className="flex items-center gap-1 rounded-full px-1 py-0.5"
           style={{
-            color: myVote === -1 ? "#FFFFFF" : "#5B7A90",
-            background: myVote === -1 ? "#EF4444" : "transparent",
+            color: myVote === -1 ? "#FFFFFF" : MUTED,
+            background: myVote === -1 ? DANGER : "transparent",
             fontWeight: myVote === -1 ? 700 : 400,
           }}
         >
           <ThumbsDown size={13} /> {loading ? "-" : down}
         </button>
-        <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-1" style={{ color: "#5B7A90" }}>
+        <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-1 text-muted">
           <MessageCircle size={13} /> 댓글 {loading ? "-" : comments.length}
         </button>
       </div>
 
       {open && (
-        <div className="rounded-lg p-2" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+        <div className="rounded-lg p-2 bg-slate-bg border border-slate-border">
           <div className="no-auto-phrase flex flex-col gap-1 mb-2 max-h-40 overflow-y-auto">
             {comments.map((c) => (
               <div key={c.id} className="flex items-start gap-1.5 text-[12px]">
-                <span className="shrink-0" style={{ fontWeight: 700, color: "#0F2A3D" }}>
+                <span className="shrink-0 font-bold text-ink">
                   {c.nickname}
                 </span>
-                <span className="flex-1 min-w-0" style={{ color: "#5B7A90" }}>
+                <span className="flex-1 min-w-0 text-muted">
                   {c.body}
                 </span>
                 {c.user_id === identity?.id && (
@@ -128,7 +127,7 @@ export default function Feedback({ targetKey }) {
               </div>
             ))}
             {comments.length === 0 && (
-              <div className="text-[12px]" style={{ color: "#94A9B8" }}>
+              <div className="text-[12px] text-faint">
                 아직 댓글이 없어요
               </div>
             )}
@@ -140,10 +139,9 @@ export default function Feedback({ targetKey }) {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitComment()}
               placeholder="의견을 남겨보세요"
-              className="flex-1 text-[12px] rounded px-2 py-1"
-              style={{ border: "1px solid #BAE6FD" }}
+              className="flex-1 text-[12px] rounded px-2 py-1 border border-sky-border"
             />
-            <button onClick={submitComment} className="text-[12px] px-2.5 rounded" style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}>
+            <button onClick={submitComment} className="text-[12px] px-2.5 rounded bg-sky text-white font-bold">
               등록
             </button>
           </div>

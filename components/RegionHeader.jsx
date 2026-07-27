@@ -7,8 +7,7 @@ import Feedback from "@/components/Feedback";
 import SettlementModal from "@/components/SettlementModal";
 import MemoModal from "@/components/MemoModal";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY } from "@/lib/theme";
 
 export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetItem, onDeleteBudgetItem, onSaveParticipants, memo, onSaveMemo }) {
   const Icon = getIcon(region.icon);
@@ -19,10 +18,10 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
     <div className="mb-3 anim-fadeup" key={region.id}>
       <div className="flex items-center gap-2">
         <Icon size={18} color={SKY} />
-        <span className="text-lg serif" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+        <span className="text-lg serif text-ink font-bold">
           {region.kr}
         </span>
-        <span className="text-xs" style={{ color: "#94A9B8" }}>
+        <span className="text-xs text-faint">
           {region.jp}
         </span>
         <div className="ml-auto flex items-center gap-2 shrink-0">
@@ -44,7 +43,7 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
         </div>
       </div>
       {region.note && (
-        <p className="text-[13px] mt-1" style={{ color: "#5B7A90" }}>
+        <p className="text-[13px] mt-1 text-muted">
           {region.note}
         </p>
       )}

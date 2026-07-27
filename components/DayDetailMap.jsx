@@ -5,8 +5,7 @@ import { useEffect } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap } from "react-leaflet";
 import MapZoomControl from "@/components/MapZoomControl";
-
-const SKY = "#0EA5E9";
+import { SKY } from "@/lib/theme";
 
 function numberIcon(n) {
   return L.divIcon({
@@ -50,11 +49,11 @@ export default function DayDetailMap({ points, focus }) {
   const center = [points[0].lat, points[0].lng];
 
   return (
-    <div className="rounded-lg overflow-hidden mb-3 relative" style={{ height: 260, border: "1px solid #BAE6FD" }}>
+    <div className="rounded-lg overflow-hidden mb-3 relative h-[260px] border border-sky-border">
       <MapContainer
         center={center}
         zoom={13}
-        style={{ height: "100%", width: "100%" }}
+        className="h-full w-full"
         attributionControl={false}
         zoomControl={false}
       >

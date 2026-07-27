@@ -6,8 +6,7 @@ import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dn
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { getIcon } from "@/data/icons";
-
-const SKY = "#0EA5E9";
+import { SKY, SKY_BG, SKY_BORDER, INK } from "@/lib/theme";
 
 // 칩 줄은 가로로만 스크롤/재정렬되는 목록이라, 세로로 손가락이 흔들리는 것까지 그대로
 // 따라가면 칩이 줄 밖으로 떠서 내려가는 것처럼 보입니다. y를 0으로 고정해 드래그가
@@ -38,19 +37,16 @@ const Chip = memo(function Chip({ r, isActive, index, onSelect, canReorder }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="chip-btn shrink-0 flex items-center justify-center gap-1.5 rounded-full px-2 text-sm"
+      className="chip-btn shrink-0 flex items-center justify-center gap-1.5 rounded-full px-2 text-sm w-[96px] h-[40px] relative"
       style={{
-        width: 96,
-        height: 40,
-        background: isActive ? SKY : "#F0F9FF",
-        color: isActive ? "#FFFFFF" : "#0F2A3D",
-        border: `1px solid ${isActive ? SKY : "#BAE6FD"}`,
+        background: isActive ? SKY : SKY_BG,
+        color: isActive ? "#FFFFFF" : INK,
+        border: `1px solid ${isActive ? SKY : SKY_BORDER}`,
         fontWeight: isActive ? 700 : 500,
         transform: transform ? CSS.Transform.toString(transform) : undefined,
         transition,
         opacity: isDragging ? 0.6 : 1,
         zIndex: isDragging ? 10 : undefined,
-        position: "relative",
       }}
       onClick={() => onSelect(index)}
     >
@@ -120,8 +116,7 @@ export default function RegionChips({
         </DndContext>
         {canAddRegion && (
           <button
-            className="shrink-0 flex items-center justify-center rounded-full"
-            style={{ width: 30, height: 30, background: "#FFFFFF", color: SKY, border: "1px dashed #BAE6FD" }}
+            className="shrink-0 flex items-center justify-center rounded-full w-[30px] h-[30px] bg-white text-sky border border-dashed border-sky-border"
             onClick={onAddRegion}
             aria-label="새 지역 추가"
           >
@@ -133,8 +128,7 @@ export default function RegionChips({
         <div className="mb-5">
           {moreCount > 0 && (
             <button
-              className="text-xs mb-2 flex items-center gap-1"
-              style={{ color: SKY, fontWeight: 700 }}
+              className="text-xs mb-2 flex items-center gap-1 text-sky font-bold"
               onClick={onToggleMore}
             >
               {showMore ? (

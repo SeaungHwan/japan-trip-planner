@@ -8,7 +8,6 @@ import { Search } from "lucide-react";
 import MapZoomControl from "@/components/MapZoomControl";
 
 const JAPAN_CENTER = [37.5, 137.5];
-const SKY = "#0EA5E9";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -66,29 +65,28 @@ export default function LocationPicker({ point, onPick }) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && search()}
           placeholder="장소 이름으로 검색 (예: 삿포로역)"
-          className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
-          style={{ border: "1px solid #BAE6FD" }}
+          className="flex-1 min-w-0 text-sm rounded px-2 py-1.5 border border-sky-border"
         />
         <button
           onClick={search}
           disabled={searching}
           aria-label="검색"
-          className="shrink-0 rounded px-2.5 py-1.5"
-          style={{ background: SKY, opacity: searching ? 0.6 : 1 }}
+          className="shrink-0 rounded px-2.5 py-1.5 bg-sky"
+          style={{ opacity: searching ? 0.6 : 1 }}
         >
           <Search size={15} color="#FFFFFF" />
         </button>
       </div>
       {error && (
-        <p className="text-[12px] mb-1.5" style={{ color: "#EF4444" }}>
+        <p className="text-[12px] mb-1.5 text-danger">
           {error}
         </p>
       )}
-      <div className="rounded overflow-hidden" style={{ height: 320, border: "1px solid #BAE6FD" }}>
+      <div className="rounded overflow-hidden h-[320px] border border-sky-border">
         <MapContainer
           center={point ? [point.lat, point.lng] : JAPAN_CENTER}
           zoom={point ? 10 : 5}
-          style={{ height: "100%", width: "100%" }}
+          className="h-full w-full"
           attributionControl={false}
           zoomControl={false}
         >
@@ -116,7 +114,7 @@ export default function LocationPicker({ point, onPick }) {
         </MapContainer>
       </div>
       {point && (
-        <p className="text-[11px] mt-1" style={{ color: "#94A9B8" }}>
+        <p className="text-[11px] mt-1 text-faint">
           핀을 드래그하면 위치를 미세 조정할 수 있어요
         </p>
       )}

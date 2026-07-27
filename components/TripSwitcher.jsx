@@ -4,8 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Plus, Pencil, Trash2, X } from "lucide-react";
 import IconButton from "@/components/IconButton";
-
-const SKY = "#0EA5E9";
+import { SKY, SKY_BG, INK } from "@/lib/theme";
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -67,24 +66,21 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
     <>
       <button
         onClick={openSwitcher}
-        className="text-xs flex items-center gap-1"
-        style={{ color: "#5B7A90", fontWeight: 700 }}
+        className="text-xs flex items-center gap-1 text-muted font-bold"
       >
         <ChevronDown size={14} /> 다른 여행
       </button>
 
       {open && createPortal(
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
-          style={{ background: "rgba(15,42,61,0.5)" }}
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,42,61,0.5)] ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
           onAnimationEnd={handleBackdropAnimationEnd}
         >
           <div
-            className={`w-full max-w-sm rounded-2xl max-h-[80vh] flex flex-col overflow-hidden ${closing ? "modal-card-out" : "modal-card-in"}`}
-            style={{ background: "#FFFFFF" }}
+            className={`w-full max-w-sm rounded-2xl max-h-[80vh] flex flex-col overflow-hidden bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
           >
             <div className="flex items-center justify-between p-4 pb-3 shrink-0">
-              <span className="text-base" style={{ color: "#0F2A3D", fontWeight: 700 }}>
+              <span className="text-base text-ink font-bold">
                 여행 목록
               </span>
               <IconButton onClick={close} ariaLabel="닫기">
@@ -100,10 +96,9 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center gap-1 rounded-lg pl-3 pr-1.5 py-1.5 text-sm"
+                      className="flex items-center gap-1 rounded-lg pl-3 pr-1.5 py-1.5 text-sm border border-sky-border"
                       style={{
-                        background: isActive ? SKY : "#F0F9FF",
-                        border: "1px solid #BAE6FD",
+                        background: isActive ? SKY : SKY_BG,
                       }}
                     >
                       <button
@@ -112,11 +107,11 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                           close();
                         }}
                         className="flex-1 min-w-0 text-left py-0.5"
-                        style={{ color: isActive ? "#FFFFFF" : "#0F2A3D", fontWeight: isActive ? 700 : 500 }}
+                        style={{ color: isActive ? "#FFFFFF" : INK, fontWeight: isActive ? 700 : 500 }}
                       >
                         {t.title}
                         {t.subtitle && (
-                          <span className="block text-[11px]" style={{ opacity: 0.8 }}>
+                          <span className="block text-[11px] opacity-80">
                             {t.subtitle}
                           </span>
                         )}
@@ -135,8 +130,8 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
               </div>
 
               {editingId !== undefined ? (
-                <div className="rounded-lg p-3" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-                  <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+                <div className="rounded-lg p-3 bg-slate-bg border border-slate-border">
+                  <label className="block text-[12px] mb-1 text-muted">
                     여행 이름 (필수)
                   </label>
                   <input
@@ -144,11 +139,10 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="예: 제주도 여행"
                     autoFocus
-                    className="w-full text-sm rounded px-2 py-1.5 mb-2"
-                    style={{ border: "1px solid #BAE6FD" }}
+                    className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
                   />
 
-                  <label className="block text-[12px] mb-1" style={{ color: "#5B7A90" }}>
+                  <label className="block text-[12px] mb-1 text-muted">
                     여행 기간 (선택)
                   </label>
                   <div className="flex items-center gap-2 mb-3">
@@ -162,33 +156,29 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                         // 보이도록 시작일과 같은 값으로 미리 채워둡니다.
                         if (!endDate) setEndDate(value);
                       }}
-                      className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
-                      style={{ border: "1px solid #BAE6FD" }}
+                      className="flex-1 min-w-0 text-sm rounded px-2 py-1.5 border border-sky-border"
                     />
-                    <span className="text-sm" style={{ color: "#94A9B8" }}>
+                    <span className="text-sm text-faint">
                       —
                     </span>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="flex-1 min-w-0 text-sm rounded px-2 py-1.5"
-                      style={{ border: "1px solid #BAE6FD" }}
+                      className="flex-1 min-w-0 text-sm rounded px-2 py-1.5 border border-sky-border"
                     />
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingId(undefined)}
-                      className="flex-1 text-sm rounded-lg py-2"
-                      style={{ border: "1px solid #BAE6FD", color: "#5B7A90", fontWeight: 700 }}
+                      className="flex-1 text-sm rounded-lg py-2 border border-sky-border text-muted font-bold"
                     >
                       취소
                     </button>
                     <button
                       onClick={submit}
-                      className="flex-1 text-sm rounded-lg py-2"
-                      style={{ background: SKY, color: "#FFFFFF", fontWeight: 700 }}
+                      className="flex-1 text-sm rounded-lg py-2 bg-sky text-white font-bold"
                     >
                       {editingId ? "저장" : "만들기"}
                     </button>
@@ -197,8 +187,7 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
               ) : (
                 <button
                   onClick={startCreate}
-                  className="w-full text-xs flex items-center justify-center gap-1 py-2"
-                  style={{ color: SKY, fontWeight: 700, width: "auto", margin:"0 auto" }}
+                  className="text-xs flex items-center justify-center gap-1 py-2 text-sky font-bold w-auto mx-auto my-0"
                 >
                   <Plus size={13} /> 새 여행 만들기
                 </button>
