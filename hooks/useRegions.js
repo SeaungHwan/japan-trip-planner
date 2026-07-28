@@ -128,6 +128,23 @@ export function useRegions(activeTripId, { onRegionDeleted } = {}) {
     await updateRegion(region.id, { participants }, "참가자 저장에 실패했어요");
   }
 
+  // AI 편집(edit-region API) 결과를 기존 지역에 병합해 저장합니다. jp/note/lat/lng/flight는
+  // AI가 돌려준 새 값으로 교체하고, spots/foods/days는 기존 값을 그대로 둔 채 AI가 새로
+  // 제안한 항목만 뒤에 이어 붙입니다(전체 교체가 아님 — 기존 명소/음식/일정 편집 기록을 보존).
+  async function applyAIEdit(region, aiResult) {
+    const patch = {
+      jp: aiResult.jp,
+      note: aiResult.note,
+      lat: aiResult.lat,
+      lng: aiResult.lng,
+      flight: aiResult.flight,
+      spots: [...(region.moreSpots || []), ...(aiResult.newSpots || [])],
+      foods: [...(region.foods || []), ...(aiResult.newFoods || [])],
+      days: [...(region.days || []), ...(aiResult.newDays || [])],
+    };
+    return await updateRegion(region.id, patch, "AI 편집 적용에 실패했어요");
+  }
+
   async function deleteRegion(region) {
     if (!window.confirm(`"${region.kr}" 지역을 삭제할까요?`)) return;
     // RLS가 막으면 에러 없이 0건 삭제로 조용히 끝날 수 있어서, select()로 실제 삭제된
@@ -160,6 +177,7 @@ export function useRegions(activeTripId, { onRegionDeleted } = {}) {
     addBudgetItem,
     deleteBudgetItem,
     saveParticipants,
+    applyAIEdit,
     deleteRegion,
   };
 }

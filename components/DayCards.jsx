@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRealtimeQuery } from "@/hooks/useRealtimeQuery";
 import Spinner from "@/components/Spinner";
@@ -351,7 +351,15 @@ const DayCardItem = memo(function DayCardItem({
   );
 });
 
-export default function DayCards({ days, mode, regionId, regionName, onDaysPinsChange, canEdit = false }) {
+export default function DayCards({
+  days,
+  mode,
+  regionId,
+  regionName,
+  onDaysPinsChange,
+  canEdit = false,
+  onOpenAIEdit,
+}) {
   const {
     data: edits,
     setData: setEdits,
@@ -755,6 +763,11 @@ export default function DayCards({ days, mode, regionId, regionName, onDaysPinsC
           <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={addDay}>
             <Plus size={13} /> 일정
           </button>
+          {onOpenAIEdit && (
+            <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={onOpenAIEdit}>
+              <Sparkles size={13} /> AI
+            </button>
+          )}
           {visibleDays.length > 1 && (
             <button className="text-[12px] flex items-center gap-1 text-sky font-bold" onClick={toggleReorderMode}>
               <ArrowUpDown size={13} /> {reorderMode ? "완료" : "순서"}

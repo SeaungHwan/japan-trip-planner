@@ -19,6 +19,7 @@ import FoodsPanel from "@/components/FoodsPanel";
 import ModeToggle from "@/components/ModeToggle";
 import DayCards from "@/components/DayCards";
 import TripSwitcher from "@/components/TripSwitcher";
+import AIEditRegionModal from "@/components/AIEditRegionModal";
 
 const AddRegionForm = dynamic(() => import("@/components/AddRegionForm"), {
   ssr: false,
@@ -42,6 +43,7 @@ export default function Planner() {
   const [dayPins, setDayPins] = useState([]);
   const [showAllDayPins, setShowAllDayPins] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAIEdit, setShowAIEdit] = useState(false);
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -58,6 +60,7 @@ export default function Planner() {
     setZoomed(false);
     setFocus(null);
     setShowAllDayPins(false);
+    setShowAIEdit(false);
   }, []);
 
   // onDeleted가 참조하는 setUserRegions는 아래 useRegions()에서 정의되지만, 실제로
@@ -96,6 +99,7 @@ export default function Planner() {
     addBudgetItem,
     deleteBudgetItem,
     saveParticipants,
+    applyAIEdit,
     deleteRegion,
   } = useRegions(activeTripId, { onRegionDeleted: () => setActive(0) });
 
@@ -327,6 +331,7 @@ export default function Planner() {
                         regionName={region.kr}
                         onDaysPinsChange={setDayPins}
                         canEdit={canManageRegion(region)}
+                        onOpenAIEdit={() => setShowAIEdit(true)}
                       />
                     </>
                   )}
@@ -342,6 +347,14 @@ export default function Planner() {
                   setUserRegions((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, toRegion(row)]));
                   setShowMore(true);
                 }}
+              />
+            )}
+
+            {showAIEdit && (
+              <AIEditRegionModal
+                region={region}
+                onClose={() => setShowAIEdit(false)}
+                onApply={(result) => applyAIEdit(region, result)}
               />
             )}
           </>
