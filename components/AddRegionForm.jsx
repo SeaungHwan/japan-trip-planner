@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import { compressImage } from "@/lib/imageOptimize";
 import IconButton from "@/components/IconButton";
+import LazyImage from "@/components/LazyImage";
 
 function base64ToFile(base64, mimeType, name) {
   const byteChars = atob(base64);
@@ -252,10 +253,12 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             </p>
           )}
           {imageUrl && (
-            <img
+            <LazyImage
+              key={imageUrl}
               src={imageUrl}
               alt="지역 대표 이미지 미리보기"
-              className="w-full rounded-lg mb-2 max-h-[160px] object-cover"
+              className="w-full rounded-lg mb-2"
+              style={{ height: 160 }}
             />
           )}
 

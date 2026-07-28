@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UtensilsCrossed, ChevronRight, X, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
+import LazyImage from "@/components/LazyImage";
 import { SKY } from "@/lib/theme";
 
 // 명소(SpotsPanel)와 같은 모양이지만 위치 데이터가 필요 없어서 이름만 다루는
@@ -86,7 +87,7 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
                     className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1.5 bg-sky-bg border border-sky-border text-ink"
                   >
                     {imageUrl && (
-                      <img src={imageUrl} alt="" loading="lazy" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                      <LazyImage key={imageUrl} src={imageUrl} className="w-5 h-5 rounded-full shrink-0" />
                     )}
                     <span>{name}</span>
                     {canEdit && (
