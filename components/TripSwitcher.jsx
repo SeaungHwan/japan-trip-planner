@@ -84,7 +84,7 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                 여행 목록
               </span>
               <IconButton onClick={close} ariaLabel="닫기">
-                <X size={27} color="#5B7A90" />
+                <X size={23} color="#5B7A90" />
               </IconButton>
             </div>
 
@@ -117,11 +117,11 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                         )}
                       </button>
                       <IconButton onClick={() => startEdit(t)} ariaLabel="여행 정보 수정">
-                        <Pencil size={21} color={iconColor} />
+                        <Pencil size={18} color={iconColor} />
                       </IconButton>
                       {canDelete?.(t) && (
                         <IconButton onClick={() => onDelete(t)} ariaLabel="여행 삭제">
-                          <Trash2 size={21} color={iconColor} />
+                          <Trash2 size={18} color={iconColor} />
                         </IconButton>
                       )}
                     </div>

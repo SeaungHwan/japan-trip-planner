@@ -99,12 +99,12 @@ export default function MemoModal({ memo, onSave, onClose }) {
         <>
           {screen !== "list" && (
             <IconButton onClick={goBack} ariaLabel="목록으로">
-              <ArrowLeft size={24} color="#5B7A90" />
+              <ArrowLeft size={20} color="#5B7A90" />
             </IconButton>
           )}
           {screen === "list" && (
             <IconButton onClick={startAdd} ariaLabel="메모 추가">
-              <Plus size={27} color="#5B7A90" />
+              <Plus size={23} color="#5B7A90" />
             </IconButton>
           )}
         </>
@@ -168,7 +168,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
                 }}
                 ariaLabel="메모 삭제"
               >
-                <Trash2 size={20} color="#94A9B8" />
+                <Trash2 size={16} color="#94A9B8" />
               </IconButton>
             </li>
           ))}

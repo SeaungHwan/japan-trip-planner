@@ -53,7 +53,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
             {itemText}
           </span>
           <IconButton onClick={onClose} className="ml-2" ariaLabel="닫기">
-            <X size={27} color="#5B7A90" />
+            <X size={23} color="#5B7A90" />
           </IconButton>
         </div>
 
@@ -78,7 +78,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
                 </div>
                 {canEdit && (
                   <IconButton onClick={() => onDelete(n.id)} ariaLabel="삭제">
-                    <Trash2 size={20} color="#94A9B8" />
+                    <Trash2 size={16} color="#94A9B8" />
                   </IconButton>
                 )}
               </div>

@@ -117,7 +117,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   {p}
                   {canEdit && (
                     <IconButton onClick={() => removeParticipant(p)} ariaLabel={`${p} 삭제`}>
-                      <X size={15} color="#94A9B8" />
+                      <X size={13} color="#94A9B8" />
                     </IconButton>
                   )}
                 </span>
@@ -138,7 +138,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
                 <button onClick={addParticipant} aria-label="참가자 추가" className="shrink-0">
-                  <Plus size={24} color={SKY} />
+                  <Plus size={20} color={SKY} />
                 </button>
               </div>
             )}
@@ -167,7 +167,7 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   </span>
                   {canEdit && (
                     <IconButton onClick={() => onDeleteItem(i)} ariaLabel="항목 삭제">
-                      <X size={18} color="#94A9B8" />
+                      <X size={15} color="#94A9B8" />
                     </IconButton>
                   )}
                 </span>

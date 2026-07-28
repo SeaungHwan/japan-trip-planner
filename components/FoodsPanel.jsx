@@ -50,7 +50,7 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
           headerExtra={
             canEdit && (
               <button onClick={() => setAdding((v) => !v)} aria-label="음식 추가" className="shrink-0">
-                <Plus size={27} color={adding ? SKY : "#5B7A90"} />
+                <Plus size={23} color={adding ? SKY : "#5B7A90"} />
               </button>
             )
           }
@@ -91,7 +91,7 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
                     <span>{name}</span>
                     {canEdit && (
                       <IconButton onClick={() => onDeleteFood?.(i)} ariaLabel="음식 삭제">
-                        <X size={18} color="#94A9B8" />
+                        <X size={15} color="#94A9B8" />
                       </IconButton>
                     )}
                   </span>

@@ -201,22 +201,22 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
 
       {zoomed && (
         <button
-          className="zoom-btn absolute top-2 left-2 z-[1000] rounded-full flex items-center justify-center w-[48px] h-[48px] bg-white text-ink border border-sky-border"
+          className="zoom-btn absolute top-2 left-2 z-[1000] rounded-full flex items-center justify-center w-[40px] h-[40px] bg-white text-ink border border-sky-border"
           onClick={onZoomOut}
           aria-label="전체 지도"
         >
-          <Minimize2 size={23} />
+          <Minimize2 size={19} />
         </button>
       )}
 
       {zoomed && activeRegion && validDayPins.length > 0 && (
         <button
-          className="zoom-btn absolute top-[62px] left-2 z-[1000] rounded-full flex items-center justify-center w-[48px] h-[48px] border border-sky-border"
+          className="zoom-btn absolute top-[54px] left-2 z-[1000] rounded-full flex items-center justify-center w-[40px] h-[40px] border border-sky-border"
           style={{ background: showAllDayPins ? SKY : "#FFFFFF", color: showAllDayPins ? "#FFFFFF" : INK }}
           onClick={onToggleAllDayPins}
           aria-label="전체보기"
         >
-          <LayoutGrid size={23} />
+          <LayoutGrid size={19} />
         </button>
       )}
     </div>

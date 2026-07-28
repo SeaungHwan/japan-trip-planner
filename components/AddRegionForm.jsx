@@ -198,7 +198,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             새 지역 추가
           </span>
           <IconButton onClick={requestClose} ariaLabel="닫기">
-            <X size={27} color="#5B7A90" />
+            <X size={23} color="#5B7A90" />
           </IconButton>
         </div>
 

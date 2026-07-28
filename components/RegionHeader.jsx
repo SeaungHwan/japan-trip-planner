@@ -27,17 +27,17 @@ export default function RegionHeader({ region, onDelete, canEdit, onAddBudgetIte
         <div className="ml-auto flex items-center gap-2 shrink-0">
           {canEdit && (
             <IconButton onClick={() => setMemoOpen(true)} ariaLabel="메모장">
-              <FileText size={21} color="#94A9B8" />
+              <FileText size={18} color="#94A9B8" />
             </IconButton>
           )}
           {canEdit && (
             <IconButton onClick={() => setBudgetModalOpen(true)} ariaLabel="정산">
-              <Wallet size={21} color="#94A9B8" />
+              <Wallet size={18} color="#94A9B8" />
             </IconButton>
           )}
           {onDelete && (
             <IconButton onClick={onDelete} ariaLabel="지역 삭제">
-              <Trash2 size={23} color="#94A9B8" />
+              <Trash2 size={19} color="#94A9B8" />
             </IconButton>
           )}
         </div>

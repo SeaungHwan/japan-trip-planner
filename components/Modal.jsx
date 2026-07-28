@@ -53,7 +53,7 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
           <span className="flex items-center gap-1">
             {headerExtra}
             <IconButton onClick={requestClose} ariaLabel="닫기">
-              <X size={27} color="#5B7A90" />
+              <X size={23} color="#5B7A90" />
             </IconButton>
           </span>
         </div>
