@@ -80,7 +80,8 @@ alter table user_regions add column if not exists days jsonb not null default '[
 alter table user_regions add column if not exists image_url text;
 
 -- 지역 음식(대표 향토음식/요리 이름 목록). "가볼만한 곳"(spots)과 달리 위치 데이터가
--- 필요 없어서 이름 문자열 배열로만 저장합니다.
+-- 필요 없습니다. AI 생성 시에는 위키피디아 사진까지 붙어 {name, imageUrl} 객체로,
+-- 직접 추가하면 {name}만 있는 객체로 저장됩니다(예전 데이터는 이름 문자열 그대로).
 alter table user_regions add column if not exists foods jsonb not null default '[]'::jsonb;
 
 -- 자유롭게 쓰는 메모장(체크리스트, 준비물 등). 일정 항목별 메모(day_item_notes)와 달리

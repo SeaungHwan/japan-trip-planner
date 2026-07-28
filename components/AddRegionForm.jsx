@@ -39,6 +39,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [spotsText, setSpotsText] = useState("");
   const [aiSpots, setAiSpots] = useState(null);
   const [foodsText, setFoodsText] = useState("");
+  const [aiFoods, setAiFoods] = useState(null);
   const [note, setNote] = useState("");
   const [point, setPoint] = useState(null);
   const [days, setDays] = useState(null);
@@ -88,7 +89,8 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       setJp(data.jp || "");
       setSpotsText(data.spots.map((s) => s.name).join(", "));
       setAiSpots(data.spots);
-      setFoodsText((data.foods || []).join(", "));
+      setFoodsText((data.foods || []).map((f) => f.name).join(", "));
+      setAiFoods(data.foods);
       setNote(data.note);
       setPoint({ lat: data.lat, lng: data.lng });
       setDays(data.days);
@@ -144,7 +146,11 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
     const foods = foodsText
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((name) => {
+        const match = aiFoods?.find((f) => f.name === name);
+        return match?.imageUrl ? { name, imageUrl: match.imageUrl } : { name };
+      });
     const flight =
       flightIncheon.trim() || flightCheongju.trim()
         ? { incheon: flightIncheon.trim() || "확인 필요", cheongju: flightCheongju.trim() || "확인 필요" }
@@ -185,14 +191,14 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       onAnimationEnd={handleBackdropAnimationEnd}
     >
       <div
-        className={`w-full max-w-sm rounded-2xl max-h-[90vh] flex flex-col bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
+        className={`w-full max-w-sm rounded-2xl min-h-[30vh] max-h-[90vh] flex flex-col bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
       >
         <div className="flex items-center justify-between p-4 pb-3 shrink-0">
           <span className="text-base text-ink font-bold">
             새 지역 추가
           </span>
           <IconButton onClick={requestClose} ariaLabel="닫기">
-            <X size={18} color="#5B7A90" />
+            <X size={27} color="#5B7A90" />
           </IconButton>
         </div>
 
@@ -292,6 +298,11 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             placeholder="예: 벚꽃새우 덮밥, 우나기 파이"
             className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
+          {aiFoods?.some((f) => f.imageUrl) && (
+            <p className="text-[11px] mb-2 text-faint">
+              이름을 그대로 두면 AI가 찾은 사진도 같이 저장돼요. 새로 적거나 고치면 사진 없이 저장됩니다.
+            </p>
+          )}
 
           <label className="block text-[12px] mb-1 text-muted">
             항공편 정보 (선택)

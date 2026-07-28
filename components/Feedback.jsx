@@ -121,7 +121,7 @@ export default function Feedback({ targetKey }) {
                 </span>
                 {c.user_id === identity?.id && (
                   <IconButton onClick={() => deleteComment(c.id)} ariaLabel="댓글 삭제">
-                    <X size={12} color="#94A9B8" />
+                    <X size={18} color="#94A9B8" />
                   </IconButton>
                 )}
               </div>

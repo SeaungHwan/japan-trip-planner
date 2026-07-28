@@ -45,7 +45,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl p-4 max-h-[85vh] overflow-y-auto bg-white"
+        className="w-full max-w-sm rounded-2xl p-4 min-h-[30vh] max-h-[85vh] overflow-y-auto bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
@@ -53,7 +53,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
             {itemText}
           </span>
           <IconButton onClick={onClose} className="ml-2" ariaLabel="닫기">
-            <X size={18} color="#5B7A90" />
+            <X size={27} color="#5B7A90" />
           </IconButton>
         </div>
 
@@ -78,7 +78,7 @@ export default function DayItemNotesModal({ itemText, notes, canEdit, onAdd, onD
                 </div>
                 {canEdit && (
                   <IconButton onClick={() => onDelete(n.id)} ariaLabel="삭제">
-                    <Trash2 size={13} color="#94A9B8" />
+                    <Trash2 size={20} color="#94A9B8" />
                   </IconButton>
                 )}
               </div>

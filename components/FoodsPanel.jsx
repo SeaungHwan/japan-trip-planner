@@ -50,7 +50,7 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
           headerExtra={
             canEdit && (
               <button onClick={() => setAdding((v) => !v)} aria-label="음식 추가" className="shrink-0">
-                <Plus size={18} color={adding ? SKY : "#5B7A90"} />
+                <Plus size={27} color={adding ? SKY : "#5B7A90"} />
               </button>
             )
           }
@@ -76,19 +76,27 @@ export default function FoodsPanel({ foods, open, onToggle, canEdit, onAddFood, 
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {(foods || []).map((name, i) => (
-                <span
-                  key={i}
-                  className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1 bg-sky-bg border border-sky-border text-ink"
-                >
-                  <span>{name}</span>
-                  {canEdit && (
-                    <IconButton onClick={() => onDeleteFood?.(i)} ariaLabel="음식 삭제">
-                      <X size={12} color="#94A9B8" />
-                    </IconButton>
-                  )}
-                </span>
-              ))}
+              {/* 예전 데이터는 이름 문자열만 있고, AI로 생성된 항목은 {name, imageUrl} 객체입니다. */}
+              {(foods || []).map((food, i) => {
+                const name = typeof food === "string" ? food : food.name;
+                const imageUrl = typeof food === "object" ? food.imageUrl : null;
+                return (
+                  <span
+                    key={i}
+                    className="text-[12px] pl-2.5 pr-1.5 py-1.5 rounded-full flex items-center gap-1.5 bg-sky-bg border border-sky-border text-ink"
+                  >
+                    {imageUrl && (
+                      <img src={imageUrl} alt="" loading="lazy" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    )}
+                    <span>{name}</span>
+                    {canEdit && (
+                      <IconButton onClick={() => onDeleteFood?.(i)} ariaLabel="음식 삭제">
+                        <X size={18} color="#94A9B8" />
+                      </IconButton>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           )}
         </Modal>

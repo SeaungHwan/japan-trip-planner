@@ -74,7 +74,7 @@ export default function LocationPicker({ point, onPick }) {
           className="shrink-0 rounded px-2.5 py-1.5 bg-sky"
           style={{ opacity: searching ? 0.6 : 1 }}
         >
-          <Search size={15} color="#FFFFFF" />
+          <Search size={23} color="#FFFFFF" />
         </button>
       </div>
       {error && (

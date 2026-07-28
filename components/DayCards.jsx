@@ -189,13 +189,13 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
         className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
       />
       <IconButton onClick={() => onOpenLocationPicker(di, item)} ariaLabel="위치 설정">
-        <MapPin size={13} color={item.lat != null ? SKY : "#94A9B8"} />
+        <MapPin size={20} color={item.lat != null ? SKY : "#94A9B8"} />
       </IconButton>
       <IconButton onClick={() => onOpenNotes(di, item)} ariaLabel="메모/사진">
-        <StickyNote size={13} color={noteCount > 0 ? SKY : "#94A9B8"} />
+        <StickyNote size={20} color={noteCount > 0 ? SKY : "#94A9B8"} />
       </IconButton>
       <IconButton onClick={() => onDeleteItem(di, item)} ariaLabel="항목 삭제">
-        <Trash2 size={13} color="#94A9B8" />
+        <Trash2 size={20} color="#94A9B8" />
       </IconButton>
     </li>
   );
@@ -205,8 +205,9 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
 // framer-motion의 Reorder는 인접 카드와 하나씩만 순차 스왑하는 방식이라 카드 높이가
 // 제각각일 때(항목 개수가 다 다름) 놓은 지점보다 한 칸 더 밀리는 오버슈트가 있었습니다.
 // @dnd-kit/sortable은 매 프레임 포인터와 가장 가까운 카드를 다시 계산해서 놓은 지점에
-// 정확히 삽입되므로 이걸로 교체했습니다. 그립 아이콘에서만 드래그가 시작되도록
-// attributes/listeners를 그립 엘리먼트에만 붙입니다.
+// 정확히 삽입되므로 이걸로 교체했습니다. attributes/listeners를 카드 전체에 붙여서
+// 어디를 눌러도 드래그가 시작되게 하고(작은 그립 아이콘은 모바일에서 잡기 어려웠음),
+// 탭(상세보기/편집 진입)과는 sensors의 distance 제약(DayCards 컴포넌트 쪽)으로 구분합니다.
 //
 // memo로 감쌉니다: 일정 카드 수가 늘어날 걸 대비해, 한 카드에서 타이핑/드래그/위치지정을
 // 해도 나머지 카드들은 리렌더되지 않게 합니다. 이게 실제로 효과가 있으려면 부모(DayCards)가
@@ -274,6 +275,7 @@ const DayCardItem = memo(function DayCardItem({
         setNodeRef(el);
         onSetCardRef(di, el);
       }}
+      {...(reorderMode ? { ...attributes, ...listeners } : {})}
       onClick={() => {
         if (dayEditMode) {
           if (!isEditing) onToggleEdit(di);
@@ -290,11 +292,11 @@ const DayCardItem = memo(function DayCardItem({
       onAnimationEnd={(e) => {
         if (e.animationName === "fadeUp") e.currentTarget.style.animation = "none";
       }}
-      className="day-card rounded-xl p-4 bg-white relative"
+      className={`day-card rounded-xl p-4 bg-white relative ${reorderMode ? "touch-none" : ""}`}
       style={{
         animationDelay: `${displayIdx * 0.05}s`,
         border: isDragging ? `1px solid ${SKY}` : `1px solid ${SKY_BORDER}`,
-        cursor: !isEditing ? "pointer" : undefined,
+        cursor: reorderMode ? (isDragging ? "grabbing" : "grab") : !isEditing ? "pointer" : undefined,
         transform: isDragging ? `${transformStyle || ""} scale(1.03)`.trim() : transformStyle,
         // 드래그 중인 카드 자신은 트랜지션을 꺼야 손가락 움직임을 프레임마다 그대로 따라옵니다.
         // transition을 계속 걸어두면 매 포인터 이동마다 새 transform이 트랜지션과 경합해
@@ -306,16 +308,6 @@ const DayCardItem = memo(function DayCardItem({
       }}
     >
       <div className="flex items-start gap-3">
-        {reorderMode && (
-          <span
-            {...attributes}
-            {...listeners}
-            className="shrink-0 flex items-center justify-center -ml-2 -mt-1 w-[32px] h-[32px] touch-none"
-            style={{ cursor: isDragging ? "grabbing" : "grab" }}
-          >
-            <GripVertical size={16} color={isDragging ? SKY : "#94A9B8"} />
-          </span>
-        )}
         <span
           className="text-xs shrink-0 mt-0.5 rounded-full h-6 px-2 flex items-center justify-center bg-sky text-white font-bold"
         >
@@ -378,7 +370,7 @@ const DayCardItem = memo(function DayCardItem({
                       }}
                       ariaLabel="메모/사진"
                     >
-                      <StickyNote size={12} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
+                      <StickyNote size={18} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
                     </IconButton>
                   )}
                 </li>
@@ -393,7 +385,7 @@ const DayCardItem = memo(function DayCardItem({
                   &quot;{locatingItem.item.text}&quot; 위치 지정
                 </span>
                 <IconButton onClick={onCloseLocationPicker} ariaLabel="닫기">
-                  <X size={14} color="#94A9B8" />
+                  <X size={21} color="#94A9B8" />
                 </IconButton>
               </div>
               <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
@@ -425,7 +417,7 @@ const DayCardItem = memo(function DayCardItem({
                 className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
               />
               <IconButton onClick={() => onAddItem(di, items)} ariaLabel="추가">
-                <Plus size={13} color={SKY} />
+                <Plus size={20} color={SKY} />
               </IconButton>
             </div>
           )}
@@ -463,7 +455,10 @@ export default function DayCards({ days, mode, regionId, regionName, onDaysPinsC
   const [detailDay, setDetailDay] = useState(null);
   const cardRefs = useRef({});
   const [loading, setLoading] = useState(true);
-  const sensors = useSensors(useSensor(PointerSensor));
+  // distance 제약: 카드 전체가 드래그 핸들이라 순서 변경 모드에서도 onClick(상세보기)이
+  // 그대로 남아있습니다. 최소 이동 거리 없이는 짧은 탭까지 드래그 시작으로 잡혀 탭이
+  // 씹히므로, 8px 이상 움직여야 드래그로 인식하게 해서 탭과 드래그를 구분합니다.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   // 타이핑/위치지정 중에도 매번 새로 만들어지는 핸들러(useCallback)가 옛날 값을 들고
   // 있지 않도록, 자주 바뀌는 값들은 여기 ref로도 미러링해서 콜백 안에서 최신값을 읽습니다.

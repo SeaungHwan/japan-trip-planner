@@ -49,7 +49,7 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
   return (
     <>
       <button onClick={openDateModal} aria-label="지역 날짜 수정" className="flex items-center gap-1">
-        <CalendarDays size={14} color="#94A9B8" />
+        <CalendarDays size={21} color="#94A9B8" />
       </button>
 
       {dateModalOpen &&
@@ -58,13 +58,13 @@ export default function RegionDateButton({ region, canEdit, onSaveDates }) {
             className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,42,61,0.5)] ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
             onAnimationEnd={handleBackdropAnimationEnd}
           >
-            <div className={`w-full max-w-sm rounded-2xl p-4 bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}>
+            <div className={`w-full max-w-sm rounded-2xl p-4 min-h-[30vh] flex flex-col justify-center bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-base text-ink font-bold">
                   {region.kr} 날짜
                 </span>
                 <button onClick={requestCloseModal}>
-                  <X size={18} color="#5B7A90" />
+                  <X size={27} color="#5B7A90" />
                 </button>
               </div>
               <p className="text-[12px] mb-2 text-faint">

@@ -97,7 +97,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
           headerExtra={
             canEdit && (
               <button onClick={() => setAdding((v) => !v)} aria-label="명소 추가" className="shrink-0">
-                <Plus size={18} color={adding ? SKY : "#5B7A90"} />
+                <Plus size={27} color={adding ? SKY : "#5B7A90"} />
               </button>
             )
           }
@@ -135,10 +135,10 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                     >
                       {canEdit && (
                         <button onClick={() => openLocationPicker(i)} aria-label="위치 설정" className="shrink-0">
-                          <MapPin size={11} color={pinColor} />
+                          <MapPin size={17} color={pinColor} />
                         </button>
                       )}
-                      {!canEdit && <MapPin size={11} color={pinColor} className="shrink-0" />}
+                      {!canEdit && <MapPin size={17} color={pinColor} className="shrink-0" />}
                       {hasLocation ? (
                         <button onClick={() => setFocusPoint({ lat: s.lat, lng: s.lng })}>{s.name}</button>
                       ) : canEdit ? (
@@ -148,7 +148,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                       )}
                       {canEdit && (
                         <IconButton onClick={() => onDeleteSpot?.(i)} ariaLabel="명소 삭제">
-                          <X size={12} color="#94A9B8" />
+                          <X size={18} color="#94A9B8" />
                         </IconButton>
                       )}
                     </span>
@@ -163,7 +163,7 @@ export default function SpotsPanel({ spots, open, onToggle, canEdit, onAddSpot, 
                       &quot;{locatingSpot.name}&quot; 위치 지정
                     </span>
                     <IconButton onClick={closeLocationPicker} ariaLabel="닫기">
-                      <X size={14} color="#94A9B8" />
+                      <X size={21} color="#94A9B8" />
                     </IconButton>
                   </div>
                   <LocationPicker point={pendingPoint} onPick={setPendingPoint} />

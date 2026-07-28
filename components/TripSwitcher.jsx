@@ -77,14 +77,14 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
           onAnimationEnd={handleBackdropAnimationEnd}
         >
           <div
-            className={`w-full max-w-sm rounded-2xl max-h-[80vh] flex flex-col overflow-hidden bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
+            className={`w-full max-w-sm rounded-2xl min-h-[30vh] max-h-[80vh] flex flex-col overflow-hidden bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
           >
             <div className="flex items-center justify-between p-4 pb-3 shrink-0">
               <span className="text-base text-ink font-bold">
                 여행 목록
               </span>
               <IconButton onClick={close} ariaLabel="닫기">
-                <X size={18} color="#5B7A90" />
+                <X size={27} color="#5B7A90" />
               </IconButton>
             </div>
 
@@ -117,11 +117,11 @@ export default function TripSwitcher({ trips, activeTripId, onSelect, onSave, ca
                         )}
                       </button>
                       <IconButton onClick={() => startEdit(t)} ariaLabel="여행 정보 수정">
-                        <Pencil size={14} color={iconColor} />
+                        <Pencil size={21} color={iconColor} />
                       </IconButton>
                       {canDelete?.(t) && (
                         <IconButton onClick={() => onDelete(t)} ariaLabel="여행 삭제">
-                          <Trash2 size={14} color={iconColor} />
+                          <Trash2 size={21} color={iconColor} />
                         </IconButton>
                       )}
                     </div>

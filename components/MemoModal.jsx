@@ -94,17 +94,17 @@ export default function MemoModal({ memo, onSave, onClose }) {
       icon={FileText}
       title="메모장"
       onClose={onClose}
-      minHeight={"50vh"}
+      minHeight={"30vh"}
       headerExtra={
         <>
           {screen !== "list" && (
             <IconButton onClick={goBack} ariaLabel="목록으로">
-              <ArrowLeft size={16} color="#5B7A90" />
+              <ArrowLeft size={24} color="#5B7A90" />
             </IconButton>
           )}
           {screen === "list" && (
             <IconButton onClick={startAdd} ariaLabel="메모 추가">
-              <Plus size={18} color="#5B7A90" />
+              <Plus size={27} color="#5B7A90" />
             </IconButton>
           )}
         </>
@@ -168,7 +168,7 @@ export default function MemoModal({ memo, onSave, onClose }) {
                 }}
                 ariaLabel="메모 삭제"
               >
-                <Trash2 size={13} color="#94A9B8" />
+                <Trash2 size={20} color="#94A9B8" />
               </IconButton>
             </li>
           ))}

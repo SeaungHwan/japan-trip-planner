@@ -15,16 +15,16 @@ export default function MapZoomControl() {
       <button
         onClick={() => map.zoomIn()}
         aria-label="확대"
-        className="flex items-center justify-center w-[28px] h-[28px] text-sky border-b border-sky-border"
+        className="flex items-center justify-center w-[42px] h-[42px] text-sky border-b border-sky-border"
       >
-        <Plus size={14} />
+        <Plus size={21} />
       </button>
       <button
         onClick={() => map.zoomOut()}
         aria-label="축소"
-        className="flex items-center justify-center w-[28px] h-[28px] text-sky"
+        className="flex items-center justify-center w-[42px] h-[42px] text-sky"
       >
-        <Minus size={14} />
+        <Minus size={21} />
       </button>
     </div>
   );

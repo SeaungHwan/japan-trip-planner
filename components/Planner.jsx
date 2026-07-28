@@ -404,11 +404,12 @@ export default function Planner() {
     setUserRegions((prev) => prev.map((r) => (r.id === data.id ? toRegion(data) : r)));
   }
 
-  // 지역 음식은 명소와 달리 위치가 필요 없어서 이름 문자열만 다룹니다.
+  // 지역 음식은 명소와 달리 위치가 필요 없습니다. AI 생성 시 붙는 사진(imageUrl)은
+  // 여기서 직접 추가할 때는 안 붙습니다(이름만 저장 — FoodsPanel이 그대로 표시함).
   async function addFood(region, name) {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const newFoods = [...(region.foods || []), trimmed];
+    const newFoods = [...(region.foods || []), { name: trimmed }];
     const { data, error } = await supabase.from("user_regions").update({ foods: newFoods }).eq("id", region.id).select().single();
     if (error) {
       alert("추가에 실패했어요: " + error.message);

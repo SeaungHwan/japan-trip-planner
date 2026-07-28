@@ -175,10 +175,10 @@ export async function POST(req) {
       const result = await generate(trimmed, extraTrimmed, dayCount);
       const days = Array.isArray(result.days) ? result.days.filter(isValidDay) : [];
       const spots = Array.isArray(result.spots) ? result.spots.filter(isValidSpot) : [];
-      const foods = Array.isArray(result.foods) ? result.foods.filter(isValidFood).map((f) => f.trim()) : [];
+      const foodNames = Array.isArray(result.foods) ? result.foods.filter(isValidFood).map((f) => f.trim()) : [];
       if (
         spots.length > 0 &&
-        foods.length > 0 &&
+        foodNames.length > 0 &&
         typeof result.jp === "string" &&
         typeof result.note === "string" &&
         typeof result.lat === "number" &&
@@ -191,6 +191,17 @@ export async function POST(req) {
           const generated = await generateImageWithGemini(trimmed);
           if (generated) image = { imageBase64: generated.base64, imageMimeType: generated.mimeType };
         }
+
+        // 음식 이름만으로는 위키피디아에서 관련 없는 문서가 걸리기 쉬워서(예: 흔한 음식
+        // 이름 단독 검색), day-photos와 같은 방식으로 지역명을 붙여 검색하고 음식명
+        // 쪽 단어로만 관련도를 판단합니다. 사진이 없으면 이름만 저장됩니다(FoodsPanel이
+        // imageUrl 없는 항목도 그대로 표시함).
+        const foods = await Promise.all(
+          foodNames.map(async (name) => {
+            const url = await fetchWikipediaImage(`${trimmed} ${name}`, name.split(/\s+/));
+            return url ? { name, imageUrl: url } : { name };
+          })
+        );
 
         return NextResponse.json({
           jp: result.jp,
