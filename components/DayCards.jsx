@@ -7,10 +7,10 @@ import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useRealtimeQuery } from "@/hooks/useRealtimeQuery";
 import Spinner from "@/components/Spinner";
 import DayItemNotesModal from "@/components/DayItemNotesModal";
-import ImageSwiper from "@/components/ImageSwiper";
-import Modal from "@/components/Modal";
+import DayDetailModal from "@/components/DayDetailModal";
 import IconButton from "@/components/IconButton";
 import { SKY, SKY_BORDER } from "@/lib/theme";
 
@@ -25,11 +25,6 @@ const EMPTY_NOTES = [];
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
   loading: () => <div className="rounded mb-2 h-[320px] bg-sky-bg border border-sky-border" />,
-});
-
-const DayDetailMap = dynamic(() => import("@/components/DayDetailMap"), {
-  ssr: false,
-  loading: () => <div className="rounded-lg mb-3 h-[260px] bg-sky-bg border border-sky-border" />,
 });
 
 // "1Day" 배지가 이미 순번을 보여주므로, 제목에 남아있는 "1일차"/"1일차:" 같은
@@ -71,91 +66,6 @@ function mergeItems(baseItems, edits) {
   return merged;
 }
 
-// 일정 항목별 사진은 그 날 팝업을 열 때마다 새로 조회하기엔 아까워서(위키피디아 검색
-// 여러 건 + 병렬 요청) 세션 동안은 같은 지역+항목 조합을 다시 열면 재요청하지 않도록
-// 캐싱합니다(WeatherBadge와 같은 패턴, 탭을 새로고침하면 비워짐).
-const dayPhotosCache = new Map();
-
-// 일정 카드의 "자세히보기"에서 여는 팝업: 그 날 항목에 맞는 실제 사진(위키피디아에서
-// 항목별로 찾음) + 실제로 남긴 메모 사진을 스와이퍼로(둘 다 없으면 아예 안 보임 —
-// 지역 전체의 대표 이미지는 모든 날짜에 똑같이 나와서 "그 일정 데이터"라고 보기
-// 어려워 여기엔 쓰지 않습니다), 그리고 그 날 항목들을 카드보다 자세히(팝업 안에서만
-// 움직이는 자체 지도 포함) 보여줍니다. "지도에서 보기"는 메인 지도를 건드리지 않고
-// 이 팝업 안의 지도만 그 지점으로 이동시킵니다.
-function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
-  const [focusPoint, setFocusPoint] = useState(null);
-  const [itemPhotos, setItemPhotos] = useState([]);
-  const mapPoints = items
-    .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
-    .filter((p) => p.lat != null);
-
-  const itemTexts = items.map((it) => it.text);
-  const cacheKey = `${regionName}|${itemTexts.join("|")}`;
-
-  useEffect(() => {
-    let alive = true;
-    setItemPhotos([]);
-
-    const cached = dayPhotosCache.get(cacheKey);
-    const request =
-      cached ||
-      fetch("/api/day-photos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ regionName, items: itemTexts }),
-      })
-        .then((res) => res.json())
-        .then((data) => (Array.isArray(data.photos) ? data.photos : []))
-        .catch(() => []);
-    if (!cached) dayPhotosCache.set(cacheKey, request);
-
-    request.then((photos) => {
-      if (alive) setItemPhotos(photos.filter(Boolean));
-    });
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
-
-  const images = [...notePhotos, ...itemPhotos];
-
-  return (
-    <Modal title={title} onClose={onClose}>
-      {mapPoints.length > 0 && <DayDetailMap points={mapPoints} focus={focusPoint} />}
-      {images.length > 0 && (
-        <div className="mb-3">
-          <ImageSwiper images={images} />
-        </div>
-      )}
-      <ul className="flex flex-col gap-2">
-        {items.map((it, i) => (
-          <li key={it.key} className="flex items-start gap-2 rounded-lg p-2.5 bg-slate-bg border border-slate-border">
-            <span
-              className="shrink-0 rounded-full flex items-center justify-center text-[11px] w-[20px] h-[20px] bg-sky text-white font-bold"
-            >
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-ink">
-                {it.text}
-              </p>
-              {it.lat != null && (
-                <button
-                  onClick={() => setFocusPoint({ lat: it.lat, lng: it.lng })}
-                  className="text-[11px] flex items-center gap-1 mt-0.5 text-sky font-bold"
-                >
-                  <MapPin size={11} /> 지도에서 보기
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Modal>
-  );
-}
-
 // 편집 중인 일정 카드 안에서 항목 하나(입력창 행)를 드래그로 옮길 수 있게 하는 행.
 // 카드 자체의 드래그 재정렬과 같은 방식(@dnd-kit/sortable, 그립 아이콘에서만 시작)이며,
 // 편집 모드일 때만 이 컴포넌트가 쓰이고 그때는 카드 재정렬(reorderMode)이 꺼져 있어서
@@ -189,13 +99,13 @@ function SortableItemRow({ di, item, drafts, setDrafts, onCommitDraft, onOpenLoc
         className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
       />
       <IconButton onClick={() => onOpenLocationPicker(di, item)} ariaLabel="위치 설정">
-        <MapPin size={20} color={item.lat != null ? SKY : "#94A9B8"} />
+        <MapPin size={16} color={item.lat != null ? SKY : "#94A9B8"} />
       </IconButton>
       <IconButton onClick={() => onOpenNotes(di, item)} ariaLabel="메모/사진">
-        <StickyNote size={20} color={noteCount > 0 ? SKY : "#94A9B8"} />
+        <StickyNote size={16} color={noteCount > 0 ? SKY : "#94A9B8"} />
       </IconButton>
       <IconButton onClick={() => onDeleteItem(di, item)} ariaLabel="항목 삭제">
-        <Trash2 size={20} color="#94A9B8" />
+        <Trash2 size={16} color="#94A9B8" />
       </IconButton>
     </li>
   );
@@ -370,7 +280,7 @@ const DayCardItem = memo(function DayCardItem({
                       }}
                       ariaLabel="메모/사진"
                     >
-                      <StickyNote size={18} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
+                      <StickyNote size={15} color={noteCountFor(it.key) > 0 ? SKY : "#CBD5E1"} />
                     </IconButton>
                   )}
                 </li>
@@ -385,7 +295,7 @@ const DayCardItem = memo(function DayCardItem({
                   &quot;{locatingItem.item.text}&quot; 위치 지정
                 </span>
                 <IconButton onClick={onCloseLocationPicker} ariaLabel="닫기">
-                  <X size={21} color="#94A9B8" />
+                  <X size={18} color="#94A9B8" />
                 </IconButton>
               </div>
               <LocationPicker point={pendingPoint} onPick={setPendingPoint} />
@@ -417,7 +327,7 @@ const DayCardItem = memo(function DayCardItem({
                 className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
               />
               <IconButton onClick={() => onAddItem(di, items)} ariaLabel="추가">
-                <Plus size={20} color={SKY} />
+                <Plus size={16} color={SKY} />
               </IconButton>
             </div>
           )}
@@ -442,8 +352,26 @@ const DayCardItem = memo(function DayCardItem({
 });
 
 export default function DayCards({ days, mode, regionId, regionName, onDaysPinsChange, canEdit = false }) {
-  const [edits, setEdits] = useState([]);
-  const [notes, setNotes] = useState([]);
+  const {
+    data: edits,
+    setData: setEdits,
+    loading,
+  } = useRealtimeQuery({
+    table: "day_item_edits",
+    filterColumn: "region_id",
+    filterValue: regionId,
+    channelName: `day_items:${regionId}`,
+    subscriptionFilter: `region_id=eq.${regionId}`,
+  });
+  // notes는 삭제 이벤트가 REPLICA IDENTITY 때문에 region_id 필터를 못 받으므로(day_item_edits와
+  // 같은 이유) subscriptionFilter 없이 전체 테이블을 구독합니다.
+  const { data: notes, setData: setNotes } = useRealtimeQuery({
+    table: "day_item_notes",
+    filterColumn: "region_id",
+    filterValue: regionId,
+    order: "created_at",
+    channelName: `day_item_notes:${regionId}`,
+  });
   const [editingDay, setEditingDay] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState("");
@@ -454,7 +382,6 @@ export default function DayCards({ days, mode, regionId, regionName, onDaysPinsC
   const [notingItem, setNotingItem] = useState(null);
   const [detailDay, setDetailDay] = useState(null);
   const cardRefs = useRef({});
-  const [loading, setLoading] = useState(true);
   // distance 제약: 카드 전체가 드래그 핸들이라 순서 변경 모드에서도 onClick(상세보기)이
   // 그대로 남아있습니다. 최소 이동 거리 없이는 짧은 탭까지 드래그 시작으로 잡혀 탭이
   // 씹히므로, 8px 이상 움직여야 드래그로 인식하게 해서 탭과 드래그를 구분합니다.
@@ -470,58 +397,6 @@ export default function DayCards({ days, mode, regionId, regionName, onDaysPinsC
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [editingDay]);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-
-    async function load() {
-      const { data } = await supabase.from("day_item_edits").select("*").eq("region_id", regionId);
-      if (alive) {
-        setEdits(data || []);
-        setLoading(false);
-      }
-    }
-    load();
-
-    const channel = supabase
-      .channel(`day_items:${regionId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "day_item_edits", filter: `region_id=eq.${regionId}` },
-        load
-      )
-      .subscribe();
-
-    return () => {
-      alive = false;
-      supabase.removeChannel(channel);
-    };
-  }, [regionId]);
-
-  useEffect(() => {
-    let alive = true;
-
-    async function load() {
-      const { data } = await supabase.from("day_item_notes").select("*").eq("region_id", regionId).order("created_at");
-      if (alive) setNotes(data || []);
-    }
-    load();
-
-    // filter 없이 구독합니다: DELETE 이벤트는 기본 REPLICA IDENTITY에서 기본키(id)만
-    // 실려오고 region_id는 빠져서, region_id 필터를 걸면 삭제 이벤트 자체가 조용히
-    // 무시됩니다(추가/수정은 새 행 전체가 오니 문제 없지만 삭제만 이 문제가 있음).
-    // load()가 어차피 region_id로 다시 걸러서 가져오므로 필터 없이도 결과는 정확합니다.
-    const channel = supabase
-      .channel(`day_item_notes:${regionId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "day_item_notes" }, load)
-      .subscribe();
-
-    return () => {
-      alive = false;
-      supabase.removeChannel(channel);
-    };
-  }, [regionId]);
 
   useEffect(() => {
     setEditingDay(null);
