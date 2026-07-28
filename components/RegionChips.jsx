@@ -37,7 +37,7 @@ const Chip = memo(function Chip({ r, isActive, index, onSelect, canReorder }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="chip-btn shrink-0 flex items-center justify-center gap-1.5 rounded-full px-2 text-sm w-[96px] h-[40px] relative"
+      className="chip-btn shrink-0 flex items-center justify-center gap-1.5 rounded-full px-2 text-sm w-[96px] h-[40px] relative shadow-[0_1px_3px_rgba(15,42,61,0.15)]"
       style={{
         background: isActive ? SKY : SKY_BG,
         color: isActive ? "#FFFFFF" : INK,
@@ -98,7 +98,12 @@ export default function RegionChips({
           영역 안에 sticky로 두면(overflow-x-auto인 flex 컨테이너 안의 sticky는 브라우저마다
           붕 뜨거나 칩에 가려지는 문제가 있었습니다) 버튼이 칩에 가려 뚫고 지나가 버렸습니다.
           칩 목록만 자체 스크롤 영역으로 따로 빼고, 추가 버튼은 그 바깥의 고정 형제
-          엘리먼트로 둬서 항상 스크롤 영역 오른쪽에 그대로 보이게 합니다. */}
+          엘리먼트로 둬서 항상 스크롤 영역 오른쪽에 그대로 보이게 합니다.
+          왼쪽만 -ml-4/pl-4로 페이지 여백 바깥까지 스크롤 영역을 넓힙니다(스크롤 시작
+          지점에서 첫 칩이 페이지 본문과 나란히 보이도록). 오른쪽까지 같은 트릭(-mr-4/pr-4)을
+          쓰면 이 flex 박스 자체의 오른쪽 경계가 "+" 버튼 쪽으로 넘어가서 스크롤 끝까지
+          당겼을 때 마지막 칩이 버튼과 겹쳐 보였습니다 — 오른쪽은 그냥 pr-2로 여유만
+          주고 다음 형제(+ 버튼)와는 gap-2로만 띄웁니다. */}
       <div className="flex items-center gap-2 mb-2 mt-4">
         <DndContext
           sensors={sensors}
@@ -107,7 +112,7 @@ export default function RegionChips({
           modifiers={[restrictToHorizontalAxis]}
         >
           <SortableContext items={base.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
-            <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 flex-1 min-w-0 chip-row">
+            <div className="flex items-center gap-2 overflow-x-auto -ml-4 pl-4 pr-2 flex-1 min-w-0 chip-row">
               {base.map((r, i) => (
                 <Chip key={r.id} r={r} isActive={i === active} index={i} onSelect={onSelect} canReorder={canReorder} />
               ))}
@@ -116,7 +121,7 @@ export default function RegionChips({
         </DndContext>
         {canAddRegion && (
           <button
-            className="shrink-0 flex items-center justify-center rounded-full w-[30px] h-[30px] bg-white text-sky border border-dashed border-sky-border"
+            className="shrink-0 flex items-center justify-center rounded-full w-[30px] h-[30px] bg-white text-sky border border-dashed border-sky-border shadow-[0_1px_3px_rgba(15,42,61,0.15)]"
             onClick={onAddRegion}
             aria-label="새 지역 추가"
           >
