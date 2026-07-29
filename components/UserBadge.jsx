@@ -5,6 +5,7 @@ import { LogOut, Share2, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import WeatherBadge from "@/components/WeatherBadge";
+import ExchangeRateBadge from "@/components/ExchangeRateBadge";
 import { SKY, FAINT, SKY_BG } from "@/lib/theme";
 
 const LEVELS = [
@@ -30,6 +31,7 @@ export default function UserBadge({ canShare, shareLevel, onSetShareLevel, weath
       <span className="text-muted">{identity.nickname}님</span>
       <div className="flex items-center gap-3">
         <WeatherBadge lat={weatherLat} lng={weatherLng} startDate={startDate} endDate={endDate} />
+        <ExchangeRateBadge />
         {canShare && (
           <div className="relative">
             <button

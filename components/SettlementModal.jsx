@@ -1,27 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Wallet, Users, Plus, X, ArrowRight } from "lucide-react";
 import Modal from "@/components/Modal";
 import IconButton from "@/components/IconButton";
+import { getExchangeRate, CURRENCIES } from "@/lib/exchangeRate";
 import { SKY, SKY_BORDER, MUTED, FAINT, INK, DANGER } from "@/lib/theme";
 
 function won(n) {
   return `${Math.round(n || 0).toLocaleString()}원`;
 }
 
-// 각 항목의 amount를 참가자별 부담액으로 환산합니다. splitMode가 "custom"이면 직접
-// 입력한 금액을, 아니면 그 항목에 걸린 참가자 수만큼 균등하게 나눕니다.
+// 항목마다 amount는 그 항목을 등록할 당시 골라둔 통화(currency) 그대로의 금액이고,
+// rate는 그 시점의 "통화 1단위 = 원화" 환율입니다(KRW 항목은 rate가 없거나 1).
+// 정산 계산은 전부 이 rate로 원화 환산한 값을 기준으로 하므로, 나중에 환율이
+// 바뀌어도 이미 등록된 정산 내역은 흔들리지 않습니다. rate가 없는 예전 데이터는
+// 항상 원화였으니 1을 씁니다.
+function toKRW(item) {
+  return (Number(item.amount) || 0) * (item.rate || 1);
+}
+
+// 각 항목의 원화 환산 금액을 참가자별 부담액으로 나눕니다. splitMode가 "custom"이면
+// 직접 입력한 금액(항목과 같은 통화)을, 아니면 그 항목에 걸린 참가자 수만큼 균등하게 나눕니다.
 function shareFor(item, person) {
-  if (item.splitMode === "custom") return Number(item.customSplits?.[person]) || 0;
+  const rate = item.rate || 1;
+  if (item.splitMode === "custom") return (Number(item.customSplits?.[person]) || 0) * rate;
   const parts = item.participants?.length ? item.participants : [];
   if (!parts.includes(person)) return 0;
-  return (Number(item.amount) || 0) / parts.length;
+  return toKRW(item) / parts.length;
 }
 
 function computeBalances(budget, participants) {
   return participants.map((p) => {
-    const paid = (budget || []).reduce((sum, item) => sum + (item.payer === p ? Number(item.amount) || 0 : 0), 0);
+    const paid = (budget || []).reduce((sum, item) => sum + (item.payer === p ? toKRW(item) : 0), 0);
     const owed = (budget || []).reduce((sum, item) => sum + shareFor(item, p), 0);
     return { name: p, paid, owed, balance: paid - owed };
   });
@@ -52,14 +63,25 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
   const [newParticipant, setNewParticipant] = useState("");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("KRW");
   const [payer, setPayer] = useState("");
   const [splitWith, setSplitWith] = useState(list);
   const [splitMode, setSplitMode] = useState("equal");
   const [customAmounts, setCustomAmounts] = useState({});
+  const [rates, setRates] = useState(null);
+  const currencyUnit = CURRENCIES.find((c) => c.code === currency)?.unit || 1;
 
-  const total = (budget || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+  useEffect(() => {
+    let alive = true;
+    getExchangeRate().then((data) => alive && data && setRates(data.rates));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // budget/participants가 그대론데 입력 폼(이름/금액/직접입력 등)에 타이핑할 때마다
   // 다시 계산되지 않도록 memo합니다. 항목 수가 늘어날수록 이 계산 비용도 커집니다.
+  const total = useMemo(() => (budget || []).reduce((sum, b) => sum + toKRW(b), 0), [budget]);
   const balances = useMemo(() => computeBalances(budget, list), [budget, list]);
   const transfers = useMemo(() => computeTransfers(balances), [balances]);
 
@@ -83,9 +105,12 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
 
   function submitAdd() {
     if (!name.trim() || splitWith.length === 0) return;
+    if (currency !== "KRW" && !rates?.[currency]) return; // 환율을 아직 못 받아왔으면 잘못된 값으로 저장하지 않음
     onAddItem({
       name: name.trim(),
       amount: Number(amount) || 0,
+      currency,
+      rate: currency === "KRW" ? 1 : rates[currency],
       payer: payer || null,
       participants: splitWith,
       splitMode,
@@ -93,13 +118,19 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
     });
     setName("");
     setAmount("");
+    setCurrency("KRW");
     setPayer("");
     setSplitWith(list);
     setSplitMode("equal");
     setCustomAmounts({});
   }
 
-  const customSum = splitWith.reduce((sum, p) => sum + (Number(customAmounts[p]) || 0), 0);
+  // name/amount/currency/payer 등 이 값과 무관한 입력에 타이핑할 때마다 다시 돌지
+  // 않도록, 실제로 이 합계에 영향을 주는 두 값(splitWith, customAmounts)에만 의존합니다.
+  const customSum = useMemo(
+    () => splitWith.reduce((sum, p) => sum + (Number(customAmounts[p]) || 0), 0),
+    [splitWith, customAmounts]
+  );
 
   return (
     <Modal icon={Wallet} title="정산" onClose={onClose}>
@@ -162,8 +193,15 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   </div>
                 </div>
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-[13px] text-muted font-bold">
-                    {won(b.amount)}
+                  <span className="text-right">
+                    <span className="block text-[13px] text-muted font-bold">
+                      {b.currency && b.currency !== "KRW"
+                        ? `${Math.round(b.amount || 0).toLocaleString()} ${b.currency}`
+                        : won(b.amount)}
+                    </span>
+                    {b.currency && b.currency !== "KRW" && (
+                      <span className="block text-[10px] text-faint">≈{won(toKRW(b))}</span>
+                    )}
                   </span>
                   {canEdit && (
                     <IconButton onClick={() => onDeleteItem(i)} ariaLabel="항목 삭제">
@@ -207,6 +245,30 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   className="w-20 shrink-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
               </div>
+              <div className="flex rounded overflow-hidden border border-sky-border mb-1.5">
+                {["KRW", ...CURRENCIES.map((c) => c.code)].map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => setCurrency(code)}
+                    className="flex-1 text-[11px] py-1.5 font-bold"
+                    style={{
+                      background: currency === code ? SKY : "#FFFFFF",
+                      color: currency === code ? "#FFFFFF" : MUTED,
+                    }}
+                  >
+                    {code === "KRW" ? "원" : CURRENCIES.find((c) => c.code === code).label}
+                  </button>
+                ))}
+              </div>
+              {currency !== "KRW" && (
+                <p className="text-[11px] mb-1.5" style={{ color: rates?.[currency] ? FAINT : DANGER }}>
+                  {rates?.[currency]
+                    ? `≈ ${won((Number(amount) || 0) * rates[currency])} (${currencyUnit}${currency} = ${won(
+                        rates[currency] * currencyUnit
+                      )} 기준)`
+                    : "환율 정보를 불러오는 중이에요..."}
+                </p>
+              )}
 
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="text-[11px] shrink-0 text-muted">
@@ -295,13 +357,17 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                     </div>
                   ))}
                   <div className="text-[11px] text-right" style={{ color: customSum === Number(amount) ? MUTED : DANGER }}>
-                    입력 합계 {won(customSum)} / 총액 {won(Number(amount) || 0)}
+                    {currency !== "KRW"
+                      ? `입력 합계 ${customSum.toLocaleString()} ${currency} / 총액 ${(Number(amount) || 0).toLocaleString()} ${currency}`
+                      : `입력 합계 ${won(customSum)} / 총액 ${won(Number(amount) || 0)}`}
                   </div>
                 </div>
               )}
 
               <button
                 onClick={submitAdd}
+                disabled={currency !== "KRW" && !rates?.[currency]}
+                style={{ opacity: currency !== "KRW" && !rates?.[currency] ? 0.6 : 1 }}
                 className="w-full rounded-lg py-1.5 text-[12px] flex items-center justify-center gap-1 bg-sky text-white font-bold"
               >
                 <Plus size={13} /> 추가
