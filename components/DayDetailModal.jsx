@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin } from "lucide-react";
 import Modal from "@/components/Modal";
@@ -25,12 +25,20 @@ const dayPhotosCache = new Map();
 export default function DayDetailModal({ title, items, notePhotos, regionName, onClose }) {
   const [focusPoint, setFocusPoint] = useState(null);
   const [itemPhotos, setItemPhotos] = useState([]);
-  const mapPoints = items
-    .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
-    .filter((p) => p.lat != null);
 
-  const itemTexts = items.map((it) => it.text);
-  const cacheKey = `${regionName}|${itemTexts.join("|")}`;
+  // 이 모달은 자기 상태(focusPoint 등)가 바뀔 때마다 리렌더되는데, items 자체는 그때
+  // 바뀌지 않으므로 items가 실제로 바뀔 때만 다시 계산합니다. itemTexts/cacheKey는
+  // 아래 useEffect의 의존성으로도 쓰여서, 값이 매번 새로 만들어지면 items가 그대로여도
+  // effect가 다시 도는 것처럼 보이는 걸 막아줍니다.
+  const mapPoints = useMemo(
+    () =>
+      items
+        .map((it, i) => ({ lat: it.lat, lng: it.lng, name: it.text, num: i + 1 }))
+        .filter((p) => p.lat != null),
+    [items]
+  );
+  const itemTexts = useMemo(() => items.map((it) => it.text), [items]);
+  const cacheKey = useMemo(() => `${regionName}|${itemTexts.join("|")}`, [regionName, itemTexts]);
 
   useEffect(() => {
     let alive = true;

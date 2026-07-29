@@ -159,7 +159,17 @@ const DayCardItem = memo(function DayCardItem({
     disabled: !reorderMode,
   });
   const isLocatingHere = locatingItem?.dayIdx === di;
-  const noteCountFor = (key) => dayNotes.filter((n) => n.item_key === key).length;
+  // 항목마다 dayNotes를 매번 filter하면 카드 항목 수만큼 O(n)이 반복되고, 이 카드가
+  // 편집 중이라 타이핑 때마다 리렌더될 때도 그대로 다시 도는 게 낭비라 Map으로
+  // 한 번만 집계합니다. dayNotes는 편집 중 타이핑으로는 안 바뀌는 값이라(부모의
+  // notesByDay가 drafts/newText와 무관하게 메모됨) 이 useMemo는 실제 노트가
+  // 추가/삭제될 때만 다시 계산됩니다.
+  const noteCounts = useMemo(() => {
+    const map = new Map();
+    for (const n of dayNotes) map.set(n.item_key, (map.get(n.item_key) || 0) + 1);
+    return map;
+  }, [dayNotes]);
+  const noteCountFor = (key) => noteCounts.get(key) || 0;
   const itemSensors = useSensors(useSensor(PointerSensor));
 
   // 카드 재정렬(DayCards의 onDragEnd)과 같은 이유로 고정합니다: 이 카드가 활성 편집

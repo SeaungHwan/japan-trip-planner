@@ -1,7 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, AttributionControl, useMap } from "react-leaflet";
 import { Minimize2, LayoutGrid } from "lucide-react";
@@ -108,9 +108,22 @@ function LeafletMap({ regions, active, zoomed, onSelect, onZoomOut, focus, dayPi
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const scaleClass = badgeScale(currentZoom);
 
-  const validDayPins = (dayPins || []).filter((p) => typeof p.lat === "number" && typeof p.lng === "number");
-  const shownDayPins = showAllDayPins ? validDayPins : firstPinPerDay(validDayPins);
-  const spreadDayPins = spreadOverlappingPins(shownDayPins, currentZoom);
+  // 확대/축소 중엔 currentZoom이 초당 여러 번 바뀌어 이 컴포넌트가 자주 리렌더되는데,
+  // 어떤 핀을 보여줄지(validDayPins/shownDayPins)는 줌과 무관하므로 dayPins/
+  // showAllDayPins가 실제로 바뀔 때만 다시 계산합니다. 줌에 실제로 의존하는 겹침
+  // 방지(spreadOverlappingPins)만 currentZoom을 의존성에 둡니다.
+  const validDayPins = useMemo(
+    () => (dayPins || []).filter((p) => typeof p.lat === "number" && typeof p.lng === "number"),
+    [dayPins]
+  );
+  const shownDayPins = useMemo(
+    () => (showAllDayPins ? validDayPins : firstPinPerDay(validDayPins)),
+    [showAllDayPins, validDayPins]
+  );
+  const spreadDayPins = useMemo(
+    () => spreadOverlappingPins(shownDayPins, currentZoom),
+    [shownDayPins, currentZoom]
+  );
 
   return (
     <div className="rounded-2xl mb-1 relative anim-fadeup overflow-hidden h-[340px] border border-sky-border">

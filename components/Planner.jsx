@@ -196,6 +196,11 @@ export default function Planner() {
     });
   }
 
+  // 아래 JSX에서 같은 region/activeTrip으로 canManageRegion/canEditTrip을 여러 번
+  // (각 6번/3번) 다시 부르던 걸 렌더 1회당 한 번씩만 계산해서 재사용합니다.
+  const canEditActiveRegion = region ? canManageRegion(region) : false;
+  const canEditActiveTrip = canEditTrip(activeTrip);
+
   return (
     <div className="app-scroll w-full bg-white">
       <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pb-4">
@@ -209,7 +214,7 @@ export default function Planner() {
             startDate={region?.startDate || activeTrip.start_date}
             endDate={region?.endDate || activeTrip.end_date}
           />
-          <div className="mb-2 anim-fadeup">
+          <div className="anim-fadeup">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <p className="text-xs tracking-[0.3em] uppercase text-sky">
@@ -218,7 +223,7 @@ export default function Planner() {
                 {region && (
                   <RegionDateButton
                     region={region}
-                    canEdit={canManageRegion(region)}
+                    canEdit={canEditActiveRegion}
                     onSaveDates={(startDate, endDate) => saveRegionDates(region, startDate, endDate)}
                   />
                 )}
@@ -270,9 +275,9 @@ export default function Planner() {
                   onToggleMore={toggleMore}
                   moreCount={extraRegions.length}
                   baseCount={baseRegions.length}
-                  canAddRegion={canEditTrip(activeTrip)}
+                  canAddRegion={canEditActiveTrip}
                   onAddRegion={() => setShowAddForm(true)}
-                  canReorder={canEditTrip(activeTrip)}
+                  canReorder={canEditActiveTrip}
                   onReorder={reorderRegions}
                 />
 
@@ -283,13 +288,13 @@ export default function Planner() {
                 ) : regions.length === 0 ? (
                   <p className="text-[13px] text-center mt-8 text-faint">
                     이 여행에는 아직 지역이 없어요.
-                    {canEditTrip(activeTrip) && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
+                    {canEditActiveTrip && ` 위의 "+ 새 지역 추가"로 시작해보세요.`}
                   </p>
                 ) : (
                   <RegionHeader
                     region={region}
-                    onDelete={canManageRegion(region) ? () => deleteRegion(region) : undefined}
-                    canEdit={canManageRegion(region)}
+                    onDelete={canEditActiveRegion ? () => deleteRegion(region) : undefined}
+                    canEdit={canEditActiveRegion}
                     onAddBudgetItem={(item) => addBudgetItem(region, item)}
                     onDeleteBudgetItem={(i) => deleteBudgetItem(region, i)}
                     onSaveParticipants={(participants) => saveParticipants(region, participants)}
@@ -307,7 +312,7 @@ export default function Planner() {
                       spots={region.moreSpots}
                       open={showSpots}
                       onToggle={() => setShowSpots((v) => !v)}
-                      canEdit={canManageRegion(region)}
+                      canEdit={canEditActiveRegion}
                       onAddSpot={(name) => addSpot(region, name)}
                       onDeleteSpot={(i) => deleteSpot(region, i)}
                       onSetLocation={(i, point) => setSpotLocation(region, i, point)}
@@ -316,7 +321,7 @@ export default function Planner() {
                       foods={region.foods}
                       open={showFoods}
                       onToggle={() => setShowFoods((v) => !v)}
-                      canEdit={canManageRegion(region)}
+                      canEdit={canEditActiveRegion}
                       onAddFood={(name) => addFood(region, name)}
                       onDeleteFood={(i) => deleteFood(region, i)}
                     />
@@ -330,7 +335,7 @@ export default function Planner() {
                         regionId={region.id}
                         regionName={region.kr}
                         onDaysPinsChange={setDayPins}
-                        canEdit={canManageRegion(region)}
+                        canEdit={canEditActiveRegion}
                         onOpenAIEdit={() => setShowAIEdit(true)}
                       />
                     </>

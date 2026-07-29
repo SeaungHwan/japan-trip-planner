@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
@@ -51,9 +51,16 @@ export default function Feedback({ targetKey }) {
     };
   }, [targetKey]);
 
-  const up = reactions.filter((r) => r.value === 1).length;
-  const down = reactions.filter((r) => r.value === -1).length;
-  const myVote = reactions.find((r) => r.user_id === identity?.id)?.value;
+  // text 입력(댓글 작성) 등 reactions와 무관한 상태가 바뀔 때마다 다시 세지 않도록
+  // reactions/identity가 바뀔 때만 계산합니다.
+  const { up, down, myVote } = useMemo(
+    () => ({
+      up: reactions.filter((r) => r.value === 1).length,
+      down: reactions.filter((r) => r.value === -1).length,
+      myVote: reactions.find((r) => r.user_id === identity?.id)?.value,
+    }),
+    [reactions, identity]
+  );
 
   async function vote(value) {
     if (!identity) return;
