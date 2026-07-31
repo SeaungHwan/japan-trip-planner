@@ -334,6 +334,7 @@ export default function Planner() {
                         mode={mode}
                         regionId={region.id}
                         regionName={region.kr}
+                        regionJp={region.jp}
                         onDaysPinsChange={setDayPins}
                         canEdit={canEditActiveRegion}
                         onOpenAIEdit={() => setShowAIEdit(true)}

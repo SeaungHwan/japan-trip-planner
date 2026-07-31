@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X, Sparkles } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ArrowUpDown, MapPin, StickyNote, X, Sparkles, BedDouble, Search } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRealtimeQuery } from "@/hooks/useRealtimeQuery";
 import Spinner from "@/components/Spinner";
@@ -15,6 +15,10 @@ import IconButton from "@/components/IconButton";
 import { SKY, SKY_BORDER } from "@/lib/theme";
 
 const CUSTOM_DAY_BASE = 100000;
+// __title__/__day__ 등과 같은 방식의 item_key입니다. mode별로 따로 저장되므로
+// (day_item_edits의 mode 컬럼) 대중교통/렌트카 코스마다 다른 숙소를 기록할 수 있습니다
+// — 렌트카면 갈 수 있는 범위가 넓어져서 실제로 다른 숙소를 잡는 경우가 있기 때문입니다.
+const LODGING_KEY = "__lodging__";
 
 // 편집/위치지정 중이 아닌 카드에는 항상 이 고정 참조를 넘겨서, 다른 카드에서 타이핑해도
 // (drafts/newText/locatingItem/pendingPoint가 바뀌어도) 이 카드들의 props는 그대로라
@@ -129,6 +133,8 @@ const DayCardItem = memo(function DayCardItem({
   displayIdx,
   title,
   items,
+  lodging,
+  regionJp,
   isEditing,
   reorderMode,
   dayEditMode,
@@ -140,6 +146,9 @@ const DayCardItem = memo(function DayCardItem({
   locatingItem,
   pendingPoint,
   setPendingPoint,
+  isLocatingLodging,
+  pendingLodgingPoint,
+  setPendingLodgingPoint,
   onSetCardRef,
   onCommitDraft,
   onDeleteItem,
@@ -148,6 +157,13 @@ const DayCardItem = memo(function DayCardItem({
   onConfirmLocation,
   onClearLocation,
   onCloseLocationPicker,
+  onCommitLodgingDraft,
+  onDeleteLodging,
+  onSelectLodgingResult,
+  onOpenLodgingLocationPicker,
+  onConfirmLodgingLocation,
+  onClearLodgingLocation,
+  onCloseLodgingLocationPicker,
   onToggleEdit,
   onDeleteDay,
   onOpenNotes,
@@ -171,6 +187,30 @@ const DayCardItem = memo(function DayCardItem({
   }, [dayNotes]);
   const noteCountFor = (key) => noteCounts.get(key) || 0;
   const itemSensors = useSensors(useSensor(PointerSensor));
+
+  // 검색 결과는 이 카드 안에서만 잠깐 보여주는 화면 상태라 부모로 끌어올리지 않고
+  // 로컬 state로 둡니다(선택하면 onSelectLodgingResult가 실제 저장을 처리).
+  const [lodgingSearchResults, setLodgingSearchResults] = useState(null);
+  const [lodgingSearching, setLodgingSearching] = useState(false);
+
+  async function searchLodging() {
+    const query = (drafts[LODGING_KEY] ?? lodging?.name ?? "").trim();
+    if (!query) return;
+    setLodgingSearching(true);
+    try {
+      // Nominatim은 한국어 지역명(regionName)을 섞으면 검색어 전체가 매칭 안 돼서
+      // 결과가 아예 안 나옵니다(실제로 테스트해서 확인함). 지역의 일본어 표기(regionJp,
+      // 예: "別府")를 붙이면 같은 이름의 체인 호텔이 다른 도시에서 걸리는 걸 막아주면서도
+      // 검색은 정상 동작합니다. 일본어 표기가 없는 지역이면 그냥 숙소명만 검색합니다.
+      const query_ = regionJp ? `${regionJp} ${query}` : query;
+      const res = await fetch(`/api/lodging-search?q=${encodeURIComponent(query_)}`);
+      const data = await res.json();
+      setLodgingSearchResults(data.results || []);
+    } catch {
+      setLodgingSearchResults([]);
+    }
+    setLodgingSearching(false);
+  }
 
   // 카드 재정렬(DayCards의 onDragEnd)과 같은 이유로 고정합니다: 이 카드가 활성 편집
   // 카드일 때는 타이핑 한 글자마다 리렌더되는데, 인라인 함수면 그때마다 새 참조가 되어
@@ -246,6 +286,95 @@ const DayCardItem = memo(function DayCardItem({
           ) : (
             <div className="text-[15px] text-ink font-bold">
               {stripDayLabel(title)}
+            </div>
+          )}
+
+          {isEditing ? (
+            <div className="flex items-center gap-1 mt-1.5">
+              <BedDouble size={14} color="#94A9B8" className="shrink-0" />
+              <input
+                value={drafts[LODGING_KEY] ?? lodging?.name ?? ""}
+                onChange={(e) => {
+                  setDrafts((d) => ({ ...d, [LODGING_KEY]: e.target.value }));
+                  setLodgingSearchResults(null);
+                }}
+                onBlur={() => onCommitLodgingDraft(di, lodging)}
+                onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                placeholder="숙소 이름"
+                className="flex-1 min-w-0 text-[13px] rounded px-1.5 py-0.5 border border-sky-border text-ink"
+              />
+              <IconButton onClick={searchLodging} ariaLabel="숙소 검색">
+                <Search size={16} color={lodgingSearching ? SKY : "#94A9B8"} />
+              </IconButton>
+              {lodging && (
+                <>
+                  <IconButton onClick={() => onOpenLodgingLocationPicker(di, lodging)} ariaLabel="숙소 위치 설정">
+                    <MapPin size={16} color={lodging.lat != null ? SKY : "#94A9B8"} />
+                  </IconButton>
+                  <IconButton onClick={() => onDeleteLodging(di, lodging)} ariaLabel="숙소 삭제">
+                    <Trash2 size={15} color="#94A9B8" />
+                  </IconButton>
+                </>
+              )}
+            </div>
+          ) : (
+            lodging && (
+              <div className="flex items-center gap-1 mt-1 text-[12px] text-muted">
+                <BedDouble size={12} className="shrink-0" />
+                <span className="truncate">{lodging.name}</span>
+                {lodging.lat != null && <MapPin size={10} color={SKY} className="shrink-0" />}
+              </div>
+            )
+          )}
+
+          {isEditing && lodgingSearchResults && (
+            <div className="rounded-lg mt-1 border border-sky-border bg-white overflow-hidden">
+              {lodgingSearchResults.length === 0 ? (
+                <p className="text-[11px] p-2 text-faint">검색 결과가 없어요</p>
+              ) : (
+                lodgingSearchResults.map((r, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onSelectLodgingResult(di, r);
+                      setLodgingSearchResults(null);
+                    }}
+                    className="w-full text-left px-2 py-1.5 border-b border-slate-border last:border-b-0"
+                  >
+                    <div className="text-[12px] text-ink font-bold truncate">{r.name}</div>
+                    <div className="text-[11px] text-faint truncate">{r.address}</div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {isEditing && isLocatingLodging && (
+            <div className="rounded-lg p-2 mt-1.5 bg-slate-bg border border-slate-border">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[12px] text-muted">
+                  &quot;{lodging?.name}&quot; 위치 지정
+                </span>
+                <IconButton onClick={onCloseLodgingLocationPicker} ariaLabel="닫기">
+                  <X size={18} color="#94A9B8" />
+                </IconButton>
+              </div>
+              <LocationPicker point={pendingLodgingPoint} onPick={setPendingLodgingPoint} />
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => onConfirmLodgingLocation(di, lodging)}
+                  disabled={!pendingLodgingPoint}
+                  className="text-[12px] text-sky font-bold"
+                  style={{ opacity: pendingLodgingPoint ? 1 : 0.5 }}
+                >
+                  위치 저장
+                </button>
+                {lodging?.lat != null && (
+                  <button onClick={() => onClearLodgingLocation(di, lodging)} className="text-[12px] text-danger font-bold">
+                    위치 삭제
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {isEditing ? (
@@ -366,6 +495,7 @@ export default function DayCards({
   mode,
   regionId,
   regionName,
+  regionJp,
   onDaysPinsChange,
   canEdit = false,
   onOpenAIEdit,
@@ -397,6 +527,8 @@ export default function DayCards({
   const [dayEditMode, setDayEditMode] = useState(false);
   const [locatingItem, setLocatingItem] = useState(null);
   const [pendingPoint, setPendingPoint] = useState(null);
+  const [locatingLodgingDay, setLocatingLodgingDay] = useState(null);
+  const [pendingLodgingPoint, setPendingLodgingPoint] = useState(null);
   const [notingItem, setNotingItem] = useState(null);
   const [detailDay, setDetailDay] = useState(null);
   const cardRefs = useRef({});
@@ -410,7 +542,7 @@ export default function DayCards({
   // 이렇게 하면 커밋/추가/위치확정 핸들러 자체는 참조가 안 바뀌어서(=다른 카드에 영향 없음)
   // 다른 카드들이 이 값들이 바뀔 때마다 같이 리렌더되는 걸 막을 수 있습니다.
   const liveRef = useRef({});
-  liveRef.current = { edits, notes, drafts, newText, locatingItem, pendingPoint };
+  liveRef.current = { edits, notes, drafts, newText, locatingItem, pendingPoint, pendingLodgingPoint };
 
   useEffect(() => {
     if (editingDay !== null) cardRefs.current[editingDay]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -424,6 +556,8 @@ export default function DayCards({
     setDayEditMode(false);
     setLocatingItem(null);
     setPendingPoint(null);
+    setLocatingLodgingDay(null);
+    setPendingLodgingPoint(null);
     setNotingItem(null);
     setDetailDay(null);
   }, [regionId, mode]);
@@ -521,6 +655,68 @@ export default function DayCards({
     [upsert, closeLocationPicker]
   );
 
+  // 숙소는 이름을 먼저 저장해야 있는 게 되고(위치는 그다음 선택), 위치 지정 UI는
+  // 항목(item)의 것과 같은 패턴이지만 대상이 "그 날의 숙소" 하나뿐이라 day_index만으로
+  // 구분합니다(item_key는 항상 LODGING_KEY로 고정).
+  const commitLodgingDraft = useCallback(
+    async (dayIdx, currentLodging) => {
+      const text = (liveRef.current.drafts[LODGING_KEY] ?? currentLodging?.name ?? "").trim();
+      if (text && text !== currentLodging?.name) {
+        await upsert(dayIdx, LODGING_KEY, { text, lat: currentLodging?.lat ?? null, lng: currentLodging?.lng ?? null });
+      }
+    },
+    [upsert]
+  );
+
+  const deleteLodging = useCallback(
+    async (dayIdx, currentLodging) => {
+      await upsert(dayIdx, LODGING_KEY, { deleted: true, text: currentLodging?.name });
+    },
+    [upsert]
+  );
+
+  // 검색 결과 하나를 고르면 이름/위치를 한 번에 저장합니다. drafts도 같이 갱신해서
+  // 실시간 구독이 새 값을 받아오기 전까지도 입력창에 방금 고른 이름이 바로 보이게 합니다.
+  const selectLodgingResult = useCallback(
+    async (dayIdx, result) => {
+      setDrafts((d) => ({ ...d, [LODGING_KEY]: result.name }));
+      await upsert(dayIdx, LODGING_KEY, { text: result.name, lat: result.lat, lng: result.lng });
+    },
+    [upsert]
+  );
+
+  const openLodgingLocationPicker = useCallback((dayIdx, currentLodging) => {
+    setLocatingLodgingDay((cur) => (cur === dayIdx ? null : dayIdx));
+    setPendingLodgingPoint(currentLodging?.lat != null ? { lat: currentLodging.lat, lng: currentLodging.lng } : null);
+  }, []);
+
+  const closeLodgingLocationPicker = useCallback(() => {
+    setLocatingLodgingDay(null);
+    setPendingLodgingPoint(null);
+  }, []);
+
+  const confirmLodgingLocation = useCallback(
+    async (dayIdx, currentLodging) => {
+      const { pendingLodgingPoint } = liveRef.current;
+      if (!pendingLodgingPoint) return;
+      await upsert(dayIdx, LODGING_KEY, {
+        text: currentLodging?.name,
+        lat: pendingLodgingPoint.lat,
+        lng: pendingLodgingPoint.lng,
+      });
+      closeLodgingLocationPicker();
+    },
+    [upsert, closeLodgingLocationPicker]
+  );
+
+  const clearLodgingLocation = useCallback(
+    async (dayIdx, currentLodging) => {
+      await upsert(dayIdx, LODGING_KEY, { text: currentLodging?.name, lat: null, lng: null });
+      closeLodgingLocationPicker();
+    },
+    [upsert, closeLodgingLocationPicker]
+  );
+
   function notesForItem(dayIdx, itemKey) {
     return notes.filter((n) => n.mode === mode && n.day_index === dayIdx && n.item_key === itemKey);
   }
@@ -579,6 +775,11 @@ export default function DayCards({
     return e ? e.text : baseTitle;
   }
 
+  function lodgingFor(dayIdx) {
+    const e = edits.find((ed) => ed.mode === mode && ed.day_index === dayIdx && ed.item_key === LODGING_KEY && !ed.deleted);
+    return e && e.text ? { name: e.text, lat: e.lat, lng: e.lng } : null;
+  }
+
   function isDayDeleted(dayIdx) {
     return edits.some((e) => e.mode === mode && e.day_index === dayIdx && e.item_key === "__day__" && e.deleted);
   }
@@ -628,11 +829,12 @@ export default function DayCards({
   }, []);
 
   function planFor(di) {
+    const lodging = lodgingFor(di);
     if (di < days.length) {
       const plan = days[di][mode];
-      return { title: titleFor(di, plan.title), items: mergeItems(plan.items, editsFor(di)) };
+      return { title: titleFor(di, plan.title), items: mergeItems(plan.items, editsFor(di)), lodging };
     }
-    return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)) };
+    return { title: titleFor(di, "새 일정"), items: mergeItems([], editsFor(di)), lodging };
   }
 
   // edits는 실시간 구독으로만 바뀌는 값이라, 여기서 di별로 한 번만 계산해두면
@@ -796,9 +998,10 @@ export default function DayCards({
         <SortableContext items={diOrder} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-3">
             {visibleDays.map(({ di }, displayIdx) => {
-              const { title, items } = dayPlans.get(di);
+              const { title, items, lodging } = dayPlans.get(di);
               const isEditing = editingDay === di;
               const isLocatingHere = locatingItem?.dayIdx === di;
+              const isLocatingLodgingHere = locatingLodgingDay === di;
               return (
                 <DayCardItem
                   key={`${regionId}-${mode}-${di}`}
@@ -806,6 +1009,8 @@ export default function DayCards({
                   displayIdx={displayIdx}
                   title={title}
                   items={items}
+                  lodging={lodging}
+                  regionJp={regionJp}
                   isEditing={isEditing}
                   reorderMode={reorderMode}
                   dayEditMode={dayEditMode}
@@ -817,6 +1022,9 @@ export default function DayCards({
                   locatingItem={isLocatingHere ? locatingItem : null}
                   pendingPoint={isLocatingHere ? pendingPoint : null}
                   setPendingPoint={setPendingPoint}
+                  isLocatingLodging={isLocatingLodgingHere}
+                  pendingLodgingPoint={isLocatingLodgingHere ? pendingLodgingPoint : null}
+                  setPendingLodgingPoint={setPendingLodgingPoint}
                   onSetCardRef={setCardRef}
                   onCommitDraft={commitDraft}
                   onDeleteItem={deleteItem}
@@ -825,6 +1033,13 @@ export default function DayCards({
                   onConfirmLocation={confirmItemLocation}
                   onClearLocation={clearItemLocation}
                   onCloseLocationPicker={closeLocationPicker}
+                  onCommitLodgingDraft={commitLodgingDraft}
+                  onDeleteLodging={deleteLodging}
+                  onSelectLodgingResult={selectLodgingResult}
+                  onOpenLodgingLocationPicker={openLodgingLocationPicker}
+                  onConfirmLodgingLocation={confirmLodgingLocation}
+                  onClearLodgingLocation={clearLodgingLocation}
+                  onCloseLodgingLocationPicker={closeLodgingLocationPicker}
                   onToggleEdit={toggleEditDay}
                   onDeleteDay={deleteDay}
                   onOpenNotes={openNotes}
