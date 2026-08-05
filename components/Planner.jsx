@@ -111,7 +111,7 @@ export default function Planner() {
     const el = headerRef.current;
     if (!el) return;
     // ResizeObserver의 entry.contentRect는 패딩을 뺀 content-box 크기라, 헤더에 준
-    // pt-6/md:pb-2 패딩만큼 실제 보이는 높이보다 작게 나옵니다. 화면에 실제로 차지하는
+    // pt-6/pb-2 패딩만큼 실제 보이는 높이보다 작게 나옵니다. 화면에 실제로 차지하는
     // 높이(패딩 포함 border-box)를 그대로 써야 해서 getBoundingClientRect로 잽니다.
     const update = () => setHeaderHeight(el.getBoundingClientRect().height);
     update();
@@ -204,7 +204,7 @@ export default function Planner() {
   return (
     <div className="app-scroll w-full bg-white">
       <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto px-4 pb-4">
-        <div ref={headerRef} className="md:sticky md:top-0 md:z-10 md:bg-white pt-6 md:pb-2">
+        <div ref={headerRef} className="md:sticky md:top-0 md:z-10 md:bg-white pt-6 pb-2">
           <UserBadge
             canShare={canShareActiveTrip}
             shareLevel={activeTripShareLevel}

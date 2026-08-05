@@ -6,6 +6,12 @@ body {
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   background: #ffffff;
   word-break: auto-phrase;
+  /* 브라우저 기본값(특히 Windows Chrome/Edge)은 폰트에 그레이스케일 안티에일리어싱을
+     안 걸어서, 10~13px처럼 작은 크기로 많이 쓰는 이 앱의 굵은 한글 텍스트가 거칠고
+     자글자글하게 보입니다. 부드럽게 렌더링하도록 강제합니다. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* 댓글은 사용자가 자유롭게 쓴 글이라 구문 단위 줄바꿈이 오히려 어색해서 기본 줄바꿈으로 되돌립니다.
