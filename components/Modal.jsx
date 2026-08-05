@@ -15,7 +15,7 @@ import { SKY } from "@/lib/theme";
 // onClose를 호출해 부모가 언마운트하게 합니다. e.target === e.currentTarget으로
 // 안쪽 카드의 애니메이션이 버블링돼 오는 걸 걸러, 배경 자신의 애니메이션이 끝났을
 // 때만 반응합니다.
-export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeight, children }) {
+export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeight, footer, children }) {
   const [closing, setClosing] = useState(false);
 
   function requestClose() {
@@ -58,6 +58,10 @@ export default function Modal({ icon: Icon, title, onClose, headerExtra, minHeig
           </span>
         </div>
         <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">{children}</div>
+        {/* footer는 저장/추가 같은 핵심 액션을 스크롤 밖에 고정해서, 폼이 길어져도
+            버튼을 찾으러 스크롤할 필요가 없게 합니다(선택적 — 안 주면 기존처럼 children
+            안에서 버튼을 자유롭게 배치). */}
+        {footer && <div className="px-4 py-3 shrink-0 border-t border-slate-border">{footer}</div>}
       </div>
     </div>,
     document.body

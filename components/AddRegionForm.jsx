@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { X, Sparkles } from "lucide-react";
+import { Sparkles, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getIdentity } from "@/lib/auth";
 import { compressImage } from "@/lib/imageOptimize";
-import IconButton from "@/components/IconButton";
 import LazyImage from "@/components/LazyImage";
+import Modal from "@/components/Modal";
 
 function base64ToFile(base64, mimeType, name) {
   const byteChars = atob(base64);
@@ -33,7 +33,6 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 });
 
 export default function AddRegionForm({ onClose, onAdded, tripId }) {
-  const [closing, setClosing] = useState(false);
   const [kr, setKr] = useState("");
   const [extraPrompt, setExtraPrompt] = useState("");
   const [jp, setJp] = useState("");
@@ -51,14 +50,10 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
   const [generating, setGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
-
-  function requestClose() {
-    setClosing(true);
-  }
-
-  function handleBackdropAnimationEnd(e) {
-    if (closing && e.target === e.currentTarget) onClose();
-  }
+  // 일본어 이름/항공편/메모는 자주 안 만지는 필드라 기본으로 접어둡니다 — 처음 폼을
+  // 열었을 때 스크롤이 훨씬 짧아집니다. AI 생성이 이 필드들을 채우면 확인 없이
+  // 묻히지 않도록 자동으로 펼칩니다.
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (!generating) {
@@ -99,6 +94,7 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
         setFlightIncheon(data.flight.incheon);
         setFlightCheongju(data.flight.cheongju);
       }
+      setShowMore(true);
       if (data.imageUrl) {
         // 위키피디아 실제 사진은 외부 URL을 그대로 씁니다.
         setImageUrl(data.imageUrl);
@@ -183,85 +179,130 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
       return;
     }
     onAdded(data);
-    requestClose();
+    onClose();
   }
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,42,61,0.5)] ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
-      onAnimationEnd={handleBackdropAnimationEnd}
+    <Modal
+      icon={MapPin}
+      title="새 지역 추가"
+      onClose={onClose}
+      footer={
+        <>
+          {error && <p className="text-[12px] mb-2 text-danger">{error}</p>}
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="w-full text-sm rounded-lg py-2 bg-sky text-white font-bold"
+            style={{ opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? "저장 중..." : "추가하기"}
+          </button>
+        </>
+      }
     >
-      <div
-        className={`w-full max-w-sm rounded-2xl min-h-[30vh] max-h-[90vh] flex flex-col bg-white ${closing ? "modal-card-out" : "modal-card-in"}`}
-      >
-        <div className="flex items-center justify-between p-4 pb-3 shrink-0">
-          <span className="text-base text-ink font-bold">
-            새 지역 추가
-          </span>
-          <IconButton onClick={requestClose} ariaLabel="닫기">
-            <X size={23} color="#5B7A90" />
-          </IconButton>
+      <label className="block text-[12px] mb-1 text-muted">
+        지역 이름 (필수)
+      </label>
+      <input
+        value={kr}
+        onChange={(e) => setKr(e.target.value)}
+        placeholder="예: 벳푸"
+        className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
+      />
+
+      <label className="block text-[12px] mb-1 text-muted">
+        AI에게 추가 요청사항 (선택)
+      </label>
+      <textarea
+        value={extraPrompt}
+        onChange={(e) => setExtraPrompt(e.target.value)}
+        placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
+        rows={2}
+        className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
+      />
+
+      {generating ? (
+        <div
+          className="w-full rounded-lg mb-3 p-3 flex flex-col items-center gap-2 bg-sky-bg border border-sky-border"
+        >
+          <div className="ai-loading-icon text-sky">
+            <Sparkles size={22} />
+          </div>
+          <p key={loadingMsgIndex} className="ai-loading-text text-[12px] text-sky font-bold">
+            {LOADING_MESSAGES[loadingMsgIndex]}
+          </p>
+          <div className="ai-loading-bar-track">
+            <div className="ai-loading-bar" />
+          </div>
         </div>
+      ) : (
+        <button
+          onClick={generateWithAI}
+          className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1 bg-sky-bg text-sky font-bold border border-sky-border"
+        >
+          <Sparkles size={13} /> AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성
+        </button>
+      )}
+      {days?.length > 0 && (
+        <p className="text-[12px] mb-2 text-sky">
+          {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
+        </p>
+      )}
+      {imageUrl && (
+        <LazyImage
+          key={imageUrl}
+          src={imageUrl}
+          alt="지역 대표 이미지 미리보기"
+          className="w-full rounded-lg mb-2"
+          style={{ height: 160 }}
+        />
+      )}
 
-        <div className="px-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
-          <label className="block text-[12px] mb-1 text-muted">
-            지역 이름 (필수)
-          </label>
-          <input
-            value={kr}
-            onChange={(e) => setKr(e.target.value)}
-            placeholder="예: 벳푸"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
-          />
+      <label className="block text-[12px] mb-1 text-muted">
+        지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
+      </label>
+      <LocationPicker point={point} onPick={setPoint} />
 
-          <label className="block text-[12px] mb-1 text-muted">
-            AI에게 추가 요청사항 (선택)
-          </label>
-          <textarea
-            value={extraPrompt}
-            onChange={(e) => setExtraPrompt(e.target.value)}
-            placeholder="예: 아이랑 가기 좋은 곳 위주로, 온천 위주로, 조용한 곳으로"
-            rows={2}
-            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
-          />
+      <label className="block text-[12px] mb-1 text-muted">
+        가볼만한 곳 (선택, 쉼표로 구분)
+      </label>
+      <input
+        value={spotsText}
+        onChange={(e) => setSpotsText(e.target.value)}
+        placeholder="예: 벳푸 지옥온천, 유노하나 마을"
+        className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
+      />
+      {aiSpots?.length > 0 && (
+        <p className="text-[11px] mb-2 text-faint">
+          이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
+        </p>
+      )}
 
-          {generating ? (
-            <div
-              className="w-full rounded-lg mb-3 p-3 flex flex-col items-center gap-2 bg-sky-bg border border-sky-border"
-            >
-              <div className="ai-loading-icon text-sky">
-                <Sparkles size={22} />
-              </div>
-              <p key={loadingMsgIndex} className="ai-loading-text text-[12px] text-sky font-bold">
-                {LOADING_MESSAGES[loadingMsgIndex]}
-              </p>
-              <div className="ai-loading-bar-track">
-                <div className="ai-loading-bar" />
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={generateWithAI}
-              className="w-full text-[12px] rounded-lg py-1.5 mb-3 flex items-center justify-center gap-1 bg-sky-bg text-sky font-bold border border-sky-border"
-            >
-              <Sparkles size={13} /> AI로 지도 위치 · 일정 · 항공편 · 메모 자동 생성
-            </button>
-          )}
-          {days?.length > 0 && (
-            <p className="text-[12px] mb-2 text-sky">
-              {days.length}일 일정이 자동 생성됐어요. 저장하면 일정에 반영됩니다.
-            </p>
-          )}
-          {imageUrl && (
-            <LazyImage
-              key={imageUrl}
-              src={imageUrl}
-              alt="지역 대표 이미지 미리보기"
-              className="w-full rounded-lg mb-2"
-              style={{ height: 160 }}
-            />
-          )}
+      <label className="block text-[12px] mb-1 text-muted">
+        지역 음식 (선택, 쉼표로 구분)
+      </label>
+      <input
+        value={foodsText}
+        onChange={(e) => setFoodsText(e.target.value)}
+        placeholder="예: 벚꽃새우 덮밥, 우나기 파이"
+        className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
+      />
+      {aiFoods?.some((f) => f.imageUrl) && (
+        <p className="text-[11px] mb-2 text-faint">
+          이름을 그대로 두면 AI가 찾은 사진도 같이 저장돼요. 새로 적거나 고치면 사진 없이 저장됩니다.
+        </p>
+      )}
 
+      <button
+        onClick={() => setShowMore((v) => !v)}
+        className="w-full text-[12px] rounded-lg py-1.5 mb-2 flex items-center justify-center gap-1 text-muted font-bold border border-slate-border"
+      >
+        일본어 이름 · 항공편 · 메모 {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+
+      {showMore && (
+        <>
           <label className="block text-[12px] mb-1 text-muted">
             일본어 이름 (선택)
           </label>
@@ -271,41 +312,6 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             placeholder="예: 別府"
             className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
-
-          <label className="block text-[12px] mb-1 text-muted">
-            지도 위치 (필수) — AI 생성 시 자동으로 찍히며, 아래 지도를 클릭해서 직접 조정할 수도 있어요
-          </label>
-          <LocationPicker point={point} onPick={setPoint} />
-
-          <label className="block text-[12px] mb-1 text-muted">
-            가볼만한 곳 (선택, 쉼표로 구분)
-          </label>
-          <input
-            value={spotsText}
-            onChange={(e) => setSpotsText(e.target.value)}
-            placeholder="예: 벳푸 지옥온천, 유노하나 마을"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
-          />
-          {aiSpots?.length > 0 && (
-            <p className="text-[11px] mb-2 text-faint">
-              이름을 그대로 두면 AI가 찾은 위치도 같이 저장돼요. 새로 적거나 고치면 위치 없이 저장됩니다.
-            </p>
-          )}
-
-          <label className="block text-[12px] mb-1 text-muted">
-            지역 음식 (선택, 쉼표로 구분)
-          </label>
-          <input
-            value={foodsText}
-            onChange={(e) => setFoodsText(e.target.value)}
-            placeholder="예: 벚꽃새우 덮밥, 우나기 파이"
-            className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
-          />
-          {aiFoods?.some((f) => f.imageUrl) && (
-            <p className="text-[11px] mb-2 text-faint">
-              이름을 그대로 두면 AI가 찾은 사진도 같이 저장돼요. 새로 적거나 고치면 사진 없이 저장됩니다.
-            </p>
-          )}
 
           <label className="block text-[12px] mb-1 text-muted">
             항공편 정보 (선택)
@@ -338,25 +344,8 @@ export default function AddRegionForm({ onClose, onAdded, tripId }) {
             rows={3}
             className="w-full text-sm rounded px-2 py-1.5 mb-2 border border-sky-border"
           />
-        </div>
-
-        <div className="p-4 pt-3 shrink-0">
-          {error && (
-            <p className="text-[12px] mb-2 text-danger">
-              {error}
-            </p>
-          )}
-
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="w-full text-sm rounded-lg py-2 bg-sky text-white font-bold"
-            style={{ opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? "저장 중..." : "추가하기"}
-          </button>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }

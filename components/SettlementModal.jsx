@@ -60,10 +60,17 @@ function computeTransfers(balances) {
 export default function SettlementModal({ budget, participants, canEdit, onAddItem, onDeleteItem, onSaveParticipants, onClose }) {
   const list = participants || [];
 
+  // FoodsPanel/SpotsPanel과 같은 패턴: 평소엔 목록만 보이고, + 버튼을 눌러야 "새 비용
+  // 추가" 폼이 펼쳐집니다. 예전엔 이 폼 전체(통화 선택까지)가 항상 펼쳐진 채로 참가자/
+  // 목록/정산요약과 함께 쌓여 있어서 커피값 하나 적으려 해도 스크롤이 길었습니다.
+  const [adding, setAdding] = useState(false);
   const [newParticipant, setNewParticipant] = useState("");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("KRW");
+  // 통화 선택 버튼도 기본으로 숨겨둡니다 — 대부분 원화로 적을 텐데 5개 버튼이 항상
+  // 보이면 그 자체로 시각적 소음입니다. 원화가 아닌 통화가 필요할 때만 펼칩니다.
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [payer, setPayer] = useState("");
   const [splitWith, setSplitWith] = useState(list);
   const [splitMode, setSplitMode] = useState("equal");
@@ -119,10 +126,12 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
     setName("");
     setAmount("");
     setCurrency("KRW");
+    setShowCurrencyPicker(false);
     setPayer("");
     setSplitWith(list);
     setSplitMode("equal");
     setCustomAmounts({});
+    setAdding(false);
   }
 
   // name/amount/currency/payer 등 이 값과 무관한 입력에 타이핑할 때마다 다시 돌지
@@ -133,7 +142,31 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
   );
 
   return (
-    <Modal icon={Wallet} title="정산" onClose={onClose}>
+    <Modal
+      icon={Wallet}
+      title="정산"
+      onClose={onClose}
+      headerExtra={
+        canEdit &&
+        list.length > 0 && (
+          <button onClick={() => setAdding((v) => !v)} aria-label="비용 추가" className="shrink-0">
+            <Plus size={23} color={adding ? SKY : "#5B7A90"} />
+          </button>
+        )
+      }
+      footer={
+        adding && (
+          <button
+            onClick={submitAdd}
+            disabled={currency !== "KRW" && !rates?.[currency]}
+            style={{ opacity: currency !== "KRW" && !rates?.[currency] ? 0.6 : 1 }}
+            className="w-full rounded-lg py-2 text-sm flex items-center justify-center gap-1 bg-sky text-white font-bold"
+          >
+            <Plus size={13} /> 추가
+          </button>
+        )
+      }
+    >
           {/* 참가자 */}
           <div className="mb-3">
             <div className="flex items-center gap-1 mb-1.5 text-[12px] text-muted font-bold">
@@ -228,13 +261,14 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
           </div>
 
           {/* 새 비용 추가 */}
-          {canEdit && list.length > 0 && (
+          {canEdit && list.length > 0 && adding && (
             <div className="rounded-lg p-2.5 mb-3 bg-slate-bg border border-slate-border">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="항목 (예: 항공권)"
+                  autoFocus
                   className="flex-1 min-w-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
                 <input
@@ -245,21 +279,30 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   className="w-20 shrink-0 text-[12px] rounded px-2 py-1.5 border border-sky-border"
                 />
               </div>
-              <div className="flex rounded overflow-hidden border border-sky-border mb-1.5">
-                {["KRW", ...CURRENCIES.map((c) => c.code)].map((code) => (
-                  <button
-                    key={code}
-                    onClick={() => setCurrency(code)}
-                    className="flex-1 text-[11px] py-1.5 font-bold"
-                    style={{
-                      background: currency === code ? SKY : "#FFFFFF",
-                      color: currency === code ? "#FFFFFF" : MUTED,
-                    }}
-                  >
-                    {code === "KRW" ? "원" : CURRENCIES.find((c) => c.code === code).label}
-                  </button>
-                ))}
-              </div>
+              {showCurrencyPicker ? (
+                <div className="flex rounded overflow-hidden border border-sky-border mb-1.5">
+                  {["KRW", ...CURRENCIES.map((c) => c.code)].map((code) => (
+                    <button
+                      key={code}
+                      onClick={() => setCurrency(code)}
+                      className="flex-1 text-[11px] py-1.5 font-bold"
+                      style={{
+                        background: currency === code ? SKY : "#FFFFFF",
+                        color: currency === code ? "#FFFFFF" : MUTED,
+                      }}
+                    >
+                      {code === "KRW" ? "원" : CURRENCIES.find((c) => c.code === code).label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCurrencyPicker(true)}
+                  className="text-[11px] mb-1.5 text-sky font-bold"
+                >
+                  통화 변경 (달러 · 엔 · 위안 · 동)
+                </button>
+              )}
               {currency !== "KRW" && (
                 <p className="text-[11px] mb-1.5" style={{ color: rates?.[currency] ? FAINT : DANGER }}>
                   {rates?.[currency]
@@ -363,15 +406,6 @@ export default function SettlementModal({ budget, participants, canEdit, onAddIt
                   </div>
                 </div>
               )}
-
-              <button
-                onClick={submitAdd}
-                disabled={currency !== "KRW" && !rates?.[currency]}
-                style={{ opacity: currency !== "KRW" && !rates?.[currency] ? 0.6 : 1 }}
-                className="w-full rounded-lg py-1.5 text-[12px] flex items-center justify-center gap-1 bg-sky text-white font-bold"
-              >
-                <Plus size={13} /> 추가
-              </button>
             </div>
           )}
 
